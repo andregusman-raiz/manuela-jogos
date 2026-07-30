@@ -484,7 +484,9 @@ test("guardar de novo e trocar de página não duplicam na galeria", async ({ pa
     page.evaluate(
       () =>
         new Promise<number>((resolve) => {
-          const req = indexedDB.open("manu-jogos", 1);
+          // SEM número de versão: pedir versão antiga após o upgrade do banco
+          // (v2, gavetas dos jogos) dá VersionError e devolvia -1 aqui
+          const req = indexedDB.open("manu-jogos");
           req.onsuccess = () => {
             const g = req.result.transaction("atelie", "readonly").objectStore("atelie").getAll();
             g.onsuccess = () =>
