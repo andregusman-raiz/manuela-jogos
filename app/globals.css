@@ -30,6 +30,11 @@
   --radius-bolha: 1.75rem;
 }
 
+/* "Celular deitado": criança gira o aparelho e a área de desenho não pode
+   virar uma faixa. Não é só orientação — em desktop landscape a tela é alta e o
+   layout de retrato continua certo. */
+@custom-variant deitado (@media (orientation: landscape) and (max-height: 560px));
+
 @layer base {
   html {
     height: 100%;

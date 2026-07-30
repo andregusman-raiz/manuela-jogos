@@ -302,7 +302,7 @@ export function Atelie() {
 
   return (
     <main className="flex h-[100dvh] flex-col overflow-hidden">
-      <header className="flex h-16 shrink-0 items-center gap-2 px-2 pt-[env(safe-area-inset-top)]">
+      <header className="flex h-16 shrink-0 items-center gap-2 px-2 pt-[env(safe-area-inset-top)] deitado:h-12">
         <Link
           href="/"
           aria-label="voltar para os jogos"
@@ -347,6 +347,7 @@ export function Atelie() {
         </div>
       </header>
 
+      <div className="flex min-h-0 flex-1 flex-col deitado:flex-row">
       <TelaDesenho
         ferramenta={ferramenta}
         aoMotorPronto={aoMotorPronto}
@@ -369,6 +370,7 @@ export function Atelie() {
         aoEscolher={(hex) => setFerramenta((f) => ({ ...f, cor: hex }))}
         aoAbrirExtras={() => setGaveta("cores")}
       />
+      </div>
 
       <BarraFerramentas
         ferramenta={ferramenta}

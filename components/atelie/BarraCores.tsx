@@ -18,9 +18,11 @@ type Props = {
  */
 export function BarraCores({ cor, aoEscolher, aoAbrirExtras }: Props) {
   return (
-    <div className="flex items-center gap-2 bg-manu-nuvem/95 px-2 py-2">
+    // Deitado, a fita vira duas colunas à direita: o canvas ganha a altura toda
+    // e ainda dá para ver 8 cores sem rolar (uma coluna só mostrava 3).
+    <div className="flex items-center gap-2 bg-manu-nuvem/95 px-2 py-2 deitado:w-32 deitado:flex-col deitado:px-1">
       <div
-        className="flex flex-1 items-center gap-2 overflow-x-auto pb-1"
+        className="flex flex-1 items-center gap-2 overflow-x-auto pb-1 deitado:grid deitado:w-full deitado:grid-cols-2 deitado:content-start deitado:justify-items-center deitado:overflow-x-hidden deitado:overflow-y-auto deitado:pb-0"
         style={{ scrollbarWidth: "none" }}
       >
         {CORES_PRINCIPAIS.map((c) => {
