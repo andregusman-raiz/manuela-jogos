@@ -134,19 +134,22 @@ test("compartilhar passa pelo portão parental", async ({ page }) => {
   const portao = page.getByRole("dialog", { name: "Precisa de um adulto" });
   await expect(portao).toBeVisible();
 
-  const conta = await portao.locator("p").filter({ hasText: "+" }).first().textContent();
-  const [, a, b] = conta?.match(/(\d+)\s*\+\s*(\d+)/) ?? [];
+  const conta = await portao.locator("p").filter({ hasText: "×" }).first().textContent();
+  const [, a, b] = conta?.match(/(\d+)\s*×\s*(\d+)/) ?? [];
+  // tabuada alta: barreira real para o público de 8-10, trivial para o adulto
+  expect(Number(a)).toBeGreaterThanOrEqual(6);
+  expect(Number(b)).toBeGreaterThanOrEqual(6);
 
   // resposta errada é recusada e a conta muda
-  const errada = String(Number(a) + Number(b) + 1);
+  const errada = String(Number(a) * Number(b) + 1);
   for (const d of errada) await portao.getByLabel(d, { exact: true }).click();
   await portao.getByLabel("confirmar").click();
   await expect(portao).toContainText("Não foi essa");
 
-  // criança sem saber somar não passa daqui; o adulto passa
-  const conta2 = await portao.locator("p").filter({ hasText: "+" }).first().textContent();
-  const [, c, d2] = conta2?.match(/(\d+)\s*\+\s*(\d+)/) ?? [];
-  for (const digito of String(Number(c) + Number(d2))) {
+  // criança sem saber a tabuada não passa daqui; o adulto passa
+  const conta2 = await portao.locator("p").filter({ hasText: "×" }).first().textContent();
+  const [, c, d2] = conta2?.match(/(\d+)\s*×\s*(\d+)/) ?? [];
+  for (const digito of String(Number(c) * Number(d2))) {
     await portao.getByLabel(digito, { exact: true }).click();
   }
   await portao.getByLabel("confirmar").click();

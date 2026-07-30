@@ -12,10 +12,18 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     baseURL: "http://localhost:3006",
-    ...devices["Pixel 7"],
-    isMobile: true,
-    hasTouch: true,
   },
+  projects: [
+    {
+      name: "android",
+      use: { ...devices["Pixel 7"], isMobile: true, hasTouch: true },
+    },
+    {
+      // O público vai abrir isto no Safari do iPhone: WebKit não é opcional.
+      name: "iphone",
+      use: { ...devices["iPhone 13"], isMobile: true, hasTouch: true },
+    },
+  ],
   webServer: {
     command: "bun run build && bun run start -p 3006",
     url: "http://localhost:3006",
