@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Tokens Manuela Jogos — cores extraídas da arte da Manuela
+   (valores medidos em public/manu/paleta-extraida.json)
+   A UI é creme/neutra de propósito: cor forte só em destaque e comemoração,
+   para nunca competir com o desenho da criança.
+--------------------------------------------------------------------------- */
+@theme {
+  --color-manu-rosa: #f09bc0;
+  --color-manu-rosa-forte: #d9739f;
+  --color-manu-ceu: #aedede;
+  --color-manu-ceu-claro: #dcf2f2;
+  --color-manu-sol: #f8de7b;
+  --color-manu-sol-forte: #edc23f;
+  --color-manu-pele: #eaa266;
+  --color-manu-cacau: #2e1408;
+  --color-manu-cacau-suave: #6b4630;
+  --color-manu-nuvem: #fff9f3;
+  --color-manu-papel: #ffffff;
+
+  --font-titulo: var(--font-baloo), system-ui, sans-serif;
+  --font-corpo: var(--font-nunito), system-ui, sans-serif;
+
+  /* Alvo de toque infantil: NN/g recomenda ~2cm x 2cm para criança
+     (4x o alvo adulto). 72px é o piso; 88px nos botões principais. */
+  --spacing-toque: 4.5rem;
+  --spacing-toque-xl: 5.5rem;
+
+  --radius-bolha: 1.75rem;
+}
+
+@layer base {
+  html {
+    height: 100%;
+    /* mata pull-to-refresh e bounce: criança perde o desenho puxando a tela */
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100%;
+    background: var(--color-manu-nuvem);
+    color: var(--color-manu-cacau);
+    font-family: var(--font-corpo);
+    overscroll-behavior: none;
+    /* sem seleção de texto acidental durante o arraste do desenho */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+  }
+
+  h1,
+  h2,
+  h3,
+  button {
+    font-family: var(--font-titulo);
+  }
+
+  button {
+    touch-action: manipulation;
+  }
+}
+
+@utility bolha {
+  /* Botão-bolha: o átomo da UI infantil.
+     Alvo grande, sombra sólida embaixo e "afunda" ao toque. */
+  display: grid;
+  place-items: center;
+  min-width: var(--spacing-toque);
+  min-height: var(--spacing-toque);
+  border-radius: var(--radius-bolha);
+  box-shadow: 0 4px 0 0 rgb(0 0 0 / 0.12);
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease;
+
+  &:active {
+    transform: translateY(3px) scale(0.97);
+    box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.12);
+  }
+}
+
+@utility tela-desenho {
+  /* Canvas: o navegador não pode interceptar NENHUM gesto aqui. */
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+@keyframes manu-pulinho {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  30% {
+    transform: translateY(-6%) rotate(-2deg);
+  }
+  60% {
+    transform: translateY(0) rotate(2deg);
+  }
+}
+
+@keyframes manu-brilho {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes manu-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes manu-bandeja {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.anima-pulinho {
+  animation: manu-pulinho 2.4s ease-in-out infinite;
+}
+
+.anima-brilho {
+  animation: manu-brilho 1.8s ease-in-out infinite;
+}
+
+.anima-entrada {
+  animation: manu-entrada 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.anima-bandeja {
+  animation: manu-bandeja 260ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
