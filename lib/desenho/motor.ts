@@ -231,7 +231,17 @@ export class Motor {
     if (!actx) return;
     actx.drawImage(this.camadas.fundo, 0, 0);
     actx.drawImage(this.camadas.arte, 0, 0);
-    preencherRegiao(actx, this.ctx("arte"), x, y, cor, undefined, this.imagemColorir_ !== null);
+    // a folha impressa vive na camada de fundo; é ela que diz onde está o
+    // contorno, e nunca a arte por cima (senão tinta escura vira "traço")
+    preencherRegiao(
+      actx,
+      this.ctx("arte"),
+      x,
+      y,
+      cor,
+      undefined,
+      this.imagemColorir_ !== null ? this.ctx("fundo") : undefined,
+    );
   }
 
   /**

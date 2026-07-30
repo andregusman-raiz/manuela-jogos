@@ -39,6 +39,10 @@ const RAIO_ESCAPE = 24;
  * dedo acerta linha o tempo todo. Sem isto o balde toma a linha como região e
  * pinta a TEIA DE CONTORNOS inteira — o desenho fica riscado de cor em vez de
  * colorido, que foi o que se viu nas páginas Bobbie Goods.
+ *
+ * Recebe SEMPRE o buffer da folha impressa (só as linhas), nunca o achatado:
+ * tinta escura da criança não é contorno, e confundir as duas coisas tranca a
+ * região pintada — ver o comentário em preencherRegiao.
  */
 function papelMaisProximo(
   buf: Uint8ClampedArray,
@@ -70,9 +74,13 @@ function papelMaisProximo(
  * @param origem   contexto ACHATADO (fundo + arte) — é nele que se decide o que
  *                 é "a mesma cor", senão o balde escaparia pelo transparente.
  * @param destino  contexto onde a tinta é aplicada (camada de arte).
- * @param evitarTraco  livro de colorir: dedo no contorno pinta a região ao lado.
- *                 No papel em branco fica desligado — lá pintar dentro do próprio
- *                 risco é intenção legítima da criança.
+ * @param folha    camada com APENAS as linhas impressas da página de colorir.
+ *                 Só ela decide o que é contorno; passar o achatado aqui seria um
+ *                 bug: metade da paleta (verde, marrom, azul escuro…) tem os três
+ *                 canais abaixo do limiar, então uma região já pintada com essas
+ *                 cores passaria a ser lida como traço e nunca mais aceitaria
+ *                 outra cor. Ausente no papel em branco, onde pintar dentro do
+ *                 próprio risco é intenção legítima da criança.
  * @returns        true se pintou algo.
  */
 export function preencherRegiao(
@@ -82,7 +90,7 @@ export function preencherRegiao(
   y: number,
   corHex: string,
   tolerancia = 40,
-  evitarTraco = false,
+  folha?: CanvasRenderingContext2D,
 ): boolean {
   const largura = origem.canvas.width;
   const altura = origem.canvas.height;
@@ -93,11 +101,13 @@ export function preencherRegiao(
   const dados = origem.getImageData(0, 0, largura, altura);
   const buf = dados.data;
 
-  if (evitarTraco) {
+  if (folha) {
+    const linhas = folha.getImageData(0, 0, largura, altura).data;
     const i = (py * largura + px) * 4;
-    const noTraco = buf[i] <= TRACO_MAX && buf[i + 1] <= TRACO_MAX && buf[i + 2] <= TRACO_MAX;
+    const noTraco =
+      linhas[i] <= TRACO_MAX && linhas[i + 1] <= TRACO_MAX && linhas[i + 2] <= TRACO_MAX;
     if (noTraco) {
-      const saida = papelMaisProximo(buf, largura, altura, px, py);
+      const saida = papelMaisProximo(linhas, largura, altura, px, py);
       // sem papel por perto o dedo está num traço grosso: não pinta nada, que é
       // melhor do que espalhar cor pelo contorno e sujar o desenho todo
       if (!saida) return false;

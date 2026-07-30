@@ -316,6 +316,61 @@ test("balde aceita o contato largo de um dedo de verdade", async ({ page }) => {
   expect(await pixelsPintados(page)).toBeGreaterThan(1000);
 });
 
+test("região pintada troca de cor, inclusive depois de uma cor escura", async ({ page }) => {
+  await page.getByLabel("escolher desenho para colorir").click();
+  await page.getByLabel("Bobbie Goods").click();
+  await page.waitForTimeout(400);
+  await page.locator("button:has(img)").first().dispatchEvent("click");
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const fundo = [...document.querySelectorAll("canvas")][0] as HTMLCanvasElement;
+          const ctx = fundo.getContext("2d");
+          if (!ctx) return 0;
+          const d = ctx.getImageData(0, 0, fundo.width, fundo.height).data;
+          let escuros = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i] < 100) escuros++;
+          return escuros;
+        }),
+      { timeout: 5000 },
+    )
+    .toBeGreaterThan(500);
+
+  const caixa = await page.locator(TELA).boundingBox();
+  if (!caixa) throw new Error("sem canvas");
+  const alvoX = caixa.x + caixa.width * 0.35;
+  const alvoY = caixa.y + caixa.height * 0.28;
+  const corNoAlvo = () =>
+    page.evaluate(
+      ([x, y]) => {
+        const arte = [...document.querySelectorAll("canvas")][1] as HTMLCanvasElement;
+        const r = arte.getBoundingClientRect();
+        const cx = Math.round(((x - r.left) / r.width) * arte.width);
+        const cy = Math.round(((y - r.top) / r.height) * arte.height);
+        const d = arte.getContext("2d")!.getImageData(cx, cy, 1, 1).data;
+        return `${d[0]},${d[1]},${d[2]}`;
+      },
+      [alvoX, alvoY] as [number, number],
+    );
+
+  // Verde, marrom e azul escuro têm os três canais abaixo do limiar de traço.
+  // Se a tinta da criança for confundida com o contorno da folha, a primeira
+  // cor escura TRANCA a região e nenhuma outra entra depois.
+  const esperado: Record<string, string> = {
+    verde: "47,168,79",
+    amarelo: "255,198,26",
+    marrom: "107,70,48",
+    vermelho: "229,53,43",
+  };
+  for (const [nome, rgb] of Object.entries(esperado)) {
+    await page.getByLabel(nome, { exact: true }).click();
+    await page.waitForTimeout(120);
+    await tocarComDedo(page, alvoX, alvoY, 90);
+    expect(await corNoAlvo(), `a região não aceitou ${nome}`).toBe(rgb);
+  }
+});
+
 test("traço recusa palma apoiada, mas não o dedo", async ({ page }) => {
   const caixa = await page.locator(TELA).boundingBox();
   if (!caixa) throw new Error("sem canvas");
