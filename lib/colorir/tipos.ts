@@ -40,7 +40,8 @@ export type CategoriaColorir =
   | "espaco"
   | "esportes"
   | "natureza"
-  | "veiculos";
+  | "veiculos"
+  | "bobbie-goods";
 
 export type Pagina = {
   slug: string;
@@ -78,6 +79,7 @@ export const CATEGORIAS: Array<{ id: CategoriaColorir; nome: string; emoji: stri
   { id: "esportes", nome: "Esportes", emoji: "⚽" },
   { id: "natureza", nome: "Natureza", emoji: "🌸" },
   { id: "veiculos", nome: "Veículos", emoji: "🚗" },
+  { id: "bobbie-goods", nome: "Bobbie Goods", emoji: "🧸" },
 ];
 
 export const COR_CONTORNO = "#2E1408";
