@@ -30,7 +30,12 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
         const nomes = (await caches.keys()).filter((n) => n.startsWith("manu-app-"));
         if (nomes.length) {
           const cache = await caches.open(nomes[0]);
-          if ((await cache.match("/desenhar")) && (await cache.match("/contas"))) return true;
+          if (
+            (await cache.match("/desenhar")) &&
+            (await cache.match("/contas")) &&
+            (await cache.match("/memoria"))
+          )
+            return true;
         }
         await new Promise((r) => setTimeout(r, 100));
       }
