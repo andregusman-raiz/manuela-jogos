@@ -7,7 +7,7 @@ export default function Hub() {
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
       <header className="relative flex items-end justify-between gap-2">
         <div className="pb-2">
-          <p className="font-titulo text-lg text-manu-rosa-forte">Bem-vinda!</p>
+          <p className="font-titulo text-lg text-manu-rosa-texto">Bem-vinda!</p>
           <h1 className="font-titulo text-4xl leading-none text-manu-cacau">
             Manuela
             <br />
@@ -37,7 +37,7 @@ export default function Hub() {
         ))}
       </div>
 
-      <p className="mt-auto pt-3 text-center text-[11px] text-manu-cacau-suave/70">
+      <p className="mt-auto pt-3 text-center text-xs text-manu-cacau-suave">
         Sem anúncios, sem cadastro. Tudo fica só neste aparelho.
       </p>
     </main>

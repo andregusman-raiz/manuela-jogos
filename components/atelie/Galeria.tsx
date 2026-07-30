@@ -6,6 +6,7 @@ import type { Desenho } from "@/lib/desenho/tipos";
 import { BotaoSegurar } from "@/components/ui-kids/BotaoSegurar";
 import { Manu } from "@/components/ui-kids/Manu";
 import { feedback, tocar } from "@/lib/som";
+import { Icone } from "@/components/ui-kids/Icone";
 
 type Props = {
   aberta: boolean;
@@ -45,9 +46,9 @@ export function Galeria({
           aria-label="voltar a desenhar"
           onPointerDown={() => feedback("desfazer")}
           onClick={aoFechar}
-          className="bolha min-h-14 min-w-14 bg-manu-papel text-2xl ring-2 ring-manu-cacau/10"
+          className="bolha min-h-14 min-w-14 bg-manu-papel ring-2 ring-manu-cacau/10"
         >
-          ⬅️
+          <Icone nome="voltar" tamanho={28} />
         </button>
         <h2 className="font-titulo text-2xl text-manu-cacau">Meus desenhos</h2>
       </header>
@@ -93,21 +94,21 @@ export function Galeria({
                   aria-label="enviar este desenho"
                   onPointerDown={() => feedback("toque")}
                   onClick={() => aoCompartilhar(d)}
-                  className="bolha min-h-12 min-w-12 bg-manu-ceu-claro text-xl"
+                  className="bolha min-h-12 min-w-12 bg-manu-ceu-claro"
                 >
-                  📤
+                  <Icone nome="enviar" tamanho={24} />
                 </button>
                 <BotaoSegurar
                   rotulo="segure para apagar este desenho"
                   duracao={2000}
-                  className="min-h-12 min-w-12 !bg-manu-nuvem text-xl"
+                  className="min-h-12 min-w-12 !bg-manu-nuvem"
                   onConfirmar={async () => {
                     await apagarDaGaleria(d.id);
                     tocar("apagar");
                     aoRecarregar();
                   }}
                 >
-                  🗑️
+                  <Icone nome="lixeira" tamanho={24} />
                 </BotaoSegurar>
               </div>
             </div>

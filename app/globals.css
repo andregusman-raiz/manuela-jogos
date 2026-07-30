@@ -9,6 +9,9 @@
 @theme {
   --color-manu-rosa: #f09bc0;
   --color-manu-rosa-forte: #d9739f;
+  /* rosa para TEXTO sobre o creme: o rosa-forte fica em ~2.9:1 de contraste,
+     este chega a ~4.3:1 (suficiente para os títulos grandes onde é usado) */
+  --color-manu-rosa-texto: #c2517f;
   --color-manu-ceu: #aedede;
   --color-manu-ceu-claro: #dcf2f2;
   --color-manu-sol: #f8de7b;
@@ -65,6 +68,13 @@
 
   button {
     touch-action: manipulation;
+  }
+
+  /* teclado/switch: anel rosa bem visível, sem afetar o toque */
+  :focus-visible {
+    outline: 3px solid var(--color-manu-rosa-forte);
+    outline-offset: 2px;
+    border-radius: 4px;
   }
 }
 
@@ -138,6 +148,46 @@
   }
 }
 
+/* convite de descoberta: halo pulsante SEM transform — animar escala aqui
+   deixaria o alvo instável para toque (e para automação de teste) */
+@keyframes manu-chama {
+  0%,
+  100% {
+    box-shadow:
+      0 4px 0 0 rgb(0 0 0 / 0.12),
+      0 0 0 0 rgb(237 194 63 / 0.7);
+  }
+  50% {
+    box-shadow:
+      0 4px 0 0 rgb(0 0 0 / 0.12),
+      0 0 0 10px rgb(237 194 63 / 0);
+  }
+}
+
+.anima-chama {
+  animation: manu-chama 1.6s ease-out infinite;
+}
+
+/* balanço de "não": responde erro sem palavra nenhuma */
+@keyframes manu-nao {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-7px) rotate(-3deg);
+  }
+  40% {
+    transform: translateX(6px) rotate(2deg);
+  }
+  60% {
+    transform: translateX(-4px) rotate(-1deg);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
 .anima-pulinho {
   animation: manu-pulinho 2.4s ease-in-out infinite;
 }
@@ -152,6 +202,10 @@
 
 .anima-bandeja {
   animation: manu-bandeja 260ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+.anima-nao {
+  animation: manu-nao 420ms ease-in-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {

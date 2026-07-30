@@ -18,7 +18,8 @@ export type Efeito =
   | "desfazer"
   | "apagar" // apagou tudo (aviso, não punição)
   | "salvar" // comemoração
-  | "abrir"; // entrou no jogo
+  | "abrir" // entrou no jogo
+  | "vazio"; // "ainda não tem nada" — o não-verbal do app
 
 const CHAVE_MUDO = "manu:mudo";
 
@@ -118,6 +119,11 @@ const RECEITAS: Record<Efeito, Nota[]> = {
   abrir: [
     { hz: 659, inicio: 0, dur: 0.1, vol: 0.16 },
     { hz: 880, inicio: 0.09, dur: 0.18, vol: 0.16 },
+  ],
+  // duas notas descendo, curtinhas: o "hã-hã" de negar sem bronca
+  vazio: [
+    { hz: 392, inicio: 0, dur: 0.09, tipo: "triangle", vol: 0.16 },
+    { hz: 311, inicio: 0.11, dur: 0.13, tipo: "triangle", vol: 0.16 },
   ],
 };
 
