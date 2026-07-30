@@ -76,12 +76,15 @@ export function formaParaSvg(f: Forma): string {
 /**
  * SVG completo em texto, com as cores já aplicadas — é o que vai para o PNG
  * exportado (data URL, sem sair do aparelho).
+ *
+ * Região sem cor fica TRANSPARENTE, como na tela: o SVG entra por cima da arte
+ * na exportação, e branco opaco aqui cobriria o que a criança desenhou por baixo.
  */
 export function paginaParaSvg(pagina: Pagina, cores: Record<string, string>): string {
   const regioes = pagina.regioes
     .map(
       (r) =>
-        `<g fill="${cores[r.id] ?? "#FFFFFF"}">${r.formas.map(formaParaSvg).join("")}</g>`,
+        `<g fill="${cores[r.id] ?? "transparent"}">${r.formas.map(formaParaSvg).join("")}</g>`,
     )
     .join("");
   const detalhes = (pagina.detalhes ?? [])

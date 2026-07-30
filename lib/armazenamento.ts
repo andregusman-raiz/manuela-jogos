@@ -71,9 +71,20 @@ export async function apagarRascunho(): Promise<void> {
   await comLoja("readwrite", (loja) => loja.delete(ID_RASCUNHO));
 }
 
-export async function guardarNaGaleria(desenho: Desenho): Promise<string> {
-  const id = `d-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  await comLoja("readwrite", (loja) => loja.put({ ...desenho, id }));
+/**
+ * Guarda na galeria. Com `idExistente`, ATUALIZA aquele item em vez de criar
+ * outro — é o que impede a galeria de encher de cópias quando a criança guarda
+ * duas vezes ou continua um desenho já guardado.
+ */
+export async function guardarNaGaleria(desenho: Desenho, idExistente?: string): Promise<string> {
+  const id =
+    idExistente && idExistente !== ID_RASCUNHO
+      ? idExistente
+      : `d-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  // galeriaId é metadado do rascunho; num item da galeria seria auto-referência
+  const { galeriaId: _descartado, ...limpo } = desenho;
+  void _descartado;
+  await comLoja("readwrite", (loja) => loja.put({ ...limpo, id }));
   return id;
 }
 

@@ -69,12 +69,14 @@ describe("páginas do livro de colorir", () => {
 describe("exportação para SVG", () => {
   const gato = buscarPagina("gato")!;
 
-  it("aplica a cor pintada e deixa o resto branco", () => {
+  it("aplica a cor pintada e deixa o resto transparente", () => {
     const svg = paginaParaSvg(gato, { cabeca: "#FF0000" });
     expect(svg).toContain('viewBox="0 0 200 200"');
     expect(svg).toContain('fill="#FF0000"');
-    // regiões não pintadas viram branco no PNG (papel), não transparente
-    expect(svg).toContain('fill="#FFFFFF"');
+    // região não pintada é transparente: na exportação o SVG entra POR CIMA da
+    // arte (como na tela), e branco opaco cobriria o desenho da criança
+    expect(svg).toContain('fill="transparent"');
+    expect(svg).not.toContain('fill="#FFFFFF"');
   });
 
   it("mantém os detalhes sem preenchimento (olho não é pintável)", () => {

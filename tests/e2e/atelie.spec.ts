@@ -153,6 +153,47 @@ test("compartilhar passa pelo portão parental", async ({ page }) => {
   await expect(portao).toBeHidden();
 });
 
+test("guardar de novo e trocar de página não duplicam na galeria", async ({ page }) => {
+  const contarGaleria = () =>
+    page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          const req = indexedDB.open("manu-jogos", 1);
+          req.onsuccess = () => {
+            const g = req.result.transaction("atelie", "readonly").objectStore("atelie").getAll();
+            g.onsuccess = () =>
+              resolve((g.result as { id: string }[]).filter((d) => d.id !== "rascunho").length);
+          };
+          req.onerror = () => resolve(-1);
+        }),
+    );
+
+  await riscar(page);
+
+  // guardar 2x sem mudar nada = 1 item só
+  await page.getByLabel("guardar meu desenho").click();
+  await expect(page.getByText("Guardado!")).toBeVisible();
+  await page.getByLabel("guardar meu desenho").click();
+  await expect(page.getByText("Já está guardado!")).toBeVisible();
+  expect(await contarGaleria()).toBe(1);
+
+  // ir colorir logo depois de guardar também não cria segunda cópia
+  await page.getByLabel("escolher desenho para colorir").click();
+  await page.getByLabel("Gatinho").click();
+  await page.waitForTimeout(500);
+  expect(await contarGaleria()).toBe(1);
+
+  // continuar um desenho da galeria e guardar ATUALIZA o original
+  await page.getByLabel("mais coisas: carimbos, formas, espelho e fundo").click();
+  await page.getByLabel("meus desenhos").click();
+  await page.locator('[aria-label="abrir este desenho"]').first().click();
+  await page.waitForTimeout(400);
+  await riscar(page, 80);
+  await page.getByLabel("guardar meu desenho").click();
+  await expect(page.getByText("Guardado!")).toBeVisible();
+  expect(await contarGaleria()).toBe(1);
+});
+
 test("guardar coloca o desenho na galeria com miniatura", async ({ page }) => {
   await riscar(page);
   await page.getByLabel("guardar meu desenho").click();

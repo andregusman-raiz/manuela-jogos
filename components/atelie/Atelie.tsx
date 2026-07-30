@@ -13,7 +13,8 @@ import { BotaoSegurar } from "@/components/ui-kids/BotaoSegurar";
 import { Confete } from "@/components/ui-kids/Confete";
 import { Manu } from "@/components/ui-kids/Manu";
 import { PortaoParental } from "@/components/ui-kids/PortaoParental";
-import { Motor } from "@/lib/desenho/motor";
+import { Motor, renderizarDesenhoPNG } from "@/lib/desenho/motor";
+import { regioesDeOperacoes } from "@/lib/desenho/documento";
 import {
   FERRAMENTA_INICIAL,
   PINCEIS_BASICOS,
@@ -109,11 +110,27 @@ export function Atelie() {
   /** 0 = ainda não marcado; o carimbo nasce no primeiro uso, nunca no render. */
   const criadoEm = useRef<number>(0);
   const timerSalvar = useRef<number | null>(null);
+  /**
+   * Identidade do desenho na galeria + se mudou desde o último guardar.
+   * É o que impede a galeria de encher de cópias: guardar de novo ATUALIZA o
+   * mesmo item, e trocar de página não re-salva o que já está salvo.
+   */
+  const idGaleria = useRef<string | null>(null);
+  const sujo = useRef(false);
 
   const marcarCriacao = useCallback(() => {
     if (criadoEm.current === 0) criadoEm.current = Date.now();
     return criadoEm.current;
   }, []);
+
+  /** Rascunho sempre carrega o vínculo com a galeria (sobrevive ao reload). */
+  const rascunhoAtual = useCallback(
+    (m: Motor) => ({
+      ...m.paraDesenho("rascunho", marcarCriacao()),
+      galeriaId: idGaleria.current ?? undefined,
+    }),
+    [marcarCriacao],
+  );
 
   // ----------------------------------------------------------------- motor
 
@@ -130,6 +147,10 @@ export function Atelie() {
     void carregarRascunho().then((rascunho) => {
       if (!rascunho || rascunho.operacoes.length === 0) return;
       criadoEm.current = rascunho.criadoEm;
+      idGaleria.current = rascunho.galeriaId ?? null;
+      // não sabemos se o rascunho diverge do item da galeria; assumir que sim
+      // é seguro (o pior caso é um guardar atualizar com o mesmo conteúdo)
+      sujo.current = true;
       m.carregar(rascunho);
       setPagina(buscarPagina(rascunho.colorir));
     });
@@ -145,11 +166,12 @@ export function Atelie() {
   const aoOperar = useCallback(() => {
     const m = motorRef.current;
     if (!m) return;
+    sujo.current = true;
     if (timerSalvar.current !== null) window.clearTimeout(timerSalvar.current);
     timerSalvar.current = window.setTimeout(() => {
-      void salvarRascunho(m.paraDesenho("rascunho", marcarCriacao()));
+      void salvarRascunho(rascunhoAtual(m));
     }, 400);
-  }, [marcarCriacao]);
+  }, [rascunhoAtual]);
 
   useEffect(() => {
     return () => {
@@ -162,7 +184,7 @@ export function Atelie() {
     const salvarAgora = () => {
       const m = motorRef.current;
       // grava mesmo vazio: apagar tudo e fechar precisa continuar vazio ao voltar
-      if (m) void salvarRascunho(m.paraDesenho("rascunho", marcarCriacao()));
+      if (m) void salvarRascunho(rascunhoAtual(m));
     };
     document.addEventListener("visibilitychange", salvarAgora);
     window.addEventListener("pagehide", salvarAgora);
@@ -170,7 +192,7 @@ export function Atelie() {
       document.removeEventListener("visibilitychange", salvarAgora);
       window.removeEventListener("pagehide", salvarAgora);
     };
-  }, [marcarCriacao]);
+  }, [rascunhoAtual]);
 
   const mostrarAviso = (texto: string) => {
     setAviso(texto);
@@ -185,13 +207,27 @@ export function Atelie() {
       mostrarAviso("Desenhe alguma coisa primeiro!");
       return;
     }
+
+    // Guardar sem mudança nova não duplica: só comemora de novo.
+    if (!sujo.current && idGaleria.current) {
+      tocar("salvar");
+      setConfete((c) => c + 1);
+      mostrarAviso("Já está guardado! ⭐");
+      return;
+    }
+
     const svg = svgDaPagina();
     const miniatura = await m.miniatura(svg, 320);
-    await guardarNaGaleria({ ...m.paraDesenho("novo", marcarCriacao()), miniatura });
+    idGaleria.current = await guardarNaGaleria(
+      { ...m.paraDesenho("novo", marcarCriacao()), miniatura },
+      idGaleria.current ?? undefined,
+    );
+    sujo.current = false;
+    void salvarRascunho(rascunhoAtual(m)); // persiste o vínculo com a galeria
     tocar("salvar");
     setConfete((c) => c + 1);
     mostrarAviso("Guardado! ⭐");
-  }, [marcarCriacao, svgDaPagina]);
+  }, [marcarCriacao, rascunhoAtual, svgDaPagina]);
 
   const trocarPagina = useCallback(
     async (slug: string | undefined) => {
@@ -200,34 +236,47 @@ export function Atelie() {
       if (!m) return;
 
       // Nada se perde ao trocar de desenho: o que estava na tela vai para a
-      // galeria antes de limpar.
-      if (!m.vazio) {
+      // galeria antes de limpar — mas só se tiver algo NOVO (o que já está
+      // guardado não vira segunda cópia).
+      if (!m.vazio && (sujo.current || !idGaleria.current)) {
         const svg = svgDaPagina();
         const miniatura = await m.miniatura(svg, 320);
-        await guardarNaGaleria({ ...m.paraDesenho("novo", marcarCriacao()), miniatura });
+        await guardarNaGaleria(
+          { ...m.paraDesenho("novo", marcarCriacao()), miniatura },
+          idGaleria.current ?? undefined,
+        );
       }
 
       m.limparTudo();
       m.definirLivroColorir(slug);
       setPagina(buscarPagina(slug));
       criadoEm.current = Date.now();
+      idGaleria.current = null;
+      sujo.current = false;
       // colorir combina com o balde na mão; papel em branco, com o pincel
       setFerramenta((f) => ({ ...f, modo: slug ? "balde" : "pincel" }));
-      void salvarRascunho(m.paraDesenho("rascunho", marcarCriacao()));
+      void salvarRascunho(rascunhoAtual(m));
       tocar("abrir");
     },
-    [marcarCriacao, svgDaPagina],
+    [marcarCriacao, rascunhoAtual, svgDaPagina],
   );
 
-  const abrirDaGaleria = useCallback((desenho: Desenho) => {
-    const m = motorRef.current;
-    if (!m) return;
-    criadoEm.current = desenho.criadoEm;
-    m.carregar(desenho);
-    setPagina(buscarPagina(desenho.colorir));
-    setGaleriaAberta(false);
-    tocar("abrir");
-  }, []);
+  const abrirDaGaleria = useCallback(
+    (desenho: Desenho) => {
+      const m = motorRef.current;
+      if (!m) return;
+      criadoEm.current = desenho.criadoEm;
+      // continuar um desenho guardado EDITA o original, não cria cópia
+      idGaleria.current = desenho.id;
+      sujo.current = false;
+      m.carregar(desenho);
+      setPagina(buscarPagina(desenho.colorir));
+      setGaleriaAberta(false);
+      void salvarRascunho(rascunhoAtual(m));
+      tocar("abrir");
+    },
+    [rascunhoAtual],
+  );
 
   const compartilharLiberado = useCallback(async () => {
     const m = motorRef.current;
@@ -238,11 +287,15 @@ export function Atelie() {
     let dataUrl: string;
     if (alvo === "atual") {
       dataUrl = await m.exportarPNG(svgDaPagina(), 2);
-    } else if (alvo.miniatura) {
-      // desenho da galeria: reaproveita a imagem já gerada
-      dataUrl = alvo.miniatura;
     } else {
-      return;
+      // Desenho da galeria: re-renderiza das operações em alta resolução.
+      // A miniatura de 320px é só para a grade — no WhatsApp da família tem de
+      // chegar a versão nítida.
+      const paginaSalva = buscarPagina(alvo.colorir);
+      const svg = paginaSalva
+        ? paginaParaSvg(paginaSalva, regioesDeOperacoes(alvo.operacoes))
+        : undefined;
+      dataUrl = await renderizarDesenhoPNG(alvo, { svgLinhas: svg, escala: 2 });
     }
 
     const r = await compartilharPng(dataUrl);

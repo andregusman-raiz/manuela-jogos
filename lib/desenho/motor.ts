@@ -1,4 +1,5 @@
 import { preencherRegiao } from "./balde";
+import { escalarDesenho } from "./documento";
 import { desenharCarimbo, desenharForma } from "./formas";
 import { desenharTraco } from "./pinceis";
 import type { Desenho, Operacao } from "./tipos";
@@ -29,12 +30,24 @@ export type Camadas = {
 /** Teto de resolução: celular de entrada não aguenta canvas gigante. */
 export const MAX_LADO = 2048;
 
+/** Snapshot cobre o prefixo a cada N operações (além de antes de cada balde). */
+const OPS_POR_SNAPSHOT = 12;
+/** No replay completo, o snapshot fica este tanto ATRÁS do topo do histórico. */
+const FOLGA_SNAPSHOT = 6;
+
 export class Motor {
   private camadas: Camadas;
   private operacoes: Operacao[] = [];
   private refazer_: Operacao[] = [];
   private corFundo = "#FFFFFF";
   private colorir_: string | undefined;
+  /**
+   * Bitmap da arte após as primeiras `indice` operações. Sem ele, cada desfazer
+   * re-executa o histórico inteiro — e cada balde no meio refaz um flood fill
+   * de tela cheia (centenas de ms em celular). Com ele, o desfazer típico
+   * re-executa só as últimas poucas operações.
+   */
+  private snap: { indice: number; bitmap: HTMLCanvasElement } | null = null;
   /** Chamado quando o histórico muda (React redesenha os botões e o SVG). */
   aoMudar: (() => void) | null = null;
 
@@ -100,14 +113,39 @@ export class Motor {
       if (canvas.width !== l || canvas.height !== a) {
         canvas.width = l;
         canvas.height = a;
+        this.snap = null; // bitmap antigo não serve para a nova resolução
       }
     }
     this.reconstruir();
   }
 
+  // ------------------------------------------------------------------ snapshot
+
+  /**
+   * Congela a arte ATUAL como "prefixo pronto" do histórico.
+   * `indice` diz quantas operações o bitmap representa (default: todas).
+   */
+  private tirarSnapshot(indice = this.operacoes.length): void {
+    const bitmap = document.createElement("canvas");
+    bitmap.width = this.largura;
+    bitmap.height = this.altura;
+    const ctx = bitmap.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(this.camadas.arte, 0, 0);
+    this.snap = { indice, bitmap };
+  }
+
   // ------------------------------------------------------------------ operações
 
   aplicar(op: Operacao): void {
+    // O snapshot é tirado ANTES de aplicar: assim a operação nova (em especial
+    // um balde) fica DEPOIS dele, e desfazê-la volta ao bitmap pronto em vez de
+    // re-executar o flood fill.
+    const distancia = this.operacoes.length - (this.snap?.indice ?? 0);
+    if (this.snap === null || op.kind === "balde" || distancia >= OPS_POR_SNAPSHOT) {
+      this.tirarSnapshot();
+    }
+
     this.operacoes.push(op);
     this.refazer_ = []; // caminho novo apaga o "refazer" antigo
     this.pintar(op);
@@ -133,6 +171,7 @@ export class Motor {
   limparTudo(): void {
     this.operacoes = [];
     this.refazer_ = [];
+    this.snap = null;
     this.reconstruir();
     this.aoMudar?.();
   }
@@ -189,8 +228,14 @@ export class Motor {
     preencherRegiao(actx, this.ctx("arte"), x, y, cor);
   }
 
-  /** Limpa os bitmaps e reexecuta todas as operações em ordem. */
+  /**
+   * Reexecuta o histórico. Se o snapshot cobre um prefixo válido, parte dele e
+   * só re-executa a cauda; senão faz o replay completo e deixa um snapshot novo
+   * um pouco ATRÁS do topo (com folga, para que uma sequência de desfazer não
+   * invalide o snapshot a cada passo).
+   */
   reconstruir(): void {
+    // O fundo é barato: sempre re-preenchido (a última op de fundo manda).
     const fundo = this.ctx("fundo");
     fundo.clearRect(0, 0, this.largura, this.altura);
     fundo.fillStyle = this.corFundoInicial();
@@ -200,7 +245,26 @@ export class Motor {
     arte.clearRect(0, 0, this.largura, this.altura);
     this.previa(null);
 
-    for (const op of this.operacoes) this.pintar(op);
+    const aproveitavel =
+      this.snap !== null &&
+      this.snap.indice <= this.operacoes.length &&
+      this.snap.bitmap.width === this.largura &&
+      this.snap.bitmap.height === this.altura;
+
+    if (aproveitavel && this.snap) {
+      arte.drawImage(this.snap.bitmap, 0, 0);
+      for (let i = this.snap.indice; i < this.operacoes.length; i++) {
+        this.pintar(this.operacoes[i]);
+      }
+      return;
+    }
+
+    this.snap = null;
+    const corte = Math.max(0, this.operacoes.length - FOLGA_SNAPSHOT);
+    for (let i = 0; i < this.operacoes.length; i++) {
+      if (i === corte && corte > 0) this.tirarSnapshot(corte);
+      this.pintar(this.operacoes[i]);
+    }
   }
 
   private corFundoInicial(): string {
@@ -229,6 +293,7 @@ export class Motor {
   carregar(desenho: Desenho): void {
     this.operacoes = desenho.operacoes ?? [];
     this.refazer_ = [];
+    this.snap = null;
     this.colorir_ = desenho.colorir;
     this.reconstruir();
     this.aoMudar?.();
@@ -241,38 +306,64 @@ export class Motor {
   // ------------------------------------------------------------------ exportar
 
   /**
-   * Achata tudo num PNG. `svgLinhas` é o markup do livro de colorir já com as
-   * cores das regiões aplicadas — desenhado por baixo dos traços.
+   * Achata tudo num PNG re-executando as operações na resolução de saída — o
+   * desenho é vetorial por construção, então ampliar re-desenha nítido em vez
+   * de esticar bitmap. `svgLinhas` é o livro de colorir já com as cores das
+   * regiões; entra POR CIMA da arte, como na tela (o contorno nunca é coberto).
    */
   async exportarPNG(svgLinhas?: string, escala = 1): Promise<string> {
-    const l = Math.round(this.largura * escala);
-    const a = Math.round(this.altura * escala);
-    const saida = document.createElement("canvas");
-    saida.width = l;
-    saida.height = a;
-    const ctx = saida.getContext("2d");
-    if (!ctx) return "";
-
-    ctx.fillStyle = this.corFundoInicial();
-    ctx.fillRect(0, 0, l, a);
-
-    if (svgLinhas) {
-      const img = await imagemDeSvg(svgLinhas);
-      if (img) {
-        // O SVG do livro é quadrado e centralizado na área de desenho.
-        const lado = Math.min(l, a);
-        ctx.drawImage(img, (l - lado) / 2, (a - lado) / 2, lado, lado);
-      }
-    }
-
-    ctx.drawImage(this.camadas.arte, 0, 0, l, a);
-    return saida.toDataURL("image/png");
+    return renderizarDesenhoPNG(this.paraDesenho("export", 0), { svgLinhas, escala });
   }
 
   async miniatura(svgLinhas?: string, lado = 320): Promise<string> {
     const escala = lado / Math.max(this.largura, this.altura);
     return this.exportarPNG(svgLinhas, escala);
   }
+}
+
+/**
+ * Renderiza um Desenho salvo em PNG, em qualquer escala, sem precisar de um
+ * Motor montado na tela — é o que deixa o compartilhar da galeria sair em alta
+ * resolução em vez de reaproveitar a miniatura de 320px.
+ */
+export async function renderizarDesenhoPNG(
+  desenho: Desenho,
+  { svgLinhas, escala = 1 }: { svgLinhas?: string; escala?: number } = {},
+): Promise<string> {
+  const escalado = escala === 1 ? desenho : escalarDesenho(desenho, escala);
+  const l = escalado.largura;
+  const a = escalado.altura;
+
+  const camadas = {
+    fundo: document.createElement("canvas"),
+    arte: document.createElement("canvas"),
+    previa: document.createElement("canvas"),
+  };
+  const motor = new Motor(camadas);
+  motor.definirLivroColorir(desenho.colorir);
+  // redimensionar + carregar reconstroem tudo (inclusive baldes) no espaço maior
+  motor.redimensionar(l, a, 1);
+  motor.carregar(escalado);
+
+  const saida = document.createElement("canvas");
+  saida.width = l;
+  saida.height = a;
+  const ctx = saida.getContext("2d");
+  if (!ctx) return "";
+
+  ctx.drawImage(camadas.fundo, 0, 0);
+  ctx.drawImage(camadas.arte, 0, 0);
+
+  if (svgLinhas) {
+    const img = await imagemDeSvg(svgLinhas);
+    if (img) {
+      // O SVG do livro é quadrado e centralizado na área de desenho.
+      const lado = Math.min(l, a);
+      ctx.drawImage(img, (l - lado) / 2, (a - lado) / 2, lado, lado);
+    }
+  }
+
+  return saida.toDataURL("image/png");
 }
 
 /** SVG (string) -> imagem, via data URL: não sai da máquina, funciona offline. */

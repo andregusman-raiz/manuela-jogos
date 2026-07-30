@@ -97,4 +97,10 @@ export type Desenho = {
   colorir?: string;
   /** PNG em dataURL, só nos desenhos guardados na galeria. */
   miniatura?: string;
+  /**
+   * No RASCUNHO: id do item da galeria de onde este desenho veio (se veio).
+   * É o que faz "guardar" atualizar o original em vez de criar cópia — inclusive
+   * depois de fechar e reabrir o app.
+   */
+  galeriaId?: string;
 };
