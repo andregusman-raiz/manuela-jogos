@@ -231,7 +231,7 @@ export class Motor {
     if (!actx) return;
     actx.drawImage(this.camadas.fundo, 0, 0);
     actx.drawImage(this.camadas.arte, 0, 0);
-    preencherRegiao(actx, this.ctx("arte"), x, y, cor);
+    preencherRegiao(actx, this.ctx("arte"), x, y, cor, undefined, this.imagemColorir_ !== null);
   }
 
   /**

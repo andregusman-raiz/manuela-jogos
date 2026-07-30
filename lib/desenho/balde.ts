@@ -27,10 +27,52 @@ function hexParaRgb(hex: string): [number, number, number] {
   ];
 }
 
+/** Escuro o bastante para ser traço de contorno, não área para pintar. */
+const TRACO_MAX = 200;
+/** Raio da busca por papel ao lado do traço: meio dedo, em pixels de tela. */
+const RAIO_ESCAPE = 24;
+
+/**
+ * Acha o papel mais próximo quando o dedo cai em cima do traço.
+ *
+ * Numa cena cheia (parque, piquenique) o contorno ocupa boa parte da área e o
+ * dedo acerta linha o tempo todo. Sem isto o balde toma a linha como região e
+ * pinta a TEIA DE CONTORNOS inteira — o desenho fica riscado de cor em vez de
+ * colorido, que foi o que se viu nas páginas Bobbie Goods.
+ */
+function papelMaisProximo(
+  buf: Uint8ClampedArray,
+  largura: number,
+  altura: number,
+  px: number,
+  py: number,
+): { x: number; y: number } | null {
+  for (let raio = 1; raio <= RAIO_ESCAPE; raio++) {
+    for (let dy = -raio; dy <= raio; dy++) {
+      for (let dx = -raio; dx <= raio; dx++) {
+        // só a casca do quadrado: os anéis internos já foram vistos
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== raio) continue;
+        const nx = px + dx;
+        const ny = py + dy;
+        if (nx < 0 || ny < 0 || nx >= largura || ny >= altura) continue;
+        const i = (ny * largura + nx) * 4;
+        if (buf[i + 3] < 250) continue;
+        if (buf[i] > TRACO_MAX && buf[i + 1] > TRACO_MAX && buf[i + 2] > TRACO_MAX) {
+          return { x: nx, y: ny };
+        }
+      }
+    }
+  }
+  return null;
+}
+
 /**
  * @param origem   contexto ACHATADO (fundo + arte) — é nele que se decide o que
  *                 é "a mesma cor", senão o balde escaparia pelo transparente.
  * @param destino  contexto onde a tinta é aplicada (camada de arte).
+ * @param evitarTraco  livro de colorir: dedo no contorno pinta a região ao lado.
+ *                 No papel em branco fica desligado — lá pintar dentro do próprio
+ *                 risco é intenção legítima da criança.
  * @returns        true se pintou algo.
  */
 export function preencherRegiao(
@@ -40,15 +82,30 @@ export function preencherRegiao(
   y: number,
   corHex: string,
   tolerancia = 40,
+  evitarTraco = false,
 ): boolean {
   const largura = origem.canvas.width;
   const altura = origem.canvas.height;
-  const px = Math.round(x);
-  const py = Math.round(y);
+  let px = Math.round(x);
+  let py = Math.round(y);
   if (px < 0 || py < 0 || px >= largura || py >= altura) return false;
 
   const dados = origem.getImageData(0, 0, largura, altura);
   const buf = dados.data;
+
+  if (evitarTraco) {
+    const i = (py * largura + px) * 4;
+    const noTraco = buf[i] <= TRACO_MAX && buf[i + 1] <= TRACO_MAX && buf[i + 2] <= TRACO_MAX;
+    if (noTraco) {
+      const saida = papelMaisProximo(buf, largura, altura, px, py);
+      // sem papel por perto o dedo está num traço grosso: não pinta nada, que é
+      // melhor do que espalhar cor pelo contorno e sujar o desenho todo
+      if (!saida) return false;
+      px = saida.x;
+      py = saida.y;
+    }
+  }
+
   const inicio = (py * largura + px) * 4;
   const alvo = [buf[inicio], buf[inicio + 1], buf[inicio + 2], buf[inicio + 3]] as const;
   const [nr, ng, nb] = hexParaRgb(corHex);

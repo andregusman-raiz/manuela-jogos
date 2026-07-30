@@ -440,6 +440,7 @@ export function Atelie() {
         aoMotorPronto={aoMotorPronto}
         aoOperar={aoOperar}
         colorirClicavel={Boolean(pagina) && usarBalde}
+        proporcaoColorir={paginaImg ? paginaImg.largura / paginaImg.altura : undefined}
         camadaColorir={
           paginaImg ? (
             // eslint-disable-next-line @next/next/no-img-element

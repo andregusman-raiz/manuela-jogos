@@ -167,6 +167,82 @@ test("página bitmap: balde pinta dentro das linhas sem inundar o papel", async 
   expect(pintados).toBeLessThan(area * 0.9);
 });
 
+test("página bitmap: dedo no contorno não pinta a teia de linhas", async ({ page }) => {
+  await page.getByLabel("escolher desenho para colorir").click();
+  // cena cheia: o contorno ocupa tanta área que o dedo acerta linha o tempo todo
+  await page.getByLabel("Bobbie Goods").click();
+  await page.waitForTimeout(400);
+  await page.locator("button:has(img)").first().dispatchEvent("click");
+
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const fundo = [...document.querySelectorAll("canvas")][0] as HTMLCanvasElement;
+          const ctx = fundo.getContext("2d");
+          if (!ctx) return 0;
+          const d = ctx.getImageData(0, 0, fundo.width, fundo.height).data;
+          let escuros = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i] < 100) escuros++;
+          return escuros;
+        }),
+      { timeout: 5000 },
+    )
+    .toBeGreaterThan(500);
+
+  // toca EXATAMENTE num pixel de contorno, procurando do centro para fora
+  const alvo = await page.evaluate(() => {
+    const fundo = [...document.querySelectorAll("canvas")][0] as HTMLCanvasElement;
+    const d = fundo.getContext("2d")!.getImageData(0, 0, fundo.width, fundo.height).data;
+    const r = fundo.getBoundingClientRect();
+    const cx = Math.floor(fundo.width / 2);
+    const cy = Math.floor(fundo.height / 2);
+    for (let raio = 0; raio < Math.min(cx, cy); raio += 2) {
+      for (const [x, y] of [
+        [cx + raio, cy],
+        [cx - raio, cy],
+        [cx, cy + raio],
+        [cx, cy - raio],
+      ]) {
+        const i = (y * fundo.width + x) * 4;
+        if (d[i] < 60 && d[i + 1] < 60 && d[i + 2] < 60) {
+          return {
+            telaX: r.left + (x / fundo.width) * r.width,
+            telaY: r.top + (y / fundo.height) * r.height,
+          };
+        }
+      }
+    }
+    return null;
+  });
+  expect(alvo, "a página deveria ter contorno perto do centro").not.toBeNull();
+
+  await page.touchscreen.tap(alvo!.telaX, alvo!.telaY);
+  await page.waitForTimeout(400);
+
+  // O contorno continua contorno. Sem o desvio para o papel vizinho o balde toma
+  // a linha como região e escorre pela rede inteira de traços — a criança vê o
+  // desenho riscado de cor, não colorido.
+  const invasao = await page.evaluate(() => {
+    const fundo = [...document.querySelectorAll("canvas")][0] as HTMLCanvasElement;
+    const arte = [...document.querySelectorAll("canvas")][1] as HTMLCanvasElement;
+    const f = fundo.getContext("2d")!.getImageData(0, 0, fundo.width, fundo.height).data;
+    const a = arte.getContext("2d")!.getImageData(0, 0, arte.width, arte.height).data;
+    let escuros = 0;
+    let comTinta = 0;
+    for (let i = 0; i < f.length; i += 4) {
+      if (f[i] < 60 && f[i + 1] < 60 && f[i + 2] < 60) {
+        escuros++;
+        if (a[i + 3] > 10) comTinta++;
+      }
+    }
+    return escuros === 0 ? 1 : comTinta / escuros;
+  });
+  // medido nesta página: 0,2% com o desvio, 4,6% sem ele (a tinta corre pela
+  // rede de traços). 1% separa os dois casos com folga dos dois lados.
+  expect(invasao).toBeLessThan(0.01);
+});
+
 test("compartilhar passa pelo portão parental", async ({ page }) => {
   await riscar(page);
   await page.getByLabel("mais coisas: carimbos, formas, espelho e fundo").click();
