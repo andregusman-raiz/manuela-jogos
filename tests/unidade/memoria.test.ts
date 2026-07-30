@@ -56,6 +56,19 @@ describe("criarTabuleiro — SPEC §4.2", () => {
     const t = criarTabuleiro(1, criarRng(9));
     for (const c of t.cartas) expect(c.tipo).toBe("emoji");
   });
+
+  test("nível 3: conta e resultado do MESMO parId casam (faces diferentes!)", () => {
+    // mata a mutação parId -> igualdade de face, que deixaria o nível 3
+    // impossível com todos os outros testes verdes
+    const t = criarTabuleiro(3, criarRng(77));
+    const conta = t.cartas.find((c) => c.tipo === "conta")!;
+    const resultado = t.cartas.find((c) => c.tipo === "resultado" && c.parId === conta.parId)!;
+    expect(conta.face).not.toBe(resultado.face);
+
+    const depois = tocarCarta(tocarCarta(t, conta.id), resultado.id);
+    expect(depois.removidas).toEqual(expect.arrayContaining([conta.id, resultado.id]));
+    expect(depois.tentativas).toBe(1);
+  });
 });
 
 describe("máquina do tabuleiro — toques concorrentes (SPEC §4.2)", () => {

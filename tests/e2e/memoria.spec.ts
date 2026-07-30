@@ -65,6 +65,11 @@ test("par errado vira de volta; terceira carta na janela é ignorada", async ({ 
   await expect(c).toHaveAttribute("data-estado", "fechada");
   await expect(page.locator("[data-tentativas]")).toHaveAttribute("data-tentativas", "1");
 
+  // a janela tem DURAÇÃO de verdade: ~550ms após o par errado as cartas ainda
+  // estão viradas (um timer encurtado para 300ms faria este expect falhar)
+  await page.waitForTimeout(400);
+  await expect(a).toHaveAttribute("data-estado", "aberta");
+
   // depois da janela, as duas viram de volta e nada foi removido
   await expect(a).toHaveAttribute("data-estado", "fechada", { timeout: 3000 });
   await expect(b).toHaveAttribute("data-estado", "fechada");
@@ -99,6 +104,31 @@ test("três formatos: cartas >= 72px e dentro da tela", async ({ browser }) => {
     const pagina = await contexto.newPage();
     await pagina.goto("/memoria");
     await expect(pagina.locator("[data-par]").first()).toBeVisible();
+
+    // o pior caso é o nível 2 (grid 4×4) — libera via progresso salvo
+    await pagina.evaluate(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          const req = indexedDB.open("manu-jogos");
+          req.onsuccess = () => {
+            const tx = req.result.transaction("memoria", "readwrite");
+            tx.objectStore("memoria").put({
+              id: "progresso",
+              nivel: 2,
+              melhor: null,
+              atualizadoEm: 1,
+            });
+            tx.oncomplete = () => {
+              req.result.close();
+              resolve();
+            };
+            tx.onerror = () => reject(tx.error);
+          };
+          req.onerror = () => reject(req.error);
+        }),
+    );
+    await pagina.reload();
+    await expect(pagina.locator("[data-par]")).toHaveCount(16);
 
     for (const carta of await pagina.locator("[data-par]").all()) {
       const caixa = await carta.boundingBox();

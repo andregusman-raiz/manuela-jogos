@@ -156,7 +156,14 @@ export function Memoria() {
                       : "bg-manu-sol/70 ring-2 ring-manu-sol-forte"
                   }`}
                 >
-                  <span className={carta.tipo === "emoji" ? "text-4xl" : "font-titulo text-2xl"}>
+                  <span
+                    // flip pontual da SPEC §4.2: a face entra animada UMA vez
+                    // ao abrir (anima-entrada); nada de loop infinito
+                    key={aberta ? "face" : "costas"}
+                    className={`${aberta ? "anima-entrada" : ""} ${
+                      carta.tipo === "emoji" ? "text-4xl" : "font-titulo text-2xl"
+                    }`}
+                  >
                     {aberta ? carta.face : "❓"}
                   </span>
                 </button>
