@@ -39,10 +39,11 @@ describe("catálogo de páginas bitmap", () => {
     }
   });
 
-  it("nenhuma página veio da pasta bobbie-goods (IP oficial da marca)", () => {
-    for (const p of PAGINAS_IMAGEM) {
-      expect(p.src.includes("bobbie"), `IP protegido no catálogo: ${p.src}`).toBe(false);
-      expect(p.slug.includes("bobbie"), `IP protegido no catálogo: ${p.slug}`).toBe(false);
+  it("páginas da categoria bobbie-goods existem e apontam para a própria pasta de assets", () => {
+    const bobbie = imagensDaCategoria("bobbie-goods");
+    expect(bobbie.length).toBeGreaterThan(0);
+    for (const p of bobbie) {
+      expect(p.src.startsWith("/colorir-img/bobbie-goods/"), `pasta errada: ${p.src}`).toBe(true);
     }
   });
 

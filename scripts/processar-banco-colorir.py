@@ -7,10 +7,12 @@ Saída:    public/colorir-img/<categoria>/<slug>.webp + lib/colorir/imagens.ts
 
 Passos por imagem: grayscale -> níveis (papel branco puro, linha preta) -> resize <=1100px -> WebP.
 
-A pasta bobbie-goods NÃO entra: as páginas carregam a assinatura oficial
-"BOBBIE GOODS" (produto comercial protegido). As demais exclusões vêm da
-triagem visual (fotos, silhuetas, liga-pontos, alfabeto em inglês, gravuras
-densas de adulto) — lista explícita abaixo.
+A pasta bobbie-goods ENTRA por decisão explícita do André (app pessoal/familiar,
+nunca redistribuído) — as páginas usam a arte da marca comercial "Bobbie Goods"
+(Abbie Goveia/HarperCollins), então isto não deve virar produto público ou
+comercial. As demais exclusões vêm da triagem visual (fotos, silhuetas,
+liga-pontos, alfabeto em inglês, gravuras densas de adulto) — lista explícita
+abaixo.
 """
 from __future__ import annotations
 
@@ -36,7 +38,7 @@ CATEGORIA = {
     "fantasia": "castelo",  # aba "Fantasia" do app (id preservado)
     "natureza-mandalas": "natureza",
     "veiculos": "veiculos",
-    # bobbie-goods: FORA (IP oficial da marca)
+    "bobbie-goods": "bobbie-goods",
 }
 
 # exclusões da revisão visual, por índice da folha de contato (triagem.json)
