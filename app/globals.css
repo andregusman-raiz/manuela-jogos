@@ -21,6 +21,8 @@
   --color-manu-cacau-suave: #6b4630;
   --color-manu-nuvem: #fff9f3;
   --color-manu-papel: #ffffff;
+  /* verde-folha do Labirinto: mesma saturação da família, AA sobre o cacau */
+  --color-manu-grama: #b8dca6;
 
   --font-titulo: var(--font-baloo), system-ui, sans-serif;
   --font-corpo: var(--font-nunito), system-ui, sans-serif;

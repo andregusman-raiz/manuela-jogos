@@ -48,6 +48,15 @@ export const JOGOS: Jogo[] = [
     disponivel: true,
   },
   {
+    id: "labirinto",
+    nome: "Labirinto da Manu",
+    descricao: "Guie a Manu até a estrela",
+    rota: "/labirinto",
+    emoji: "⭐",
+    cor: "bg-manu-grama",
+    disponivel: true,
+  },
+  {
     id: "em-breve",
     nome: "Em breve",
     descricao: "Mais um jogo está chegando",
