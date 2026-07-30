@@ -14,6 +14,8 @@ type Props = {
   camadaColorir?: ReactNode;
   /** Deixa o SVG do livro receber o toque (quando o balde está ativo). */
   colorirClicavel?: boolean;
+  /** Proporção (largura/altura) da página bitmap, para enquadrar ao abrir. */
+  proporcaoColorir?: number;
   aoMotorPronto: (motor: Motor) => void;
   aoOperar: () => void;
 };
@@ -29,6 +31,12 @@ const ZOOM_MAX = 5;
  * Efeito colateral bem-vindo: o desfazer volta em pedaços, não o rabisco todo.
  */
 const PONTOS_POR_TRACO = 700;
+/**
+ * Abaixo disto o desenho já usa a tela e mexer só atrapalharia; acima, o zoom
+ * embaça o traço (a ampliação é CSS) sem ganhar região clicável que compense.
+ */
+const ENQUADRE_MIN = 1.15;
+const ENQUADRE_MAX = 2.2;
 
 type Vista = { escala: number; tx: number; ty: number };
 
@@ -36,6 +44,7 @@ export function TelaDesenho({
   ferramenta,
   camadaColorir,
   colorirClicavel = false,
+  proporcaoColorir,
   aoMotorPronto,
   aoOperar,
 }: Props) {
@@ -85,6 +94,31 @@ export function TelaDesenho({
     observador.observe(div);
     return () => observador.disconnect();
   }, [aoMotorPronto]);
+
+  /**
+   * Enquadra a página de colorir ao trocar de desenho.
+   *
+   * A imagem entra "contain": um desenho deitado numa tela em pé sobra metade da
+   * altura em branco, e cada área para pintar encolhe junto — nas cenas cheias
+   * (parque, piquenique) as regiões ficam menores que o dedo e o balde parece não
+   * responder. Ampliar até a menor sobra some devolve o desenho ao tamanho de
+   * colorir; o que passa da borda continua acessível arrastando, e o botão de
+   * reenquadrar volta para a vista inteira.
+   */
+  useEffect(() => {
+    const div = caixa.current;
+    if (!div || !proporcaoColorir) {
+      setVista({ escala: 1, tx: 0, ty: 0 });
+      return;
+    }
+    const r = div.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return;
+    // largura e altura que a imagem ocuparia se coubesse inteira, normalizadas
+    const sobra = r.width / proporcaoColorir / r.height;
+    const preencher = sobra > 0 ? Math.max(sobra, 1 / sobra) : 1;
+    const escala = preencher < ENQUADRE_MIN ? 1 : Math.min(preencher, ENQUADRE_MAX);
+    setVista({ escala, tx: 0, ty: 0 });
+  }, [proporcaoColorir]);
 
   // ------------------------------------------------------------------ coordenadas
 
