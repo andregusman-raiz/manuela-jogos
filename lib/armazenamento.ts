@@ -14,9 +14,11 @@ import type { Desenho } from "./desenho/tipos";
  */
 
 const NOME_BD = "manu-jogos";
-const VERSAO_BD = 1;
-/** Uma gaveta por jogo: o próximo jogo do hub não colide com o Ateliê. */
+const VERSAO_BD = 2;
+/** Uma gaveta por jogo: um jogo do hub não colide com o outro. */
 const LOJA_ATELIE = "atelie";
+const LOJAS_JOGOS = ["contas", "memoria", "labirinto", "palavras"] as const;
+export type LojaJogo = (typeof LOJAS_JOGOS)[number];
 const ID_RASCUNHO = "rascunho";
 
 function suportado(): boolean {
@@ -26,19 +28,56 @@ function suportado(): boolean {
 function abrir(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const pedido = indexedDB.open(NOME_BD, VERSAO_BD);
-    pedido.onupgradeneeded = () => {
-      const bd = pedido.result;
-      if (!bd.objectStoreNames.contains(LOJA_ATELIE)) {
-        const loja = bd.createObjectStore(LOJA_ATELIE, { keyPath: "id" });
-        loja.createIndex("atualizadoEm", "atualizadoEm");
+    let decidido = false;
+    let bloqueio: ReturnType<typeof setTimeout> | null = null;
+
+    // Uma única saída: fecha conexão atrasada (o open bloqueado ainda completa
+    // quando a aba antiga fecha — sem isto ele vazava aberto para sempre).
+    const decidir = (bd: IDBDatabase | null, erro?: unknown) => {
+      if (bloqueio) clearTimeout(bloqueio);
+      if (decidido) {
+        bd?.close();
+        return;
+      }
+      decidido = true;
+      if (bd) {
+        // Esta aba é a antiga quando outra pede upgrade: fecha para ela seguir.
+        bd.onversionchange = () => bd.close();
+        resolve(bd);
+      } else {
+        reject(erro instanceof Error ? erro : new Error(String(erro)));
       }
     };
-    pedido.onsuccess = () => resolve(pedido.result);
-    pedido.onerror = () => reject(pedido.error);
+
+    // Migração ADITIVA: só cria gavetas que faltam, nunca toca nas existentes —
+    // o upgrade de versão não pode custar um desenho da galeria.
+    pedido.onupgradeneeded = () => {
+      const bd = pedido.result;
+      for (const nome of [LOJA_ATELIE, ...LOJAS_JOGOS]) {
+        if (!bd.objectStoreNames.contains(nome)) {
+          const loja = bd.createObjectStore(nome, { keyPath: "id" });
+          loja.createIndex("atualizadoEm", "atualizadoEm");
+        }
+      }
+    };
+    // Aba com a versão ANTIGA do app segura o upgrade indefinidamente (ela não
+    // tem onversionchange). Após 3s caímos para o banco existente SEM upgrade:
+    // o Ateliê continua salvando de verdade (nada de "Guardado!" mentiroso);
+    // gavetas novas ainda não existem e os jogos rodam sem persistir nesta aba.
+    pedido.onblocked = () => {
+      bloqueio ??= setTimeout(() => {
+        const fallback = indexedDB.open(NOME_BD);
+        fallback.onsuccess = () => decidir(fallback.result);
+        fallback.onerror = () => decidir(null, fallback.error);
+      }, 3000);
+    };
+    pedido.onsuccess = () => decidir(pedido.result);
+    pedido.onerror = () => decidir(null, pedido.error);
   });
 }
 
 async function comLoja<T>(
+  nomeLoja: string,
   modo: IDBTransactionMode,
   acao: (loja: IDBObjectStore) => IDBRequest<T>,
 ): Promise<T | null> {
@@ -46,8 +85,8 @@ async function comLoja<T>(
   try {
     const bd = await abrir();
     return await new Promise<T | null>((resolve, reject) => {
-      const tx = bd.transaction(LOJA_ATELIE, modo);
-      const pedido = acao(tx.objectStore(LOJA_ATELIE));
+      const tx = bd.transaction(nomeLoja, modo);
+      const pedido = acao(tx.objectStore(nomeLoja));
       pedido.onsuccess = () => resolve(pedido.result);
       pedido.onerror = () => reject(pedido.error);
       tx.oncomplete = () => bd.close();
@@ -59,16 +98,16 @@ async function comLoja<T>(
 }
 
 export async function salvarRascunho(desenho: Desenho): Promise<void> {
-  await comLoja("readwrite", (loja) => loja.put({ ...desenho, id: ID_RASCUNHO }));
+  await comLoja(LOJA_ATELIE, "readwrite", (loja) => loja.put({ ...desenho, id: ID_RASCUNHO }));
 }
 
 export async function carregarRascunho(): Promise<Desenho | null> {
-  const r = await comLoja<Desenho>("readonly", (loja) => loja.get(ID_RASCUNHO));
+  const r = await comLoja<Desenho>(LOJA_ATELIE, "readonly", (loja) => loja.get(ID_RASCUNHO));
   return r ?? null;
 }
 
 export async function apagarRascunho(): Promise<void> {
-  await comLoja("readwrite", (loja) => loja.delete(ID_RASCUNHO));
+  await comLoja(LOJA_ATELIE, "readwrite", (loja) => loja.delete(ID_RASCUNHO));
 }
 
 /**
@@ -84,12 +123,12 @@ export async function guardarNaGaleria(desenho: Desenho, idExistente?: string): 
   // galeriaId é metadado do rascunho; num item da galeria seria auto-referência
   const { galeriaId: _descartado, ...limpo } = desenho;
   void _descartado;
-  await comLoja("readwrite", (loja) => loja.put({ ...limpo, id }));
+  await comLoja(LOJA_ATELIE, "readwrite", (loja) => loja.put({ ...limpo, id }));
   return id;
 }
 
 export async function listarGaleria(): Promise<Desenho[]> {
-  const todos = await comLoja<Desenho[]>("readonly", (loja) => loja.getAll());
+  const todos = await comLoja<Desenho[]>(LOJA_ATELIE, "readonly", (loja) => loja.getAll());
   if (!todos) return [];
   return todos
     .filter((d) => d.id !== ID_RASCUNHO)
@@ -98,10 +137,70 @@ export async function listarGaleria(): Promise<Desenho[]> {
 
 export async function apagarDaGaleria(id: string): Promise<void> {
   if (id === ID_RASCUNHO) return;
-  await comLoja("readwrite", (loja) => loja.delete(id));
+  await comLoja(LOJA_ATELIE, "readwrite", (loja) => loja.delete(id));
 }
 
 export async function buscarDesenho(id: string): Promise<Desenho | null> {
-  const r = await comLoja<Desenho>("readonly", (loja) => loja.get(id));
+  const r = await comLoja<Desenho>(LOJA_ATELIE, "readonly", (loja) => loja.get(id));
   return r ?? null;
+}
+
+/**
+ * Progresso dos jogos — um registro por gaveta. `melhor` só tem semântica na
+ * Memória (menor nº de tentativas); nos outros jogos fica null. Começa null de
+ * propósito: min() com 0 congelaria o recorde para sempre.
+ */
+export type Progresso = {
+  id: "progresso";
+  nivel: number;
+  melhor: number | null;
+  atualizadoEm: number;
+};
+
+export async function lerProgresso(jogo: LojaJogo): Promise<Progresso | null> {
+  const r = await comLoja<Progresso>(jogo, "readonly", (loja) => loja.get("progresso"));
+  return r ?? null;
+}
+
+/**
+ * Gravação MONOTÔNICA: nível só sobe, recorde só melhora. Ler e gravar na
+ * MESMA transação readwrite — o IndexedDB serializa transações de escrita por
+ * gaveta, então duas abas nunca regridem o progresso uma da outra.
+ */
+export async function salvarProgresso(
+  jogo: LojaJogo,
+  nivel: number,
+  melhor: number | null = null,
+): Promise<void> {
+  if (!suportado()) return;
+  try {
+    const bd = await abrir();
+    await new Promise<void>((resolve, reject) => {
+      const tx = bd.transaction(jogo, "readwrite");
+      const loja = tx.objectStore(jogo);
+      const leitura = loja.get("progresso");
+      leitura.onsuccess = () => {
+        const atual = (leitura.result ?? null) as Progresso | null;
+        loja.put({
+          id: "progresso",
+          nivel: Math.max(atual?.nivel ?? 1, nivel),
+          melhor:
+            atual?.melhor == null
+              ? melhor
+              : melhor == null
+                ? atual.melhor
+                : Math.min(atual.melhor, melhor),
+          atualizadoEm: Date.now(),
+        } satisfies Progresso);
+      };
+      tx.oncomplete = () => {
+        bd.close();
+        resolve();
+      };
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  } catch {
+    // Sem persistência (modo privado, aba bloqueada): o jogo segue em memória.
+  }
 }

@@ -19,7 +19,11 @@ export type Efeito =
   | "apagar" // apagou tudo (aviso, não punição)
   | "salvar" // comemoração
   | "abrir" // entrou no jogo
-  | "vazio"; // "ainda não tem nada" — o não-verbal do app
+  | "vazio" // "ainda não tem nada" — o não-verbal do app
+  | "acerto" // resposta certa nos jogos (mais contido que salvar)
+  | "erro" // resposta errada: aviso grave e suave, não punição
+  | "vitoria" // fase completa
+  | "passo"; // um passo da Manu no labirinto / carta virando
 
 const CHAVE_MUDO = "manu:mudo";
 
@@ -125,17 +129,28 @@ const RECEITAS: Record<Efeito, Nota[]> = {
     { hz: 392, inicio: 0, dur: 0.09, tipo: "triangle", vol: 0.16 },
     { hz: 311, inicio: 0.11, dur: 0.13, tipo: "triangle", vol: 0.16 },
   ],
+  // arpejo curto subindo: recompensa imediata, sem roubar a cena do "salvar"
+  acerto: [
+    { hz: 659, inicio: 0, dur: 0.09, vol: 0.18 },
+    { hz: 988, inicio: 0.07, dur: 0.14, vol: 0.18 },
+  ],
+  // uma nota grave e macia: "tenta de novo", nunca buzina de erro
+  erro: [{ hz: 196, inicio: 0, dur: 0.2, tipo: "sine", vol: 0.16 }],
+  // fanfarra da fase completa: a curva do salvar, um tom acima
+  vitoria: [
+    { hz: 587, inicio: 0, dur: 0.12, vol: 0.18 },
+    { hz: 740, inicio: 0.1, dur: 0.12, vol: 0.18 },
+    { hz: 880, inicio: 0.2, dur: 0.14, vol: 0.18 },
+    { hz: 1175, inicio: 0.32, dur: 0.3, vol: 0.2 },
+  ],
+  passo: [{ hz: 740, inicio: 0, dur: 0.05, tipo: "triangle", vol: 0.12 }],
 };
 
-export function tocar(efeito: Efeito): void {
-  if (!estaNoNavegador() || estaMudo()) return;
-  acordarAudio();
-  if (!ctx || ctx.state !== "running") return;
-
-  const agora = ctx.currentTime;
+function agendar(audio: AudioContext, efeito: Efeito): void {
+  const agora = audio.currentTime;
   for (const nota of RECEITAS[efeito]) {
-    const osc = ctx.createOscillator();
-    const ganho = ctx.createGain();
+    const osc = audio.createOscillator();
+    const ganho = audio.createGain();
     osc.type = nota.tipo ?? "sine";
     osc.frequency.value = nota.hz;
 
@@ -146,10 +161,31 @@ export function tocar(efeito: Efeito): void {
     ganho.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
     ganho.gain.exponentialRampToValueAtTime(0.0001, t0 + nota.dur);
 
-    osc.connect(ganho).connect(ctx.destination);
+    osc.connect(ganho).connect(audio.destination);
     osc.start(t0);
     osc.stop(t0 + nota.dur + 0.02);
   }
+}
+
+export function tocar(efeito: Efeito): void {
+  if (!estaNoNavegador() || estaMudo()) return;
+  acordarAudio();
+  if (!ctx) return;
+  if (ctx.state === "running") {
+    agendar(ctx, efeito);
+    return;
+  }
+  // O resume() é assíncrono: agendar antes dele completar perde o PRIMEIRO som
+  // da sessão (silêncio justamente no toque que a criança mais espera ouvir).
+  const audio = ctx;
+  void audio
+    .resume()
+    .then(() => {
+      if (audio.state === "running" && !estaMudo()) agendar(audio, efeito);
+    })
+    .catch(() => {
+      // sem áudio: o app segue silencioso
+    });
 }
 
 /** Vibração sutil. Android suporta; iOS ignora silenciosamente. */
