@@ -440,7 +440,6 @@ export function Atelie() {
         aoMotorPronto={aoMotorPronto}
         aoOperar={aoOperar}
         colorirClicavel={Boolean(pagina) && usarBalde}
-        proporcaoColorir={paginaImg ? paginaImg.largura / paginaImg.altura : undefined}
         camadaColorir={
           paginaImg ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -448,7 +447,12 @@ export function Atelie() {
               src={paginaImg.src}
               alt={`desenho para colorir: ${paginaImg.nome}`}
               draggable={false}
-              className="h-full w-full object-contain"
+              // absolute inset-0: as linhas TÊM de cair exatamente sobre a cópia
+              // que o balde usa no canvas. Só com h-full/w-full, num container
+              // centralizado, a altura vira a proporcional à largura quando ela
+              // passa da caixa (tela larga e baixa) — o desenho aparecia
+              // duplicado e o toque pintava numa região que não era a apontada.
+              className="absolute inset-0 h-full w-full object-contain"
               style={{ mixBlendMode: "multiply" }}
             />
           ) : pagina ? (

@@ -371,6 +371,54 @@ test("região pintada troca de cor, inclusive depois de uma cor escura", async (
   }
 });
 
+test("as linhas que aparecem coincidem com as que o balde usa", async ({ browser }) => {
+  // Telas largas e baixas são o caso que quebrava: a altura proporcional da
+  // imagem passa da caixa e, num container centralizado, o h-full é ignorado.
+  // O desenho aparecia DUPLICADO e o toque pintava onde a criança não apontou.
+  for (const tela of [
+    { largura: 1440, altura: 900 },
+    { largura: 820, altura: 1180 },
+    { largura: 412, altura: 780 },
+  ]) {
+    const ctx = await browser.newContext({
+      viewport: { width: tela.largura, height: tela.altura },
+      hasTouch: true,
+      deviceScaleFactor: 2,
+    });
+    const page = await ctx.newPage();
+    await page.goto("/desenhar");
+    await page.getByLabel("escolher desenho para colorir").click();
+    await page.getByLabel("Animais fofos").click();
+    await page.waitForTimeout(500);
+    await page.locator("button:has(img)").first().dispatchEvent("click");
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const img = document.querySelector("img[alt^='desenho para colorir']");
+            return img ? (img as HTMLImageElement).naturalWidth : 0;
+          }),
+        { timeout: 5000 },
+      )
+      .toBeGreaterThan(0);
+
+    const medida = await page.evaluate(() => {
+      const fundo = [...document.querySelectorAll("canvas")][0] as HTMLCanvasElement;
+      const img = document.querySelector("img[alt^='desenho para colorir']") as HTMLImageElement;
+      const rc = fundo.getBoundingClientRect();
+      const ri = img.getBoundingClientRect();
+      return {
+        canvas: [Math.round(rc.width), Math.round(rc.height), Math.round(rc.left), Math.round(rc.top)],
+        overlay: [Math.round(ri.width), Math.round(ri.height), Math.round(ri.left), Math.round(ri.top)],
+      };
+    });
+    expect(medida.overlay, `overlay fora do canvas em ${tela.largura}x${tela.altura}`).toEqual(
+      medida.canvas,
+    );
+    await ctx.close();
+  }
+});
+
 test("traço recusa palma apoiada, mas não o dedo", async ({ page }) => {
   const caixa = await page.locator(TELA).boundingBox();
   if (!caixa) throw new Error("sem canvas");
