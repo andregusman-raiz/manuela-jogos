@@ -49,6 +49,7 @@ export function TelaDesenho({
   const refFundo = useRef<HTMLCanvasElement>(null);
   const refArte = useRef<HTMLCanvasElement>(null);
   const refPrevia = useRef<HTMLCanvasElement>(null);
+  const refLinhas = useRef<HTMLCanvasElement>(null);
   const motor = useRef<Motor | null>(null);
 
   const [vista, setVista] = useState<Vista>({ escala: 1, tx: 0, ty: 0 });
@@ -73,10 +74,11 @@ export function TelaDesenho({
     const fundo = refFundo.current;
     const arte = refArte.current;
     const previa = refPrevia.current;
+    const linhas = refLinhas.current;
     const div = caixa.current;
-    if (!fundo || !arte || !previa || !div) return;
+    if (!fundo || !arte || !previa || !linhas || !div) return;
 
-    const m = new Motor({ fundo, arte, previa });
+    const m = new Motor({ fundo, arte, previa, linhas });
     motor.current = m;
 
     const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -361,6 +363,9 @@ export function TelaDesenho({
         <canvas ref={refFundo} className="absolute inset-0 h-full w-full" />
         <canvas ref={refArte} className="absolute inset-0 h-full w-full" />
         <canvas ref={refPrevia} className="absolute inset-0 h-full w-full" />
+        {/* contorno da página de colorir, papel recortado em alpha — por cima
+            de tudo, como numa folha impressa; vazio no papel em branco */}
+        <canvas ref={refLinhas} className="absolute inset-0 h-full w-full" />
         {camadaColorir ? (
           <div
             className={`absolute inset-0 grid place-items-center ${

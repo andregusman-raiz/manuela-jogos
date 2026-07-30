@@ -25,6 +25,14 @@ export type Camadas = {
   fundo: HTMLCanvasElement;
   arte: HTMLCanvasElement;
   previa: HTMLCanvasElement;
+  /**
+   * Contorno da página de colorir por cima de tudo, com o papel já recortado
+   * em transparência REAL (alpha). Não usar `<img>` + mix-blend-mode para
+   * isso: no Safari do iPhone o blend falha sobre canvas acelerado e a folha
+   * branca COBRE a pintura — a criança pinta e não vê a tinta.
+   * Ausente na exportação offscreen, que compõe com multiply de canvas.
+   */
+  linhas?: HTMLCanvasElement;
 };
 
 /** Teto de resolução: celular de entrada não aguenta canvas gigante. */
@@ -54,6 +62,8 @@ export class Motor {
    * contornos do desenho sem nenhum código extra.
    */
   private imagemColorir_: HTMLImageElement | null = null;
+  /** A mesma folha com o papel recortado (branco -> alpha), para a camada de cima. */
+  private folhaRecortada_: HTMLCanvasElement | null = null;
   /** Chamado quando o histórico muda (React redesenha os botões e o SVG). */
   aoMudar: (() => void) | null = null;
 
@@ -98,7 +108,7 @@ export class Motor {
     return mapa;
   }
 
-  private ctx(camada: keyof Camadas): CanvasRenderingContext2D {
+  private ctx(camada: "fundo" | "arte" | "previa"): CanvasRenderingContext2D {
     const ctx = this.camadas[camada].getContext("2d", { willReadFrequently: camada === "arte" });
     if (!ctx) throw new Error(`camada ${camada} sem contexto 2d`);
     return ctx;
@@ -115,7 +125,9 @@ export class Motor {
     const l = Math.max(1, Math.round(larguraCss * dpr * escala));
     const a = Math.max(1, Math.round(alturaCss * dpr * escala));
 
-    for (const canvas of [this.camadas.fundo, this.camadas.arte, this.camadas.previa]) {
+    const todas = [this.camadas.fundo, this.camadas.arte, this.camadas.previa];
+    if (this.camadas.linhas) todas.push(this.camadas.linhas);
+    for (const canvas of todas) {
       if (canvas.width !== l || canvas.height !== a) {
         canvas.width = l;
         canvas.height = a;
@@ -260,6 +272,7 @@ export class Motor {
     if (caixa && this.imagemColorir_) {
       fundo.drawImage(this.imagemColorir_, caixa.x, caixa.y, caixa.l, caixa.a);
     }
+    this.pintarCamadaLinhas(caixa);
 
     const arte = this.ctx("arte");
     arte.clearRect(0, 0, this.largura, this.altura);
@@ -326,8 +339,21 @@ export class Motor {
   /** Define (ou remove) a imagem de linhas da página bitmap e redesenha. */
   definirImagemColorir(img: HTMLImageElement | null): void {
     this.imagemColorir_ = img;
+    this.folhaRecortada_ = img ? recortarPapel(img) : null;
     this.snap = null; // o fundo mudou; bitmaps antigos da arte seguem válidos, o prefixo não
     this.reconstruir();
+  }
+
+  /** Redesenha a camada de contorno (a folha recortada) por cima de tudo. */
+  private pintarCamadaLinhas(caixa: { x: number; y: number; l: number; a: number } | null): void {
+    const canvas = this.camadas.linhas;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (caixa && this.folhaRecortada_) {
+      ctx.drawImage(this.folhaRecortada_, caixa.x, caixa.y, caixa.l, caixa.a);
+    }
   }
 
   /** Retângulo "contain, centralizado" da imagem dentro do canvas. */
@@ -418,6 +444,39 @@ export async function renderizarDesenhoPNG(
   }
 
   return saida.toDataURL("image/png");
+}
+
+/**
+ * Recorta o papel da folha de linhas: branco vira transparente de verdade.
+ *
+ * Para tinta preta sobre papel branco, alpha = 255 - luminância reproduz
+ * exatamente o multiply (resultado = pintura x luminância/255), incluindo a
+ * suavização das bordas do traço — mas por composição normal de alpha, que
+ * funciona em todo navegador. É o que permitiu aposentar o mix-blend-mode.
+ */
+function recortarPapel(img: HTMLImageElement): HTMLCanvasElement | null {
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return null;
+  ctx.drawImage(img, 0, 0);
+  let dados: ImageData;
+  try {
+    dados = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  } catch {
+    return null; // sem acesso aos pixels a folha fica só no fundo — ainda colorível
+  }
+  const buf = dados.data;
+  for (let i = 0; i < buf.length; i += 4) {
+    // a folha é P&B; o verde serve de luminância sem custo de conta
+    buf[i + 3] = 255 - buf[i + 1];
+    buf[i] = 0;
+    buf[i + 1] = 0;
+    buf[i + 2] = 0;
+  }
+  ctx.putImageData(dados, 0, 0);
+  return canvas;
 }
 
 /** SVG (string) -> imagem, via data URL: não sai da máquina, funciona offline. */

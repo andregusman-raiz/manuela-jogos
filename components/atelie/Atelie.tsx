@@ -442,18 +442,15 @@ export function Atelie() {
         colorirClicavel={Boolean(pagina) && usarBalde}
         camadaColorir={
           paginaImg ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={paginaImg.src}
-              alt={`desenho para colorir: ${paginaImg.nome}`}
-              draggable={false}
-              // absolute inset-0: as linhas TÊM de cair exatamente sobre a cópia
-              // que o balde usa no canvas. Só com h-full/w-full, num container
-              // centralizado, a altura vira a proporcional à largura quando ela
-              // passa da caixa (tela larga e baixa) — o desenho aparecia
-              // duplicado e o toque pintava numa região que não era a apontada.
-              className="absolute inset-0 h-full w-full object-contain"
-              style={{ mixBlendMode: "multiply" }}
+            // As linhas em si são a camada canvas "linhas" do motor (papel
+            // recortado em alpha) — aqui fica só o rótulo para leitor de tela.
+            // O antigo <img> com mix-blend-mode foi aposentado: no Safari do
+            // iPhone o blend falha sobre canvas e a folha branca cobria a
+            // pintura — o balde pintava e a criança não via a tinta.
+            <span
+              role="img"
+              aria-label={`desenho para colorir: ${paginaImg.nome}`}
+              className="absolute inset-0"
             />
           ) : pagina ? (
             <LivroColorir
