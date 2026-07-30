@@ -371,52 +371,67 @@ test("região pintada troca de cor, inclusive depois de uma cor escura", async (
   }
 });
 
-test("as linhas que aparecem coincidem com as que o balde usa", async ({ browser }) => {
-  // Telas largas e baixas são o caso que quebrava: a altura proporcional da
-  // imagem passa da caixa e, num container centralizado, o h-full é ignorado.
-  // O desenho aparecia DUPLICADO e o toque pintava onde a criança não apontou.
-  for (const tela of [
-    { largura: 1440, altura: 900 },
-    { largura: 820, altura: 1180 },
-    { largura: 412, altura: 780 },
-  ]) {
-    const ctx = await browser.newContext({
-      viewport: { width: tela.largura, height: tela.altura },
-      hasTouch: true,
-      deviceScaleFactor: 2,
-    });
-    const page = await ctx.newPage();
-    await page.goto("/desenhar");
-    await page.getByLabel("escolher desenho para colorir").click();
-    await page.getByLabel("Animais fofos").click();
-    await page.waitForTimeout(500);
-    await page.locator("button:has(img)").first().dispatchEvent("click");
-    await expect
-      .poll(
-        () =>
-          page.evaluate(() => {
-            const img = document.querySelector("img[alt^='desenho para colorir']");
-            return img ? (img as HTMLImageElement).naturalWidth : 0;
-          }),
-        { timeout: 5000 },
-      )
-      .toBeGreaterThan(0);
+test("a folha por cima é papel transparente: a tinta aparece na tela", async ({ page }) => {
+  // A folha de linhas fica ACIMA da pintura. Ela já foi um <img> branco com
+  // mix-blend-mode — que no Safari do iPhone não compõe sobre canvas, e a
+  // criança pintava sem ver a tinta (só a borda fora da folha mudava de cor).
+  // A garantia real é dupla: nenhum <img> por cima, e a camada de linhas com
+  // papel de alpha ZERO (transparente) e contorno opaco.
+  await page.getByLabel("escolher desenho para colorir").click();
+  await page.getByLabel("Animais fofos").click();
+  await page.waitForTimeout(400);
+  await page.locator("button:has(img)").first().dispatchEvent("click");
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const fundo = [...document.querySelectorAll("canvas")][0] as HTMLCanvasElement;
+          const ctx = fundo.getContext("2d");
+          if (!ctx || !fundo.width) return 0;
+          const d = ctx.getImageData(0, 0, fundo.width, fundo.height).data;
+          let escuros = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i] < 100) escuros++;
+          return escuros;
+        }),
+      { timeout: 5000 },
+    )
+    .toBeGreaterThan(500);
 
-    const medida = await page.evaluate(() => {
-      const fundo = [...document.querySelectorAll("canvas")][0] as HTMLCanvasElement;
-      const img = document.querySelector("img[alt^='desenho para colorir']") as HTMLImageElement;
-      const rc = fundo.getBoundingClientRect();
-      const ri = img.getBoundingClientRect();
-      return {
-        canvas: [Math.round(rc.width), Math.round(rc.height), Math.round(rc.left), Math.round(rc.top)],
-        overlay: [Math.round(ri.width), Math.round(ri.height), Math.round(ri.left), Math.round(ri.top)],
-      };
-    });
-    expect(medida.overlay, `overlay fora do canvas em ${tela.largura}x${tela.altura}`).toEqual(
-      medida.canvas,
-    );
-    await ctx.close();
-  }
+  const overlayImg = await page
+    .locator(".tela-desenho img")
+    .count();
+  expect(overlayImg, "voltou um <img> por cima do canvas — Safari cobre a tinta").toBe(0);
+
+  const folha = await page.evaluate(() => {
+    // fundo[0] diz onde é papel e onde é traço; linhas[3] é a folha de cima
+    const canvases = [...document.querySelectorAll(".tela-desenho canvas")] as HTMLCanvasElement[];
+    const fundo = canvases[0].getContext("2d")!;
+    const linhas = canvases[3].getContext("2d")!;
+    const L = canvases[0].width;
+    const A = canvases[0].height;
+    const df = fundo.getImageData(0, 0, L, A).data;
+    const dl = linhas.getImageData(0, 0, L, A).data;
+    let papelOpaco = 0;
+    let papel = 0;
+    let tracoTransparente = 0;
+    let traco = 0;
+    for (let i = 0; i < df.length; i += 4) {
+      if (df[i] > 240) {
+        papel++;
+        if (dl[i + 3] > 20) papelOpaco++;
+      } else if (df[i] < 60) {
+        traco++;
+        if (dl[i + 3] < 200) tracoTransparente++;
+      }
+    }
+    return {
+      papelOpaco: papel ? papelOpaco / papel : 1,
+      tracoTransparente: traco ? tracoTransparente / traco : 1,
+    };
+  });
+  // papel coberto = tinta invisível; contorno transparente = desenho some
+  expect(folha.papelOpaco, "papel da folha de cima não é transparente").toBeLessThan(0.01);
+  expect(folha.tracoTransparente, "contorno da folha de cima sumiu").toBeLessThan(0.1);
 });
 
 test("traço recusa palma apoiada, mas não o dedo", async ({ page }) => {
