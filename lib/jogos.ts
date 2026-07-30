@@ -39,6 +39,15 @@ export const JOGOS: Jogo[] = [
     disponivel: true,
   },
   {
+    id: "memoria",
+    nome: "Jogo da Memória",
+    descricao: "Encontre os pares",
+    rota: "/memoria",
+    emoji: "🃏",
+    cor: "bg-manu-sol",
+    disponivel: true,
+  },
+  {
     id: "em-breve",
     nome: "Em breve",
     descricao: "Mais um jogo está chegando",
