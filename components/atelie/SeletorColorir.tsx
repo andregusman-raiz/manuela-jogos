@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CATEGORIAS } from "@/lib/colorir/tipos";
 import type { CategoriaColorir } from "@/lib/colorir/tipos";
 import { paginasDaCategoria } from "@/lib/colorir/paginas";
+import { imagensDaCategoria } from "@/lib/colorir/imagens";
 import { MiniaturaColorir } from "./LivroColorir";
 import { feedback } from "@/lib/som";
 import { Icone } from "@/components/ui-kids/Icone";
@@ -26,6 +27,7 @@ export function SeletorColorir({ aberto, slugAtual, aoEscolher, aoFechar }: Prop
   if (!aberto) return null;
 
   const paginas = paginasDaCategoria(categoria);
+  const imagens = imagensDaCategoria(categoria);
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-manu-nuvem">
@@ -62,13 +64,13 @@ export function SeletorColorir({ aberto, slugAtual, aoEscolher, aoFechar }: Prop
         ))}
       </div>
 
-      <div className="grid flex-1 grid-cols-2 content-start gap-3 overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:grid-cols-3">
+      <div className="grid flex-1 auto-rows-[11rem] grid-cols-2 content-start gap-3 overflow-y-auto px-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:grid-cols-3">
         <button
           type="button"
           aria-label="papel em branco para desenhar livre"
           onPointerDown={() => feedback("abrir")}
           onClick={() => aoEscolher(undefined)}
-          className={`flex aspect-square flex-col items-center justify-center gap-1 rounded-[1.5rem] bg-manu-papel p-2 shadow-[0_4px_0_0_rgba(0,0,0,0.1)] ${
+          className={`flex h-full flex-col items-center justify-center gap-1 rounded-[1.5rem] bg-manu-papel p-2 shadow-[0_4px_0_0_rgba(0,0,0,0.1)] ${
             slugAtual ? "ring-2 ring-manu-cacau/10" : "ring-4 ring-manu-rosa-forte"
           }`}
         >
@@ -85,11 +87,35 @@ export function SeletorColorir({ aberto, slugAtual, aoEscolher, aoFechar }: Prop
             aria-label={p.nome}
             onPointerDown={() => feedback("abrir")}
             onClick={() => aoEscolher(p.slug)}
-            className={`aspect-square rounded-[1.5rem] bg-manu-papel p-1 shadow-[0_4px_0_0_rgba(0,0,0,0.1)] ${
+            className={`h-full rounded-[1.5rem] bg-manu-papel p-1 shadow-[0_4px_0_0_rgba(0,0,0,0.1)] ${
               slugAtual === p.slug ? "ring-4 ring-manu-rosa-forte" : "ring-2 ring-manu-cacau/10"
             }`}
           >
             <MiniaturaColorir pagina={p} />
+          </button>
+        ))}
+
+        {imagens.map((p) => (
+          <button
+            key={p.slug}
+            type="button"
+            aria-label={p.nome}
+            onPointerDown={() => feedback("abrir")}
+            onClick={() => aoEscolher(p.slug)}
+            className={`h-full overflow-hidden rounded-[1.5rem] bg-manu-papel p-1 shadow-[0_4px_0_0_rgba(0,0,0,0.1)] ${
+              slugAtual === p.slug ? "ring-4 ring-manu-rosa-forte" : "ring-2 ring-manu-cacau/10"
+            }`}
+          >
+            {/* miniatura é o próprio webp, decodificado pequeno e sob demanda */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={p.src}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+              className="h-full w-full object-contain"
+            />
           </button>
         ))}
       </div>

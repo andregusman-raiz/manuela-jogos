@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { PAGINAS, buscarPagina, paginasDaCategoria } from "@/lib/colorir/paginas";
+import { imagensDaCategoria } from "@/lib/colorir/imagens";
 import { CATEGORIAS, paginaParaSvg } from "@/lib/colorir/tipos";
 
 /**
@@ -52,10 +53,11 @@ describe("páginas do livro de colorir", () => {
     }
   });
 
-  it("cobre todas as categorias anunciadas no seletor", () => {
+  it("cobre todas as categorias anunciadas no seletor (região OU bitmap)", () => {
     for (const categoria of CATEGORIAS) {
-      expect(paginasDaCategoria(categoria.id).length, `categoria ${categoria.id} vazia`)
-        .toBeGreaterThan(0);
+      const total =
+        paginasDaCategoria(categoria.id).length + imagensDaCategoria(categoria.id).length;
+      expect(total, `categoria ${categoria.id} vazia`).toBeGreaterThan(0);
     }
   });
 

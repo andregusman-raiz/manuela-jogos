@@ -126,6 +126,47 @@ test("pintar região do livro não vaza para o papel", async ({ page }) => {
   expect(await pixelsPintados(page)).toBe(0);
 });
 
+test("página bitmap: balde pinta dentro das linhas sem inundar o papel", async ({ page }) => {
+  await page.getByLabel("escolher desenho para colorir").click();
+  // categoria veículos só tem páginas bitmap
+  await page.getByLabel("Veículos").click();
+  // dispatchEvent: as miniaturas lazy da grade assentam o layout por alguns
+  // frames e o hit-test do clique real fica instável; o clique de grade em si
+  // já é exercitado no teste do Gatinho
+  await page.getByLabel("auto carro").dispatchEvent("click");
+  // espera a imagem de linhas chegar à camada de fundo do canvas
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const fundo = [...document.querySelectorAll("canvas")][0] as HTMLCanvasElement;
+          const ctx = fundo.getContext("2d");
+          if (!ctx) return 0;
+          const d = ctx.getImageData(0, 0, fundo.width, fundo.height).data;
+          let escuros = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i] < 100) escuros++;
+          return escuros;
+        }),
+      { timeout: 5000 },
+    )
+    .toBeGreaterThan(500);
+
+  // balde no centro do canvas (dentro do desenho)
+  const caixa = await page.locator(TELA).boundingBox();
+  if (!caixa) throw new Error("sem canvas");
+  await page.touchscreen.tap(caixa.x + caixa.width / 2, caixa.y + caixa.height / 2);
+  await page.waitForTimeout(400);
+
+  const pintados = await pixelsPintados(page);
+  const area = await page.evaluate(() => {
+    const arte = [...document.querySelectorAll("canvas")][1] as HTMLCanvasElement;
+    return arte.width * arte.height;
+  });
+  expect(pintados).toBeGreaterThan(50); // pintou algo
+  // as linhas seguraram a tinta: não inundou o papel inteiro
+  expect(pintados).toBeLessThan(area * 0.9);
+});
+
 test("compartilhar passa pelo portão parental", async ({ page }) => {
   await riscar(page);
   await page.getByLabel("mais coisas: carimbos, formas, espelho e fundo").click();
