@@ -13,11 +13,6 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   // ("WebKit encountered an internal error"). No Safari real o SW responde.
   test.skip(browserName === "webkit", "setOffline + SW navigation não funciona no driver WebKit");
   await page.goto("/");
-  // visita o jogo ONLINE uma vez: os chunks JS entram no cache-first — HTML
-  // precacheado sem chunk renderiza mas não interage (é isso que este teste pega)
-  await page.goto("/contas");
-  await expect(page.locator("[data-conta]")).toBeVisible();
-  await page.goto("/");
 
   // espera o service worker ASSUMIR o controle e terminar o precache da casca
   const controlado = await page
@@ -46,6 +41,14 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   // WebKit headless às vezes não ativa SW em localhost — não mascarar: pular
   // explicitamente com anotação, nunca "passar" sem testar
   test.skip(!controlado, `service worker não assumiu controle neste ambiente (${browserName})`);
+
+  // A checagem de PRECACHE acima roda ANTES de qualquer visita a /contas —
+  // visitar primeiro aqueceria o cache em runtime e a asserção viraria mentira.
+  // Agora sim: visita online para os chunks JS entrarem no cache-first (HTML
+  // precacheado sem chunk renderiza mas não interage; o offline abaixo pega).
+  await page.goto("/contas");
+  await expect(page.locator("[data-conta]")).toBeVisible();
+  await page.goto("/");
 
   await context.setOffline(true);
   await page.goto("/desenhar");

@@ -66,6 +66,19 @@ describe("gerarRodada — SPEC §4.1: 200 rodadas por nível", () => {
           expect(op).toBe("×");
           expect(a).toBeGreaterThanOrEqual(6);
           expect(a).toBeLessThanOrEqual(9);
+          expect(b).toBeGreaterThanOrEqual(1);
+          expect(b).toBeLessThanOrEqual(10);
+        }
+        if (nivel === 5) {
+          // toda rodada do misto respeita a faixa de UM dos níveis 1-4
+          const dentroDeAlgumaFaixa =
+            (op === "+" && a + b <= 20) ||
+            (op === "−" && a >= b && a <= 20) ||
+            (op === "×" &&
+              ((a >= 2 && a <= 5) || (a >= 6 && a <= 9)) &&
+              b >= 1 &&
+              b <= 10);
+          expect(dentroDeAlgumaFaixa, `rodada fora das faixas: ${r.conta}`).toBe(true);
         }
       }
     });

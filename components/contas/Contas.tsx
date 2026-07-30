@@ -95,6 +95,9 @@ export function Contas() {
   function aoTocarResposta(opcao: number, indice: number) {
     if (!estado || estado.fase !== "caindo") return;
     if (opcao === estado.rodada.resposta) {
+      // shake pendente morre aqui — sem isto a bolha do mesmo índice da
+      // PRÓXIMA conta remontava já tremendo
+      setNegada(null);
       despachar("toque-certo");
     } else {
       // erro: shake + som suave; o meteoro continua (a criança tenta de novo)

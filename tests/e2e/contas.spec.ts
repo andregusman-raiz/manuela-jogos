@@ -1,4 +1,4 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { tocarNoElemento } from "./_toque";
 
 /**
@@ -46,14 +46,13 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator("[data-conta]")).toBeVisible();
 });
 
-test("o hub leva ao Foguete das Contas em um toque", async ({ page }) => {
+test("fluxo feliz: do card do hub aos 10 acertos, confete DE VERDADE e volta", async ({ page }) => {
+  // entra como a criança entra: pelo card, com dedo — nunca click de 1px
   await page.goto("/");
-  await page.getByLabel("Foguete das Contas").click();
+  await tocarNoElemento(page.getByLabel("Foguete das Contas"));
   await expect(page).toHaveURL(/\/contas/);
   await expect(page.locator("[data-conta]")).toBeVisible();
-});
 
-test("fluxo feliz: 10 acertos, confete DE VERDADE e volta ao hub", async ({ page }) => {
   for (let i = 0; i < 10; i++) await acertarUma(page);
 
   // fase completa: partícula viva (data-ativo), não só canvas presente no DOM
@@ -102,7 +101,7 @@ test("três formatos: alvos de toque >= 72px em celular, tablet e desktop", asyn
     { nome: "desktop 1440", viewport: { width: 1440, height: 900 } },
   ];
   for (const formato of formatos) {
-    const contexto = await (browser as Browser).newContext({ viewport: formato.viewport });
+    const contexto = await browser.newContext({ viewport: formato.viewport });
     const pagina = await contexto.newPage();
     await pagina.goto("/contas");
     await expect(pagina.locator("[data-conta]")).toBeVisible();
@@ -112,9 +111,73 @@ test("três formatos: alvos de toque >= 72px em celular, tablet e desktop", asyn
       expect(caixa, `${formato.nome}: bolha sem caixa`).not.toBeNull();
       expect(caixa!.width, `${formato.nome}: bolha estreita demais`).toBeGreaterThanOrEqual(72);
       expect(caixa!.height, `${formato.nome}: bolha baixa demais`).toBeGreaterThanOrEqual(72);
+      // dentro do viewport: alvo gigante fora da tela também seria "grande"
+      expect(caixa!.x, `${formato.nome}: bolha à esquerda da tela`).toBeGreaterThanOrEqual(0);
+      expect(caixa!.y, `${formato.nome}: bolha acima da tela`).toBeGreaterThanOrEqual(0);
+      expect(
+        caixa!.x + caixa!.width,
+        `${formato.nome}: bolha vaza à direita`,
+      ).toBeLessThanOrEqual(formato.viewport.width);
+      expect(
+        caixa!.y + caixa!.height,
+        `${formato.nome}: bolha vaza abaixo`,
+      ).toBeLessThanOrEqual(formato.viewport.height);
     }
     const voltar = await pagina.getByLabel("voltar para os jogos").boundingBox();
     expect(voltar!.width, `${formato.nome}: voltar pequeno`).toBeGreaterThanOrEqual(56);
     await contexto.close();
   }
+});
+
+test("upgrade v1→v2 preserva a galeria do Ateliê e cria as gavetas novas", async ({ page }) => {
+  // recria do zero um banco v1 com o esquema do app antigo + desenho sentinela
+  await limparBanco(page);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const req = indexedDB.open("manu-jogos", 1);
+        req.onupgradeneeded = () => {
+          const loja = req.result.createObjectStore("atelie", { keyPath: "id" });
+          loja.createIndex("atualizadoEm", "atualizadoEm");
+        };
+        req.onsuccess = () => {
+          const tx = req.result.transaction("atelie", "readwrite");
+          tx.objectStore("atelie").put({ id: "sentinela-v1", atualizadoEm: 111, operacoes: [] });
+          tx.oncomplete = () => {
+            req.result.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+        req.onerror = () => reject(req.error);
+      }),
+  );
+
+  // recarregar faz o app abrir em v2 e migrar
+  await page.reload();
+  await expect(page.locator("[data-conta]")).toBeVisible();
+
+  const banco = await page.evaluate(
+    () =>
+      new Promise<{ versao: number; lojas: string[]; sentinela: boolean }>((resolve, reject) => {
+        const req = indexedDB.open("manu-jogos");
+        req.onsuccess = () => {
+          const bd = req.result;
+          const g = bd.transaction("atelie", "readonly").objectStore("atelie").get("sentinela-v1");
+          g.onsuccess = () => {
+            resolve({
+              versao: bd.version,
+              lojas: [...bd.objectStoreNames].sort(),
+              sentinela: Boolean(g.result),
+            });
+            bd.close();
+          };
+          g.onerror = () => reject(g.error);
+        };
+        req.onerror = () => reject(req.error);
+      }),
+  );
+  expect(banco.versao).toBe(2);
+  expect(banco.sentinela, "desenho da galeria sumiu no upgrade").toBe(true);
+  expect(banco.lojas).toEqual(["atelie", "contas", "labirinto", "memoria", "palavras"]);
 });

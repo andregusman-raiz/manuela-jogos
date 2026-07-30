@@ -28,7 +28,27 @@ function suportado(): boolean {
 function abrir(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const pedido = indexedDB.open(NOME_BD, VERSAO_BD);
+    let decidido = false;
     let bloqueio: ReturnType<typeof setTimeout> | null = null;
+
+    // Uma única saída: fecha conexão atrasada (o open bloqueado ainda completa
+    // quando a aba antiga fecha — sem isto ele vazava aberto para sempre).
+    const decidir = (bd: IDBDatabase | null, erro?: unknown) => {
+      if (bloqueio) clearTimeout(bloqueio);
+      if (decidido) {
+        bd?.close();
+        return;
+      }
+      decidido = true;
+      if (bd) {
+        // Esta aba é a antiga quando outra pede upgrade: fecha para ela seguir.
+        bd.onversionchange = () => bd.close();
+        resolve(bd);
+      } else {
+        reject(erro instanceof Error ? erro : new Error(String(erro)));
+      }
+    };
+
     // Migração ADITIVA: só cria gavetas que faltam, nunca toca nas existentes —
     // o upgrade de versão não pode custar um desenho da galeria.
     pedido.onupgradeneeded = () => {
@@ -40,21 +60,19 @@ function abrir(): Promise<IDBDatabase> {
         }
       }
     };
-    // Outra aba antiga segura o banco durante o upgrade: espera um pouco e
-    // desiste — o jogo roda sem persistir nesta aba, nunca trava a criança.
+    // Aba com a versão ANTIGA do app segura o upgrade indefinidamente (ela não
+    // tem onversionchange). Após 3s caímos para o banco existente SEM upgrade:
+    // o Ateliê continua salvando de verdade (nada de "Guardado!" mentiroso);
+    // gavetas novas ainda não existem e os jogos rodam sem persistir nesta aba.
     pedido.onblocked = () => {
-      bloqueio ??= setTimeout(() => reject(new Error("banco bloqueado por outra aba")), 3000);
+      bloqueio ??= setTimeout(() => {
+        const fallback = indexedDB.open(NOME_BD);
+        fallback.onsuccess = () => decidir(fallback.result);
+        fallback.onerror = () => decidir(null, fallback.error);
+      }, 3000);
     };
-    pedido.onsuccess = () => {
-      if (bloqueio) clearTimeout(bloqueio);
-      // Esta aba é a antiga quando outra pede upgrade: fecha para ela seguir.
-      pedido.result.onversionchange = () => pedido.result.close();
-      resolve(pedido.result);
-    };
-    pedido.onerror = () => {
-      if (bloqueio) clearTimeout(bloqueio);
-      reject(pedido.error);
-    };
+    pedido.onsuccess = () => decidir(pedido.result);
+    pedido.onerror = () => decidir(null, pedido.error);
   });
 }
 
@@ -145,21 +163,44 @@ export async function lerProgresso(jogo: LojaJogo): Promise<Progresso | null> {
 }
 
 /**
- * Gravação MONOTÔNICA: nível só sobe, recorde só melhora. É o que impede duas
- * abas abertas de regredirem o progresso uma da outra.
+ * Gravação MONOTÔNICA: nível só sobe, recorde só melhora. Ler e gravar na
+ * MESMA transação readwrite — o IndexedDB serializa transações de escrita por
+ * gaveta, então duas abas nunca regridem o progresso uma da outra.
  */
 export async function salvarProgresso(
   jogo: LojaJogo,
   nivel: number,
   melhor: number | null = null,
 ): Promise<void> {
-  const atual = await lerProgresso(jogo);
-  const registro: Progresso = {
-    id: "progresso",
-    nivel: Math.max(atual?.nivel ?? 1, nivel),
-    melhor:
-      atual?.melhor == null ? melhor : melhor == null ? atual.melhor : Math.min(atual.melhor, melhor),
-    atualizadoEm: Date.now(),
-  };
-  await comLoja(jogo, "readwrite", (loja) => loja.put(registro));
+  if (!suportado()) return;
+  try {
+    const bd = await abrir();
+    await new Promise<void>((resolve, reject) => {
+      const tx = bd.transaction(jogo, "readwrite");
+      const loja = tx.objectStore(jogo);
+      const leitura = loja.get("progresso");
+      leitura.onsuccess = () => {
+        const atual = (leitura.result ?? null) as Progresso | null;
+        loja.put({
+          id: "progresso",
+          nivel: Math.max(atual?.nivel ?? 1, nivel),
+          melhor:
+            atual?.melhor == null
+              ? melhor
+              : melhor == null
+                ? atual.melhor
+                : Math.min(atual.melhor, melhor),
+          atualizadoEm: Date.now(),
+        } satisfies Progresso);
+      };
+      tx.oncomplete = () => {
+        bd.close();
+        resolve();
+      };
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+  } catch {
+    // Sem persistência (modo privado, aba bloqueada): o jogo segue em memória.
+  }
 }
