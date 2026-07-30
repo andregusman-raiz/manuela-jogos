@@ -9,10 +9,13 @@
  *   navegação      -> rede primeiro, cache no fallback (nunca "sem internet")
  *   /_next/static  -> cache primeiro (nomes com hash: imutáveis)
  *   assets nossos  -> cache primeiro (manu/, colorir/, ícones)
+ *   RSC (?_rsc=)   -> rede primeiro (é código de tela, não asset)
  *   resto          -> stale-while-revalidate
  */
 
-const VERSAO = "v1";
+// Subir esta versão APAGA os caches antigos no aparelho (ver "activate"). É o
+// que destrava um aparelho preso numa versão velha do app.
+const VERSAO = "v2";
 const CACHE_APP = `manu-app-${VERSAO}`;
 const CACHE_ASSETS = `manu-assets-${VERSAO}`;
 
@@ -97,6 +100,15 @@ self.addEventListener("fetch", (evento) => {
   if (url.origin !== self.location.origin) return; // não mexemos em terceiros
 
   if (request.mode === "navigate") {
+    evento.respondWith(redePrimeiro(request));
+    return;
+  }
+
+  // Payload de tela do Next (RSC), pedido ao tocar num link dentro do app. É
+  // CÓDIGO da página, não asset: servir do cache faz o aparelho abrir a tela de
+  // ontem depois de um deploy — quem entra pela home e navega clicando ficava
+  // presa na versão com defeito, mesmo com a correção publicada.
+  if (url.searchParams.has("_rsc") || request.headers.get("RSC") === "1") {
     evento.respondWith(redePrimeiro(request));
     return;
   }

@@ -119,3 +119,45 @@ test("o PNG guardado é fiel: região pintada, papel e contorno", async ({ page 
   // contorno cacau escuro no topo da cabeça
   expect(Math.max(...contorno)).toBeLessThan(90);
 });
+
+test("depois de um deploy o app não serve a tela antiga", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+  await page.waitForTimeout(800);
+
+  /**
+   * O payload de tela do Next (?_rsc=) é pedido ao tocar num link DENTRO do
+   * app. Servi-lo do cache prende o aparelho numa versão antiga: quem entra
+   * pela home e navega clicando continuava vendo a tela com defeito depois da
+   * correção publicada — e só quem digitava o endereço recebia a nova.
+   * A imagem de colorir é o oposto: tem de vir do cache, senão acaba o offline.
+   */
+  const origem = await page.evaluate(async () => {
+    const rsc = "/desenhar?_rsc=teste123";
+    const asset =
+      "/colorir-img/animais/cartoon-horse-standing-in-a-corral-horse-coloring-pages.webp";
+    const nomes = new Set([
+      ...(await caches.keys()).filter((n) => n.startsWith("manu-")),
+      "manu-app-v1",
+      "manu-app-v2",
+      "manu-assets-v1",
+      "manu-assets-v2",
+    ]);
+    for (const nome of nomes) {
+      const c = await caches.open(nome);
+      await c.put(rsc, new Response("PLANTADO"));
+      await c.put(asset, new Response("PLANTADO"));
+    }
+    const daTela = await (await fetch(rsc)).text();
+    const daImagem = await (await fetch(asset)).text();
+    return {
+      tela: daTela.startsWith("PLANTADO") ? "cache" : "rede",
+      imagem: daImagem.startsWith("PLANTADO") ? "cache" : "rede",
+    };
+  });
+
+  expect(origem.tela, "tela veio do cache: o app abriria a versão antiga").toBe("rede");
+  expect(origem.imagem, "imagem deveria vir do cache, senão não funciona offline").toBe("cache");
+});
