@@ -38,6 +38,10 @@ export function Confete({ gatilho, duracao = 1800 }: Props) {
     if (!ctx) return;
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // O canvas fica SEMPRE no DOM (e "visível" para qualquer teste); data-ativo
+    // é o sinal verificável de que existe partícula viva de verdade. Escrito
+    // direto no elemento: não é estado de render, é telemetria da animação.
+    canvas.dataset.ativo = "true";
 
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const l = window.innerWidth;
@@ -79,18 +83,26 @@ export function Confete({ gatilho, duracao = 1800 }: Props) {
         ctx.restore();
       }
 
-      if (t < duracao) quadro = requestAnimationFrame(desenhar);
-      else ctx.clearRect(0, 0, l, a);
+      if (t < duracao) {
+        quadro = requestAnimationFrame(desenhar);
+      } else {
+        ctx.clearRect(0, 0, l, a);
+        canvas.dataset.ativo = "false";
+      }
     };
 
     quadro = requestAnimationFrame(desenhar);
-    return () => cancelAnimationFrame(quadro);
+    return () => {
+      cancelAnimationFrame(quadro);
+      canvas.dataset.ativo = "false";
+    };
   }, [gatilho, duracao]);
 
   return (
     <canvas
       ref={ref}
       aria-hidden
+      data-ativo="false"
       className="pointer-events-none fixed inset-0 z-[60] h-full w-full"
     />
   );
