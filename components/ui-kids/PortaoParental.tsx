@@ -10,11 +10,15 @@ type Props = {
   onCancelar: () => void;
 };
 
-/** Conta simples que uma criança de 6-8 anos ainda não resolve de cabeça. */
+/**
+ * Multiplicação da tabuada alta (6..9 × 6..9): soma tipo 8+8 a metade do
+ * público-alvo (8-10 anos) resolve de cabeça — 7×8 ainda é barreira real para
+ * quase todos, e continua trivial para o adulto. Formato aprovado pela Apple.
+ */
 function novaConta() {
-  const a = 3 + Math.floor(Math.random() * 7); // 3..9
-  const b = 4 + Math.floor(Math.random() * 6); // 4..9
-  return { a, b, resposta: a + b };
+  const a = 6 + Math.floor(Math.random() * 4); // 6..9
+  const b = 6 + Math.floor(Math.random() * 4); // 6..9
+  return { a, b, resposta: a * b };
 }
 
 /**
@@ -74,7 +78,7 @@ export function PortaoParental({ aberto, onLiberado, onCancelar }: Props) {
         </p>
 
         <p className="mt-3 font-titulo text-4xl text-manu-cacau">
-          {conta.a} + {conta.b} = <span className="text-manu-rosa-forte">{digitado || "?"}</span>
+          {conta.a} × {conta.b} = <span className="text-manu-rosa-forte">{digitado || "?"}</span>
         </p>
         {errou ? (
           <p className="mt-1 text-sm text-manu-rosa-forte">Não foi essa. Tente a nova conta!</p>
