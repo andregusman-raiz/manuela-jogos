@@ -416,13 +416,33 @@ async function imagemDeSvg(svg: string): Promise<HTMLImageElement | null> {
   return carregarImagem(url);
 }
 
+/**
+ * Carrega a imagem e só devolve quando ela estiver PRONTA PARA DESENHAR.
+ *
+ * `onload` diz que os bytes chegaram, não que o quadro foi decodificado: no
+ * WebKit o `drawImage` de um WebP recém-carregado sai em branco sem erro
+ * nenhum. Era isso que deixava a página de colorir sem as linhas na camada de
+ * fundo de vez em quando — a criança via o desenho (o overlay é HTML) mas o
+ * balde não achava contorno para segurar a tinta. `decode()` espera o quadro.
+ */
 export async function carregarImagem(src: string): Promise<HTMLImageElement | null> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => resolve(null);
-    img.src = src;
+  const img = new Image();
+  const carregou = new Promise<boolean>((resolve) => {
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
   });
+  img.src = src;
+
+  if (typeof img.decode === "function") {
+    try {
+      await img.decode();
+      return img;
+    } catch {
+      // decode() rejeita em alguns casos legítimos (SVG em data URL no Firefox
+      // antigo); o onload ainda serve de resposta, só sem a garantia do quadro.
+    }
+  }
+  return (await carregou) ? img : null;
 }
 
 /** Geometria "object-fit: contain" centralizada — a MESMA conta do overlay

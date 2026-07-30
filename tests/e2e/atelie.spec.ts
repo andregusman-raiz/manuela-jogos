@@ -41,6 +41,49 @@ async function riscar(page: Page, deltaY = 0) {
   await page.mouse.up();
 }
 
+/**
+ * Toque com área de contato declarada, como um dedo de verdade.
+ *
+ * `touchscreen.tap` e `mouse.click` do driver chegam com contato de 1px — passam
+ * por qualquer filtro de palma e escondem justamente o que quebra no aparelho da
+ * criança, onde o dedo registra dezenas de pixels.
+ */
+async function tocarComDedo(page: Page, x: number, y: number, contato: number, arrastar = 0) {
+  await page.evaluate(
+    ([px, py, largura, deslocar]) => {
+      const alvo = document.querySelector(".tela-desenho");
+      if (!alvo) throw new Error("tela não encontrada");
+      const base = {
+        bubbles: true,
+        cancelable: true,
+        pointerId: 1,
+        pointerType: "touch",
+        isPrimary: true,
+        width: largura,
+        height: largura,
+        pressure: 0.5,
+      };
+      alvo.dispatchEvent(new PointerEvent("pointerdown", { ...base, clientX: px, clientY: py }));
+      if (deslocar) {
+        for (let i = 1; i <= 10; i++) {
+          alvo.dispatchEvent(
+            new PointerEvent("pointermove", {
+              ...base,
+              clientX: px + (deslocar * i) / 10,
+              clientY: py,
+            }),
+          );
+        }
+      }
+      alvo.dispatchEvent(
+        new PointerEvent("pointerup", { ...base, clientX: px + deslocar, clientY: py }),
+      );
+    },
+    [x, y, contato, arrastar] as [number, number, number, number],
+  );
+  await page.waitForTimeout(400);
+}
+
 async function pixelsPintados(page: Page) {
   return page.evaluate(() => {
     const arte = [...document.querySelectorAll("canvas")][1] as HTMLCanvasElement;
@@ -241,6 +284,51 @@ test("página bitmap: dedo no contorno não pinta a teia de linhas", async ({ pa
   // medido nesta página: 0,2% com o desvio, 4,6% sem ele (a tinta corre pela
   // rede de traços). 1% separa os dois casos com folga dos dois lados.
   expect(invasao).toBeLessThan(0.01);
+});
+
+test("balde aceita o contato largo de um dedo de verdade", async ({ page }) => {
+  await page.getByLabel("escolher desenho para colorir").click();
+  await page.getByLabel("Bobbie Goods").click();
+  await page.waitForTimeout(400);
+  await page.locator("button:has(img)").first().dispatchEvent("click");
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const fundo = [...document.querySelectorAll("canvas")][0] as HTMLCanvasElement;
+          const ctx = fundo.getContext("2d");
+          if (!ctx) return 0;
+          const d = ctx.getImageData(0, 0, fundo.width, fundo.height).data;
+          let escuros = 0;
+          for (let i = 0; i < d.length; i += 4) if (d[i] < 100) escuros++;
+          return escuros;
+        }),
+      { timeout: 5000 },
+    )
+    .toBeGreaterThan(500);
+
+  const caixa = await page.locator(TELA).boundingBox();
+  if (!caixa) throw new Error("sem canvas");
+  // 90 é polegar; o filtro de palma ficava em 68 e engolia o toque em silêncio
+  await tocarComDedo(page, caixa.x + caixa.width * 0.35, caixa.y + caixa.height * 0.3, 90);
+  // o piso é baixo de propósito: em tela menor a mesma área rende menos pixels,
+  // e o que este teste separa é pintar (milhares) de não pintar nada (zero)
+  expect(await pixelsPintados(page)).toBeGreaterThan(1000);
+});
+
+test("traço recusa palma apoiada, mas não o dedo", async ({ page }) => {
+  const caixa = await page.locator(TELA).boundingBox();
+  if (!caixa) throw new Error("sem canvas");
+  const x = caixa.x + caixa.width * 0.25;
+  const y = caixa.y + caixa.height * 0.5;
+
+  await tocarComDedo(page, x, y, 40, 80);
+  const comDedo = await pixelsPintados(page);
+  expect(comDedo).toBeGreaterThan(100);
+
+  await tocarComDedo(page, x, y + 60, 200, 80);
+  // a mão apoiada não deixou risco fantasma: nada além do que o dedo já fez
+  expect(await pixelsPintados(page)).toBe(comDedo);
 });
 
 test("compartilhar passa pelo portão parental", async ({ page }) => {

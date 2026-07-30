@@ -20,8 +20,15 @@ type Props = {
   aoOperar: () => void;
 };
 
-/** Contato maior que isto é palma da mão apoiada, não dedo desenhando. */
-const CONTATO_MAX = 68;
+/**
+ * Contato maior que isto é palma da mão apoiada, não dedo desenhando.
+ *
+ * Era 68 e barrava dedo de verdade: o polegar registra 70-90 de contato, e o
+ * próprio app dimensiona os alvos para 72 justamente porque é esse o tamanho do
+ * dedo. O toque virava silêncio — nada de traço, nada de balde. Palma apoiada
+ * passa bem disto, então o número alto continua filtrando o que precisa.
+ */
+const CONTATO_MAX = 150;
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 5;
 /**
@@ -171,13 +178,22 @@ export function TelaDesenho({
       return;
     }
 
-    // Palma apoiada na tela: contato largo demais para ser dedo de desenho.
-    if (e.pointerType === "touch" && (e.width > CONTATO_MAX || e.height > CONTATO_MAX)) return;
-
     const f = ferramenta;
     const { x, y } = paraCanvas(e.clientX, e.clientY);
     const m = motor.current;
     if (!m) return;
+
+    // Palma apoiada na tela: contato largo demais para ser dedo de desenho. Só
+    // vale para o traço, que é o que deixaria um risco atravessado no desenho;
+    // o balde é um toque pontual e o desfazer resolve, então recusá-lo só faria
+    // a criança tocar de novo achando que o app travou.
+    if (
+      f.modo !== "balde" &&
+      e.pointerType === "touch" &&
+      (e.width > CONTATO_MAX || e.height > CONTATO_MAX)
+    ) {
+      return;
+    }
 
     if (f.modo === "balde") {
       m.aplicar({ kind: "balde", cor: f.cor, x, y });
