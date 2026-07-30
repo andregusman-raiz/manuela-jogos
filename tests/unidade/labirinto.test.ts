@@ -77,11 +77,30 @@ describe("fixtures com solução ótima escrita à mão (oráculo da semântica)
     expect(executar(fase, ["girar-esquerda", "frente"]).resultado).toBe("estrela");
   });
 
-  test("bater na parede para a execução e reporta o esbarrão", () => {
+  test("bater na parede para a execução e a Manu NÃO entra na parede", () => {
     const fase: Fase = { grade: ["M#E"], direcaoInicial: "leste" };
     const { passos, resultado } = executar(fase, ["frente", "frente"]);
     expect(resultado).toBe("parede");
     expect(passos).toHaveLength(1); // só o passo do esbarrão, nada depois
+    // posição VÁLIDA: fica onde estava (nunca dentro do # nem fora da grade)
+    expect(passos[0]).toEqual({ x: 0, y: 0, direcao: "leste" });
+  });
+
+  test("esbarrão na borda também mantém posição válida", () => {
+    const fase: Fase = { grade: ["ME"], direcaoInicial: "oeste" };
+    const { passos } = executar(fase, ["frente"]);
+    expect(passos[0]).toEqual({ x: 0, y: 0, direcao: "oeste" });
+  });
+
+  test("NENHUM giro avança: posição idêntica após girar para cada lado", () => {
+    // mata a mutação "girar-direita também dá um passo" — a fixture da fase 2
+    // sozinha continuaria verde (chegaria na estrela um comando antes)
+    const fase: Fase = { grade: ["M..", "...", "..E"], direcaoInicial: "leste" };
+    for (const giro of ["girar-esquerda", "girar-direita"] as const) {
+      const { passos } = executar(fase, [giro]);
+      expect(passos[0].x).toBe(0);
+      expect(passos[0].y).toBe(0);
+    }
   });
 
   test("borda do tabuleiro é parede", () => {

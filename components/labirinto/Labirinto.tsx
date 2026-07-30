@@ -155,8 +155,7 @@ export function Labirinto() {
         <>
           <div className="flex min-h-0 flex-1 items-center justify-center px-3">
             <div
-              key={`fase-${faseIndice}-${negacao}`}
-              className={`grid aspect-square w-full max-w-[min(92vw,52dvh)] gap-1 ${negacao > 0 ? "anima-nao" : ""}`}
+              className="grid aspect-square w-full max-w-[min(92vw,52dvh)] gap-1"
               style={{
                 gridTemplateColumns: `repeat(${fase.grade[0].length}, minmax(0, 1fr))`,
               }}
@@ -179,10 +178,14 @@ export function Labirinto() {
                       ) : null}
                       {manuAqui ? (
                         <span
+                          // §4.3: quem balança na batida é a MANU, não o mundo
+                          key={`manu-${negacao}`}
                           data-pos={`${x},${y}`}
                           data-direcao={posicao.direcao}
                           aria-label={`Manu olhando para ${posicao.direcao}`}
-                          className="relative flex h-full w-full items-center justify-center"
+                          className={`relative flex h-full w-full items-center justify-center ${
+                            negacao > 0 ? "anima-nao" : ""
+                          }`}
                         >
                           <Manu pose="rosto" tamanho={48} className="h-3/4 w-3/4 object-contain" />
                           <span
@@ -211,16 +214,15 @@ export function Labirinto() {
               </span>
             ) : (
               fila.map((comando, i) => (
-                <button
+                <BotaoBolha
                   key={`${i}-${comando}`}
-                  type="button"
-                  aria-label={`tirar o comando ${i + 1}: ${ROTULOS[comando]}`}
-                  onPointerDown={() => feedback("toque")}
+                  rotulo={`tirar o comando ${i + 1}: ${ROTULOS[comando]}`}
                   onClick={() => removerDaFila(i)}
-                  className="bolha min-h-11 min-w-11 bg-manu-ceu-claro text-xl ring-2 ring-manu-ceu"
+                  desabilitado={executando}
+                  className="bg-manu-ceu-claro ring-manu-ceu"
                 >
                   {SETAS[comando]}
-                </button>
+                </BotaoBolha>
               ))
             )}
           </div>

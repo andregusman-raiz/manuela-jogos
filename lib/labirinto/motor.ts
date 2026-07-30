@@ -68,7 +68,9 @@ export function executar(fase: Fase, fila: Comando[]): Execucao {
       const { dx, dy } = DELTA[atual.direcao];
       const proxima = { x: atual.x + dx, y: atual.y + dy, direcao: atual.direcao };
       if (ehParede(fase, proxima.x, proxima.y)) {
-        passos.push(proxima); // o passo que bate: a animação mostra o esbarrão
+        // o esbarrão NÃO entra na parede: a Manu fica onde está (o shake do
+        // componente comunica a batida; posição inválida sumia com ela da grade)
+        passos.push({ ...atual });
         return { passos, resultado: "parede" };
       }
       atual = proxima;

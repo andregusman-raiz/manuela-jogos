@@ -97,9 +97,18 @@ test("giro sozinho NÃO move a Manu (semântica de giro puro)", async ({ page })
   await expect(page.locator("[data-pos]")).toHaveAttribute("data-pos", "0,1");
   await expect(page.locator("[data-pos]")).toHaveAttribute("data-direcao", "leste");
   await comandar(page, "girar para a esquerda");
-  await executarFila(page);
+  await tocarNoElemento(page.getByLabel("executar os comandos"));
+  // DURANTE a execução do giro a posição não muda e a direção vira norte —
+  // um giro mutado para deslocamento falharia aqui, antes de qualquer reset
+  await expect(page.locator("[data-pos]")).toHaveAttribute("data-direcao", "norte", {
+    timeout: 3000,
+  });
+  await expect(page.locator("[data-pos]")).toHaveAttribute("data-pos", "0,1");
+  await expect(page.getByLabel("andar para frente", { exact: true })).toBeEnabled({
+    timeout: 15000,
+  });
   // termina "fim-da-fila": de volta ao início, apontando leste de novo
-  await expect(page.locator("[data-pos]")).toHaveAttribute("data-pos", "0,1", { timeout: 8000 });
+  await expect(page.locator("[data-pos]")).toHaveAttribute("data-pos", "0,1");
   await expect(page.locator("main")).toHaveAttribute("data-fase", "1");
 });
 
@@ -129,6 +138,12 @@ test("três formatos: botões de comando >= 72px e dentro da tela", async ({ bro
     const pagina = await contexto.newPage();
     await pagina.goto("/labirinto");
     await expect(pagina.locator("[data-pos]")).toBeVisible();
+
+    // uma bolha na fila também é alvo interativo — entra na medição
+    await tocarNoElemento(pagina.getByLabel("andar para frente", { exact: true }));
+    const bolhaFila = await pagina.getByLabel(/tirar o comando 1/).boundingBox();
+    expect(bolhaFila!.width, `${formato.nome}: bolha da fila estreita`).toBeGreaterThanOrEqual(72);
+    expect(bolhaFila!.height, `${formato.nome}: bolha da fila baixa`).toBeGreaterThanOrEqual(72);
 
     for (const rotulo of alvos) {
       const caixa = await pagina.getByLabel(rotulo, { exact: true }).boundingBox();
