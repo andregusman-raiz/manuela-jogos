@@ -30,6 +30,15 @@ export const JOGOS: Jogo[] = [
     disponivel: true,
   },
   {
+    id: "contas",
+    nome: "Foguete das Contas",
+    descricao: "Contas de somar e tabuada",
+    rota: "/contas",
+    emoji: "🚀",
+    cor: "bg-manu-ceu",
+    disponivel: true,
+  },
+  {
     id: "em-breve",
     nome: "Em breve",
     descricao: "Mais um jogo está chegando",

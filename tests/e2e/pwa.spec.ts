@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { tocarNoElemento } from "./_toque";
 
 /**
  * As promessas de PWA: funciona offline depois da primeira visita, e o que a
@@ -12,6 +13,11 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   // ("WebKit encountered an internal error"). No Safari real o SW responde.
   test.skip(browserName === "webkit", "setOffline + SW navigation não funciona no driver WebKit");
   await page.goto("/");
+  // visita o jogo ONLINE uma vez: os chunks JS entram no cache-first — HTML
+  // precacheado sem chunk renderiza mas não interage (é isso que este teste pega)
+  await page.goto("/contas");
+  await expect(page.locator("[data-conta]")).toBeVisible();
+  await page.goto("/");
 
   // espera o service worker ASSUMIR o controle e terminar o precache da casca
   const controlado = await page
@@ -24,9 +30,13 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
         await new Promise((r) => setTimeout(r, 100));
       }
       for (let i = 0; i < 50; i++) {
-        const cache = await caches.open("manu-app-v1");
-        const casca = await cache.match("/desenhar");
-        if (casca) return true;
+        // o nome do cache vem do SW publicado, nunca hardcoded: um bump de
+        // versão não pode transformar esta espera em falsa verificação
+        const nomes = (await caches.keys()).filter((n) => n.startsWith("manu-app-"));
+        if (nomes.length) {
+          const cache = await caches.open(nomes[0]);
+          if ((await cache.match("/desenhar")) && (await cache.match("/contas"))) return true;
+        }
         await new Promise((r) => setTimeout(r, 100));
       }
       return Boolean(navigator.serviceWorker.controller);
@@ -41,6 +51,16 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await page.goto("/desenhar");
   await expect(page.locator(".tela-desenho")).toBeVisible();
   await expect(page.getByLabel("guardar meu desenho")).toBeVisible();
+
+  // o jogo também abre offline E RESPONDE a toque (hidratado, não só HTML)
+  await page.goto("/contas");
+  const meteoro = page.locator("[data-conta]");
+  await expect(meteoro).toBeVisible();
+  const conta = (await meteoro.getAttribute("data-conta"))!;
+  const [a, op, b] = conta.split(" ");
+  const resposta = op === "+" ? +a + +b : op === "−" ? +a - +b : +a * +b;
+  await tocarNoElemento(page.getByLabel(`resposta ${resposta}`, { exact: true }));
+  await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
   await context.setOffline(false);
 });
 
@@ -71,7 +91,10 @@ test("o PNG guardado é fiel: região pintada, papel e contorno", async ({ page 
   // decodifica a miniatura (gerada pelo MESMO renderizador do share) e mede pixels
   const pixels = await page.evaluate(async () => {
     const item = await new Promise<{ miniatura?: string } | undefined>((resolve) => {
-      const req = indexedDB.open("manu-jogos", 1);
+      // SEM número de versão: pedir a versão antiga depois de um upgrade dá
+      // VersionError e o teste morreria em timeout mudo
+      const req = indexedDB.open("manu-jogos");
+      req.onerror = () => resolve(undefined);
       req.onsuccess = () => {
         const g = req.result.transaction("atelie", "readonly").objectStore("atelie").getAll();
         g.onsuccess = () =>
@@ -138,12 +161,14 @@ test("depois de um deploy o app não serve a tela antiga", async ({ page }) => {
     const rsc = "/desenhar?_rsc=teste123";
     const asset =
       "/colorir-img/animais/cartoon-horse-standing-in-a-corral-horse-coloring-pages.webp";
+    // a versão REAL vem do próprio sw.js publicado — lista hardcoded de nomes
+    // virava verificação falsa a cada bump de cache
+    const codigoSw = await (await fetch("/sw.js")).text();
+    const versao = codigoSw.match(/VERSAO = "(v\d+)"/)?.[1] ?? "";
     const nomes = new Set([
       ...(await caches.keys()).filter((n) => n.startsWith("manu-")),
-      "manu-app-v1",
-      "manu-app-v2",
-      "manu-assets-v1",
-      "manu-assets-v2",
+      `manu-app-${versao}`,
+      `manu-assets-${versao}`,
     ]);
     for (const nome of nomes) {
       const c = await caches.open(nome);
