@@ -33,7 +33,14 @@ export type Detalhe = {
   espessura?: number;
 };
 
-export type CategoriaColorir = "animais" | "dinossauros" | "castelo" | "espaco";
+export type CategoriaColorir =
+  | "animais"
+  | "dinossauros"
+  | "castelo"
+  | "espaco"
+  | "esportes"
+  | "natureza"
+  | "veiculos";
 
 export type Pagina = {
   slug: string;
@@ -46,11 +53,31 @@ export type Pagina = {
   detalhes?: Detalhe[];
 };
 
+/**
+ * Página de colorir em IMAGEM (line art bitmap do banco pessoal).
+ *
+ * Diferente das páginas-região (SVG), aqui não há áreas clicáveis: a imagem de
+ * linhas entra na camada de FUNDO do canvas e o balde pinta por flood fill —
+ * as linhas pretas são as barreiras. Por cima, a mesma imagem em multiply
+ * mantém o contorno nítido sobre a pintura.
+ */
+export type PaginaImagem = {
+  slug: string;
+  nome: string;
+  categoria: CategoriaColorir;
+  src: string;
+  largura: number;
+  altura: number;
+};
+
 export const CATEGORIAS: Array<{ id: CategoriaColorir; nome: string; emoji: string }> = [
   { id: "animais", nome: "Animais fofos", emoji: "🐱" },
   { id: "dinossauros", nome: "Dinossauros", emoji: "🦕" },
-  { id: "castelo", nome: "Castelo e magia", emoji: "🏰" },
+  { id: "castelo", nome: "Fantasia", emoji: "🦄" },
   { id: "espaco", nome: "Espaço", emoji: "🚀" },
+  { id: "esportes", nome: "Esportes", emoji: "⚽" },
+  { id: "natureza", nome: "Natureza", emoji: "🌸" },
+  { id: "veiculos", nome: "Veículos", emoji: "🚗" },
 ];
 
 export const COR_CONTORNO = "#2E1408";

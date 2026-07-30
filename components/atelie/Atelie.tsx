@@ -14,7 +14,7 @@ import { Confete } from "@/components/ui-kids/Confete";
 import { Manu } from "@/components/ui-kids/Manu";
 import { PortaoParental } from "@/components/ui-kids/PortaoParental";
 import { Icone } from "@/components/ui-kids/Icone";
-import { Motor, renderizarDesenhoPNG } from "@/lib/desenho/motor";
+import { Motor, carregarImagem, renderizarDesenhoPNG } from "@/lib/desenho/motor";
 import { regioesDeOperacoes } from "@/lib/desenho/documento";
 import { marcarDescobriuMais } from "@/lib/descoberta";
 import {
@@ -27,8 +27,9 @@ import type { Ferramenta } from "@/lib/desenho/ferramentas";
 import { CARIMBOS, FORMAS } from "@/lib/desenho/formas";
 import { ESPESSURAS, FUNDOS } from "@/lib/cores";
 import { buscarPagina } from "@/lib/colorir/paginas";
+import { buscarImagem } from "@/lib/colorir/imagens";
 import { paginaParaSvg } from "@/lib/colorir/tipos";
-import type { Pagina } from "@/lib/colorir/tipos";
+import type { Pagina, PaginaImagem } from "@/lib/colorir/tipos";
 import {
   carregarRascunho,
   guardarNaGaleria,
@@ -91,6 +92,7 @@ export function Atelie() {
   const [ferramenta, setFerramenta] = useState<Ferramenta>(FERRAMENTA_INICIAL);
   const [gaveta, setGaveta] = useState<Gaveta>(null);
   const [pagina, setPagina] = useState<Pagina | undefined>(undefined);
+  const [paginaImg, setPaginaImg] = useState<PaginaImagem | undefined>(undefined);
   const [seletorAberto, setSeletorAberto] = useState(false);
   const [galeriaAberta, setGaleriaAberta] = useState(false);
   const [desenhosSalvos, setDesenhosSalvos] = useState<Desenho[]>([]);
@@ -140,6 +142,22 @@ export function Atelie() {
 
   // ----------------------------------------------------------------- motor
 
+  /** Resolve o slug salvo (região SVG ou imagem bitmap) e prepara o motor. */
+  const aplicarPaginaColorir = useCallback((m: Motor, slug: string | undefined) => {
+    const regiao = buscarPagina(slug);
+    const imagem = regiao ? undefined : buscarImagem(slug);
+    setPagina(regiao);
+    setPaginaImg(imagem);
+    if (imagem) {
+      void carregarImagem(imagem.src).then((img) => {
+        // se a criança já trocou de página, não sobrescreve
+        if (motorRef.current === m) m.definirImagemColorir(img);
+      });
+    } else {
+      m.definirImagemColorir(null);
+    }
+  }, []);
+
   const aoMotorPronto = useCallback((m: Motor) => {
     motorRef.current = m;
     m.aoMudar = () =>
@@ -158,9 +176,9 @@ export function Atelie() {
       // é seguro (o pior caso é um guardar atualizar com o mesmo conteúdo)
       sujo.current = true;
       m.carregar(rascunho);
-      setPagina(buscarPagina(rascunho.colorir));
+      aplicarPaginaColorir(m, rascunho.colorir);
     });
-  }, []);
+  }, [aplicarPaginaColorir]);
 
   const svgDaPagina = useCallback((): string | undefined => {
     const m = motorRef.current;
@@ -257,7 +275,7 @@ export function Atelie() {
 
       m.limparTudo();
       m.definirLivroColorir(slug);
-      setPagina(buscarPagina(slug));
+      aplicarPaginaColorir(m, slug);
       criadoEm.current = Date.now();
       idGaleria.current = null;
       sujo.current = false;
@@ -266,7 +284,7 @@ export function Atelie() {
       void salvarRascunho(rascunhoAtual(m));
       tocar("abrir");
     },
-    [marcarCriacao, rascunhoAtual, svgDaPagina],
+    [aplicarPaginaColorir, marcarCriacao, rascunhoAtual, svgDaPagina],
   );
 
   const abrirDaGaleria = useCallback(
@@ -278,12 +296,12 @@ export function Atelie() {
       idGaleria.current = desenho.id;
       sujo.current = false;
       m.carregar(desenho);
-      setPagina(buscarPagina(desenho.colorir));
+      aplicarPaginaColorir(m, desenho.colorir);
       setGaleriaAberta(false);
       void salvarRascunho(rascunhoAtual(m));
       tocar("abrir");
     },
-    [rascunhoAtual],
+    [aplicarPaginaColorir, rascunhoAtual],
   );
 
   const compartilharLiberado = useCallback(async () => {
@@ -303,7 +321,11 @@ export function Atelie() {
       const svg = paginaSalva
         ? paginaParaSvg(paginaSalva, regioesDeOperacoes(alvo.operacoes))
         : undefined;
-      dataUrl = await renderizarDesenhoPNG(alvo, { svgLinhas: svg, escala: 2 });
+      dataUrl = await renderizarDesenhoPNG(alvo, {
+        svgLinhas: svg,
+        imagemSrc: buscarImagem(alvo.colorir)?.src,
+        escala: 2,
+      });
     }
 
     const r = await compartilharPng(dataUrl);
@@ -419,7 +441,16 @@ export function Atelie() {
         aoOperar={aoOperar}
         colorirClicavel={Boolean(pagina) && usarBalde}
         camadaColorir={
-          pagina ? (
+          paginaImg ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={paginaImg.src}
+              alt={`desenho para colorir: ${paginaImg.nome}`}
+              draggable={false}
+              className="h-full w-full object-contain"
+              style={{ mixBlendMode: "multiply" }}
+            />
+          ) : pagina ? (
             <LivroColorir
               pagina={pagina}
               cores={regioes}

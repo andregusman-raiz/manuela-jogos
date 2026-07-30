@@ -109,6 +109,7 @@ self.addEventListener("fetch", (evento) => {
   if (
     url.pathname.startsWith("/manu/") ||
     url.pathname.startsWith("/colorir/") ||
+    url.pathname.startsWith("/colorir-img/") ||
     url.pathname === "/manifest.webmanifest"
   ) {
     evento.respondWith(cachePrimeiro(request, CACHE_ASSETS));

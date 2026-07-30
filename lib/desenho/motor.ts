@@ -48,6 +48,12 @@ export class Motor {
    * re-executa só as últimas poucas operações.
    */
   private snap: { indice: number; bitmap: HTMLCanvasElement } | null = null;
+  /**
+   * Página de colorir em bitmap: as linhas entram na camada de FUNDO, e é
+   * assim que o balde (flood fill no achatado fundo+arte) respeita os
+   * contornos do desenho sem nenhum código extra.
+   */
+  private imagemColorir_: HTMLImageElement | null = null;
   /** Chamado quando o histórico muda (React redesenha os botões e o SVG). */
   aoMudar: (() => void) | null = null;
 
@@ -240,6 +246,10 @@ export class Motor {
     fundo.clearRect(0, 0, this.largura, this.altura);
     fundo.fillStyle = this.corFundoInicial();
     fundo.fillRect(0, 0, this.largura, this.altura);
+    const caixa = this.caixaImagem();
+    if (caixa && this.imagemColorir_) {
+      fundo.drawImage(this.imagemColorir_, caixa.x, caixa.y, caixa.l, caixa.a);
+    }
 
     const arte = this.ctx("arte");
     arte.clearRect(0, 0, this.largura, this.altura);
@@ -303,6 +313,20 @@ export class Motor {
     this.colorir_ = slug;
   }
 
+  /** Define (ou remove) a imagem de linhas da página bitmap e redesenha. */
+  definirImagemColorir(img: HTMLImageElement | null): void {
+    this.imagemColorir_ = img;
+    this.snap = null; // o fundo mudou; bitmaps antigos da arte seguem válidos, o prefixo não
+    this.reconstruir();
+  }
+
+  /** Retângulo "contain, centralizado" da imagem dentro do canvas. */
+  private caixaImagem(): { x: number; y: number; l: number; a: number } | null {
+    const img = this.imagemColorir_;
+    if (!img) return null;
+    return caixaContain(img.naturalWidth, img.naturalHeight, this.largura, this.altura);
+  }
+
   // ------------------------------------------------------------------ exportar
 
   /**
@@ -312,7 +336,11 @@ export class Motor {
    * regiões; entra POR CIMA da arte, como na tela (o contorno nunca é coberto).
    */
   async exportarPNG(svgLinhas?: string, escala = 1): Promise<string> {
-    return renderizarDesenhoPNG(this.paraDesenho("export", 0), { svgLinhas, escala });
+    return renderizarDesenhoPNG(this.paraDesenho("export", 0), {
+      svgLinhas,
+      imagemSrc: this.imagemColorir_?.src,
+      escala,
+    });
   }
 
   async miniatura(svgLinhas?: string, lado = 320): Promise<string> {
@@ -328,7 +356,11 @@ export class Motor {
  */
 export async function renderizarDesenhoPNG(
   desenho: Desenho,
-  { svgLinhas, escala = 1 }: { svgLinhas?: string; escala?: number } = {},
+  {
+    svgLinhas,
+    imagemSrc,
+    escala = 1,
+  }: { svgLinhas?: string; imagemSrc?: string; escala?: number } = {},
 ): Promise<string> {
   const escalado = escala === 1 ? desenho : escalarDesenho(desenho, escala);
   const l = escalado.largura;
@@ -341,6 +373,10 @@ export async function renderizarDesenhoPNG(
   };
   const motor = new Motor(camadas);
   motor.definirLivroColorir(desenho.colorir);
+  // Página bitmap: as linhas precisam estar no fundo ANTES do replay, senão
+  // os baldes do histórico inundam sem barreira e o PNG sai diferente da tela.
+  const imagemLinhas = imagemSrc ? await carregarImagem(imagemSrc) : null;
+  if (imagemLinhas) motor.definirImagemColorir(imagemLinhas);
   // redimensionar + carregar reconstroem tudo (inclusive baldes) no espaço maior
   motor.redimensionar(l, a, 1);
   motor.carregar(escalado);
@@ -353,6 +389,14 @@ export async function renderizarDesenhoPNG(
 
   ctx.drawImage(camadas.fundo, 0, 0);
   ctx.drawImage(camadas.arte, 0, 0);
+
+  if (imagemLinhas) {
+    // linhas por cima da pintura, como o overlay multiply da tela
+    const caixa = caixaContain(imagemLinhas.naturalWidth, imagemLinhas.naturalHeight, l, a);
+    ctx.globalCompositeOperation = "multiply";
+    ctx.drawImage(imagemLinhas, caixa.x, caixa.y, caixa.l, caixa.a);
+    ctx.globalCompositeOperation = "source-over";
+  }
 
   if (svgLinhas) {
     const img = await imagemDeSvg(svgLinhas);
@@ -369,10 +413,28 @@ export async function renderizarDesenhoPNG(
 /** SVG (string) -> imagem, via data URL: não sai da máquina, funciona offline. */
 async function imagemDeSvg(svg: string): Promise<HTMLImageElement | null> {
   const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  return carregarImagem(url);
+}
+
+export async function carregarImagem(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
-    img.src = url;
+    img.src = src;
   });
+}
+
+/** Geometria "object-fit: contain" centralizada — a MESMA conta do overlay
+ * visual, do fundo do canvas e da exportação, para nada ficar deslocado. */
+export function caixaContain(
+  imgL: number,
+  imgA: number,
+  telaL: number,
+  telaA: number,
+): { x: number; y: number; l: number; a: number } {
+  const escala = Math.min(telaL / imgL, telaA / imgA);
+  const l = imgL * escala;
+  const a = imgA * escala;
+  return { x: (telaL - l) / 2, y: (telaA - a) / 2, l, a };
 }
