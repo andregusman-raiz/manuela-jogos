@@ -21,6 +21,13 @@ type Props = {
 const CONTATO_MAX = 68;
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 5;
+/**
+ * Um traço contínuo é fatiado a cada tantos pontos: a prévia redesenha o traço
+ * inteiro por quadro, e um rabisco de minutos sem soltar o dedo degradaria o
+ * frame rate. A emenda reaproveita o último ponto, então não aparece.
+ * Efeito colateral bem-vindo: o desfazer volta em pedaços, não o rabisco todo.
+ */
+const PONTOS_POR_TRACO = 700;
 
 type Vista = { escala: number; tx: number; ty: number };
 
@@ -247,6 +254,18 @@ export function TelaDesenho({
       t.t = agora;
       t.x = x;
       t.y = y;
+    }
+
+    if (t.op.pontos.length >= PONTOS_POR_TRACO) {
+      const m = motor.current;
+      if (m) {
+        m.previa(null);
+        m.aplicar(t.op);
+        aoOperar();
+        // continua o mesmo gesto num traço novo, emendado no ponto final
+        const ultimo = t.op.pontos[t.op.pontos.length - 1];
+        t.op = { ...t.op, pontos: [ultimo] };
+      }
     }
 
     pintarPrevia(t.op);

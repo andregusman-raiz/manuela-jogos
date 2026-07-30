@@ -261,13 +261,23 @@ function riscarGiz(
   ctx.save();
   ctx.globalAlpha = 0.28;
   ctx.lineWidth = 1.2;
-  for (let i = 0; i < 3; i++) {
-    const dx = (rnd() - 0.5) * espessura * 0.8;
-    const dy = (rnd() - 0.5) * espessura * 0.8;
-    ctx.beginPath();
-    ctx.moveTo(a.x + dx, a.y + dy);
-    ctx.lineTo(b.x + dx, b.y + dy);
-    ctx.stroke();
+  // Dedo rápido = pontos distantes: subdividir o segmento mantém a textura
+  // contínua (sem isso o granulado vira "contas" espaçadas).
+  const dist = Math.hypot(b.x - a.x, b.y - a.y);
+  const passos = Math.max(1, Math.ceil(dist / Math.max(4, espessura * 0.6)));
+  for (let p = 0; p < passos; p++) {
+    const x0 = a.x + ((b.x - a.x) * p) / passos;
+    const y0 = a.y + ((b.y - a.y) * p) / passos;
+    const x1 = a.x + ((b.x - a.x) * (p + 1)) / passos;
+    const y1 = a.y + ((b.y - a.y) * (p + 1)) / passos;
+    for (let i = 0; i < 3; i++) {
+      const dx = (rnd() - 0.5) * espessura * 0.8;
+      const dy = (rnd() - 0.5) * espessura * 0.8;
+      ctx.beginPath();
+      ctx.moveTo(x0 + dx, y0 + dy);
+      ctx.lineTo(x1 + dx, y1 + dy);
+      ctx.stroke();
+    }
   }
   ctx.restore();
 }
