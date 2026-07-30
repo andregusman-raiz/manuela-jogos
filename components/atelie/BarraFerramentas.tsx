@@ -1,8 +1,15 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { feedback } from "@/lib/som";
 import { TODOS_PINCEIS } from "@/lib/desenho/ferramentas";
 import type { Ferramenta } from "@/lib/desenho/ferramentas";
+import { Icone } from "@/components/ui-kids/Icone";
+import {
+  assinarDescoberta,
+  descobertaNoServidor,
+  jaDescobriuMais,
+} from "@/lib/descoberta";
 
 type Props = {
   ferramenta: Ferramenta;
@@ -31,6 +38,11 @@ export function BarraFerramentas({
   aoDesfazer,
 }: Props) {
   const pincelAtual = TODOS_PINCEIS.find((p) => p.tipo === ferramenta.pincel) ?? TODOS_PINCEIS[1];
+  const descobriuMais = useSyncExternalStore(
+    assinarDescoberta,
+    jaDescobriuMais,
+    descobertaNoServidor,
+  );
   const desenhando = ferramenta.modo === "pincel" && ferramenta.pincel !== "borracha";
   const apagando = ferramenta.modo === "pincel" && ferramenta.pincel === "borracha";
 
@@ -71,7 +83,7 @@ export function BarraFerramentas({
         onClick={aoUsarBorracha}
         className={`${base} ${apagando ? ativo : inativo}`}
       >
-        🧽
+        <Icone nome="borracha" tamanho={38} />
       </button>
 
       <button
@@ -82,7 +94,7 @@ export function BarraFerramentas({
         onClick={() => aoTrocarModo("balde")}
         className={`${base} ${ferramenta.modo === "balde" ? ativo : inativo}`}
       >
-        🪣
+        <Icone nome="balde" tamanho={38} />
       </button>
 
       <button
@@ -92,9 +104,15 @@ export function BarraFerramentas({
         onClick={aoAbrirMais}
         className={`${base} ${
           ferramenta.modo === "carimbo" || ferramenta.modo === "forma" ? ativo : inativo
-        }`}
+        } ${descobriuMais ? "" : "anima-chama"}`}
       >
-        {ferramenta.modo === "carimbo" ? ferramenta.carimbo : ferramenta.modo === "forma" ? "⭕" : "✨"}
+        {ferramenta.modo === "carimbo" ? (
+          ferramenta.carimbo
+        ) : ferramenta.modo === "forma" ? (
+          "⭕"
+        ) : (
+          <Icone nome="varinha" tamanho={38} />
+        )}
       </button>
 
       <button
@@ -107,7 +125,7 @@ export function BarraFerramentas({
           podeDesfazer ? "" : "opacity-35"
         }`}
       >
-        ↩️
+        <Icone nome="desfazer" tamanho={38} />
       </button>
     </nav>
   );

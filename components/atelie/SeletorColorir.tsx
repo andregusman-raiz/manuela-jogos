@@ -6,6 +6,7 @@ import type { CategoriaColorir } from "@/lib/colorir/tipos";
 import { paginasDaCategoria } from "@/lib/colorir/paginas";
 import { MiniaturaColorir } from "./LivroColorir";
 import { feedback } from "@/lib/som";
+import { Icone } from "@/components/ui-kids/Icone";
 
 type Props = {
   aberto: boolean;
@@ -34,9 +35,9 @@ export function SeletorColorir({ aberto, slugAtual, aoEscolher, aoFechar }: Prop
           aria-label="voltar"
           onPointerDown={() => feedback("desfazer")}
           onClick={aoFechar}
-          className="bolha min-h-14 min-w-14 bg-manu-papel text-2xl ring-2 ring-manu-cacau/10"
+          className="bolha min-h-14 min-w-14 bg-manu-papel ring-2 ring-manu-cacau/10"
         >
-          ⬅️
+          <Icone nome="voltar" tamanho={28} />
         </button>
         <h2 className="font-titulo text-2xl text-manu-cacau">Escolha um desenho</h2>
       </header>

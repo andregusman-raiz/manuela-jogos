@@ -6,6 +6,7 @@ import { Motor } from "@/lib/desenho/motor";
 import type { Ferramenta } from "@/lib/desenho/ferramentas";
 import type { Operacao, OperacaoTraco, Ponto } from "@/lib/desenho/tipos";
 import { acordarAudio, tocar, vibrar } from "@/lib/som";
+import { Icone } from "@/components/ui-kids/Icone";
 
 type Props = {
   ferramenta: Ferramenta;
@@ -364,9 +365,9 @@ export function TelaDesenho({
             tocar("desfazer");
             setVista({ escala: 1, tx: 0, ty: 0 });
           }}
-          className="bolha absolute right-3 top-3 min-h-14 min-w-14 bg-manu-papel/95 text-2xl ring-2 ring-manu-cacau/10"
+          className="bolha absolute right-3 top-3 min-h-14 min-w-14 bg-manu-papel/95 ring-2 ring-manu-cacau/10"
         >
-          🎯
+          <Icone nome="alvo" tamanho={28} />
         </button>
       ) : null}
     </div>

@@ -13,8 +13,10 @@ import { BotaoSegurar } from "@/components/ui-kids/BotaoSegurar";
 import { Confete } from "@/components/ui-kids/Confete";
 import { Manu } from "@/components/ui-kids/Manu";
 import { PortaoParental } from "@/components/ui-kids/PortaoParental";
+import { Icone } from "@/components/ui-kids/Icone";
 import { Motor, renderizarDesenhoPNG } from "@/lib/desenho/motor";
 import { regioesDeOperacoes } from "@/lib/desenho/documento";
+import { marcarDescobriuMais } from "@/lib/descoberta";
 import {
   FERRAMENTA_INICIAL,
   PINCEIS_BASICOS,
@@ -50,11 +52,13 @@ type Gaveta = "pinceis" | "mais" | "carimbos" | "formas" | "espelho" | "fundos" 
 function BotaoGaveta({
   rotulo,
   emoji,
+  icone,
   onClick,
   inativo = false,
 }: {
   rotulo: string;
-  emoji: string;
+  emoji?: string;
+  icone?: React.ReactNode;
   onClick: () => void;
   inativo?: boolean;
 }) {
@@ -71,7 +75,7 @@ function BotaoGaveta({
         inativo ? "opacity-35" : ""
       }`}
     >
-      {emoji}
+      {icone ?? emoji}
     </button>
   );
 }
@@ -93,6 +97,8 @@ export function Atelie() {
   const [portao, setPortao] = useState<Desenho | "atual" | null>(null);
   const [confete, setConfete] = useState(0);
   const [aviso, setAviso] = useState<string | null>(null);
+  /** Sobe a cada tentativa de guardar sem desenho: a estrela balança o "não". */
+  const [negacao, setNegacao] = useState(0);
   // O mudo vive no localStorage (estado externo): useSyncExternalStore evita
   // divergência entre o que o servidor renderiza e o que o aparelho lembra.
   const mudo = useSyncExternalStore(assinarMudo, estaMudo, mudoNoServidor);
@@ -204,7 +210,9 @@ export function Atelie() {
   const guardar = useCallback(async () => {
     const m = motorRef.current;
     if (!m || m.vazio) {
-      mostrarAviso("Desenhe alguma coisa primeiro!");
+      // sem texto: o app responde como brinquedo — som de "hã-hã" + balanço
+      tocar("vazio");
+      setNegacao((n) => n + 1);
       return;
     }
 
@@ -373,9 +381,9 @@ export function Atelie() {
             aria-label="escolher desenho para colorir"
             onPointerDown={() => feedback("toque")}
             onClick={() => setSeletorAberto(true)}
-            className="bolha min-h-14 min-w-14 bg-manu-papel text-2xl ring-2 ring-manu-cacau/10"
+            className="bolha min-h-14 min-w-14 bg-manu-papel ring-2 ring-manu-cacau/10"
           >
-            📖
+            <Icone nome="livro" tamanho={30} />
           </button>
           <button
             type="button"
@@ -384,18 +392,22 @@ export function Atelie() {
               definirMudo(!mudo);
               if (mudo) tocar("toque"); // acabou de LIGAR o som: confirma sonoramente
             }}
-            className="bolha min-h-14 min-w-14 bg-manu-papel text-2xl ring-2 ring-manu-cacau/10"
+            className="bolha min-h-14 min-w-14 bg-manu-papel ring-2 ring-manu-cacau/10"
           >
-            {mudo ? "🔇" : "🔊"}
+            <Icone nome={mudo ? "mudo" : "som"} tamanho={30} />
           </button>
           <button
             type="button"
             aria-label="guardar meu desenho"
             onPointerDown={() => feedback("toque")}
             onClick={() => void guardar()}
-            className="bolha min-h-14 min-w-14 bg-manu-sol text-2xl ring-2 ring-manu-sol-forte"
+            className={`bolha min-h-14 min-w-14 bg-manu-sol ring-2 ring-manu-sol-forte ${
+              negacao > 0 ? "anima-nao" : ""
+            }`}
+            // key força a animação a recomeçar a cada tentativa em vazio
+            key={`estrela-${negacao}`}
           >
-            ⭐
+            <Icone nome="estrela" tamanho={30} />
           </button>
         </div>
       </header>
@@ -437,7 +449,10 @@ export function Atelie() {
         }
         aoUsarBorracha={() => setFerramenta((f) => ({ ...f, modo: "pincel", pincel: "borracha" }))}
         aoAbrirPinceis={() => setGaveta("pinceis")}
-        aoAbrirMais={() => setGaveta("mais")}
+        aoAbrirMais={() => {
+          marcarDescobriuMais();
+          setGaveta("mais");
+        }}
         aoDesfazer={desfazer}
       />
 
@@ -591,8 +606,17 @@ export function Atelie() {
           <BotaoGaveta rotulo="formas" emoji="⭕" onClick={abrirFormas} />
           <BotaoGaveta rotulo="espelho mágico" emoji="🦋" onClick={abrirEspelho} />
           <BotaoGaveta rotulo="cor do papel" emoji="🎨" onClick={abrirFundos} />
-          <BotaoGaveta rotulo="meus desenhos" emoji="🖼️" onClick={() => void abrirGaleria()} />
-          <BotaoGaveta rotulo="refazer" emoji="↪️" onClick={refazer} inativo={!podeRefazer} />
+          <BotaoGaveta
+            rotulo="meus desenhos"
+            icone={<Icone nome="galeria" />}
+            onClick={() => void abrirGaleria()}
+          />
+          <BotaoGaveta
+            rotulo="refazer"
+            icone={<Icone nome="refazer" />}
+            onClick={refazer}
+            inativo={!podeRefazer}
+          />
 
           <BotaoSegurar
             rotulo="segure para apagar tudo"
@@ -600,7 +624,7 @@ export function Atelie() {
             className="aspect-square min-h-16 w-full !bg-manu-rosa/30 text-3xl"
             onConfirmar={apagarTudo}
           >
-            🗑️
+            <Icone nome="lixeira" />
           </BotaoSegurar>
 
           <button
@@ -611,9 +635,9 @@ export function Atelie() {
               setGaveta(null);
               setPortao("atual");
             }}
-            className="bolha aspect-square min-h-16 w-full bg-manu-ceu-claro text-3xl ring-2 ring-manu-cacau/10"
+            className="bolha aspect-square min-h-16 w-full bg-manu-ceu-claro ring-2 ring-manu-cacau/10"
           >
-            📤
+            <Icone nome="enviar" />
           </button>
         </div>
       </Bandeja>
