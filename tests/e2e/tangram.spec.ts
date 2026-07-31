@@ -92,6 +92,14 @@ test("fluxo feliz: montar a casa inteira arrastando, confete e volta", async ({ 
   await expect(page).toHaveURL(/\/$/);
 });
 
+test("toque de DEDO seleciona a peça (pointerType touch, caminho real)", async ({ page }) => {
+  const antes = await page.locator("[data-peca='p1']").getAttribute("points");
+  await tocarNoElemento(page.locator("[data-peca='p1']"));
+  // selecionada: o botão girar age sobre ELA — os pontos mudam
+  await tocarNoElemento(page.getByLabel("girar a peça", { exact: true }));
+  await expect(page.locator("[data-peca='p1']")).not.toHaveAttribute("points", antes!);
+});
+
 test("soltar longe do alvo NÃO encaixa; peça continua arrastável", async ({ page }) => {
   const el = page.locator("[data-peca='q']");
   const caixa = (await el.boundingBox())!;

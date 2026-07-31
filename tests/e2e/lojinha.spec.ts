@@ -137,17 +137,21 @@ test("nível 3: o troco certo é pagamento − preço (via progresso salvo)", as
   await expect(page.locator("main")).toHaveAttribute("data-nivel", "3");
 
   // o reload do controllerchange do SW pode destruir o contexto no meio —
-  // esperar a página estabilizar antes de ler o DOM (padrão do contas.spec)
-  await page.waitForTimeout(800);
-  await expect(page.locator("[data-preco]")).toBeVisible();
-  const preco = Number(await page.locator("[data-preco]").getAttribute("data-preco"));
-  const pagamento = Number(await page.locator("[data-preco]").getAttribute("data-pagamento"));
+  // RETRY em vez de tempo arbitrário (padrão do contas.spec)
+  let preco = 0;
+  let pagamento = 0;
+  let rotulos: (string | null)[] = [];
+  await expect(async () => {
+    await expect(page.locator("[data-preco]")).toBeVisible();
+    preco = Number(await page.locator("[data-preco]").getAttribute("data-preco"));
+    pagamento = Number(await page.locator("[data-preco]").getAttribute("data-pagamento"));
+    rotulos = await page
+      .locator("[aria-label^='troco ']")
+      .evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
+  }).toPass({ timeout: 10000 });
   expect(pagamento).toBeGreaterThan(preco);
   // erra de propósito primeiro (uma opção != certa)
   const certa = `troco ${formatar(pagamento - preco)}`;
-  const rotulos = await page
-    .locator("[aria-label^='troco ']")
-    .evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
   const errada = rotulos.find((r) => r !== certa)!;
   await tocarNoElemento(page.getByLabel(errada, { exact: true }));
   await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "0");

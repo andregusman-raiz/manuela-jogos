@@ -39,7 +39,12 @@ export function Tangram() {
   const [encaixadas, setEncaixadas] = useState<NomePeca[]>([]);
   const [selecionada, setSelecionada] = useState<NomePeca | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const arrasto = useRef<{ peca: NomePeca; dx: number; dy: number } | null>(null);
+  const arrasto = useRef<{ peca: NomePeca; pointerId: number; dx: number; dy: number } | null>(
+    null,
+  );
+  // pose corrente do arrasto em REF: o pointerup pode chegar antes do
+  // re-render e o closure veria a pose de um quadro atrás
+  const poseArrastada = useRef<Pose | null>(null);
   const mudo = useSyncExternalStore(assinarMudo, estaMudo, mudoNoServidor);
 
   useEffect(() => {
@@ -69,43 +74,52 @@ export function Tangram() {
 
   function aoAgarrar(peca: NomePeca, evento: React.PointerEvent) {
     if (encaixadas.includes(peca) || completa) return;
+    // UMA peça por vez: um segundo dedo não rouba o arrasto em andamento
+    if (arrasto.current) return;
     feedback("toque");
     setSelecionada(peca);
     // captura do ponteiro: os moves seguem chegando mesmo se o cursor sair da
     // peça no meio do arrasto (WebKit derrubava o drag sem isto)
     (evento.target as Element).setPointerCapture?.(evento.pointerId);
     const [lx, ly] = paraLogico(evento);
-    arrasto.current = { peca, dx: poses[peca].x - lx, dy: poses[peca].y - ly };
+    poseArrastada.current = poses[peca];
+    arrasto.current = {
+      peca,
+      pointerId: evento.pointerId,
+      dx: poses[peca].x - lx,
+      dy: poses[peca].y - ly,
+    };
   }
 
   function aoMover(evento: React.PointerEvent) {
     const atual = arrasto.current;
-    if (!atual) return;
+    if (!atual || evento.pointerId !== atual.pointerId) return;
     const [lx, ly] = paraLogico(evento);
-    setPoses((p) => ({
-      ...p,
-      [atual.peca]: {
-        ...p[atual.peca],
-        x: Math.min(195, Math.max(5, lx + atual.dx)),
-        y: Math.min(195, Math.max(5, ly + atual.dy)),
-      },
-    }));
+    const nova = {
+      ...(poseArrastada.current ?? poses[atual.peca]),
+      x: Math.min(195, Math.max(5, lx + atual.dx)),
+      y: Math.min(195, Math.max(5, ly + atual.dy)),
+    };
+    poseArrastada.current = nova;
+    setPoses((p) => ({ ...p, [atual.peca]: nova }));
   }
 
-  function aoSoltar() {
+  function aoSoltar(evento?: React.PointerEvent) {
     const atual = arrasto.current;
+    if (!atual) return;
+    if (evento && evento.pointerId !== atual.pointerId) return;
     arrasto.current = null;
-    if (!atual || !silhueta) return;
+    const pose = poseArrastada.current;
+    poseArrastada.current = null;
+    if (!silhueta || !pose) return;
     const alvo = silhueta.alvos.find((a) => a.peca === atual.peca)!;
-    setPoses((p) => {
-      if (verificarEncaixe(atual.peca, p[atual.peca], alvo)) {
-        tocar("passo");
-        setEncaixadas((e) => (e.includes(atual.peca) ? e : [...e, atual.peca]));
-        setSelecionada(null);
-        return { ...p, [atual.peca]: { ...alvo } };
-      }
-      return p;
-    });
+    // efeitos FORA de updaters (StrictMode reexecuta updaters)
+    if (verificarEncaixe(atual.peca, pose, alvo)) {
+      tocar("passo");
+      setPoses((p) => ({ ...p, [atual.peca]: { ...alvo } }));
+      setEncaixadas((e) => (e.includes(atual.peca) ? e : [...e, atual.peca]));
+      setSelecionada(null);
+    }
   }
 
   function girar() {
@@ -187,7 +201,8 @@ export function Tangram() {
             className="h-full max-h-full w-auto max-w-full touch-none select-none"
             onPointerMove={aoMover}
             onPointerUp={aoSoltar}
-            onPointerLeave={aoSoltar}
+            onPointerLeave={() => aoSoltar()}
+            onPointerCancel={aoSoltar}
           >
             {/* sombras-alvo */}
             {silhueta.alvos.map((alvo) => (

@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 import { SILHUETAS } from "@/lib/tangram/dados";
-import { PECAS, TOLERANCIA_ENCAIXE, bboxDaPose, verificarEncaixe } from "@/lib/tangram/motor";
+import {
+  PECAS,
+  TOLERANCIA_ENCAIXE,
+  bboxDaPose,
+  verificarEncaixe,
+  verticesNoTabuleiro,
+} from "@/lib/tangram/motor";
 
 describe("encaixe — tolerâncias da SPEC", () => {
   const alvo = { peca: "q" as const, x: 100, y: 100, rotacao: 0, espelhado: false };
@@ -53,6 +59,48 @@ describe("encaixe — tolerâncias da SPEC", () => {
     expect(verificarEncaixe("m", { x: 100, y: 100, rotacao: 0, espelhado: false }, alvo)).toBe(
       false,
     );
+  });
+
+  test("distância EXATA de 16 aceita (limite inclusivo)", () => {
+    expect(verificarEncaixe("q", { x: 116, y: 100, rotacao: 0, espelhado: false }, alvo)).toBe(true);
+  });
+
+  test("rotações fora de 0..360 normalizam (405 ≡ 45; −45 ≡ 315)", () => {
+    const alvoTri = { peca: "g1" as const, x: 100, y: 100, rotacao: 45, espelhado: false };
+    expect(verificarEncaixe("g1", { x: 100, y: 100, rotacao: 405, espelhado: false }, alvoTri)).toBe(
+      true,
+    );
+    const alvo315 = { peca: "g1" as const, x: 100, y: 100, rotacao: 315, espelhado: false };
+    expect(verificarEncaixe("g1", { x: 100, y: 100, rotacao: -45, espelhado: false }, alvo315)).toBe(
+      true,
+    );
+  });
+
+  test("paralelogramo espelhado: vértices EXATOS (espelho aplica antes da rotação)", () => {
+    // fixture hard-coded: trocar a ordem espelho↔rotação produz outros números
+    const vertices = verticesNoTabuleiro("para", {
+      x: 100,
+      y: 100,
+      rotacao: 90,
+      espelhado: true,
+    });
+    // local espelhado: x vira -x → (23.2,-7.8),(-7.8,-7.8),(-23.2,7.8),(7.8,7.8);
+    // rot 90 (cos 0, sen 1): (x,y) -> (-y, x)
+    expect(vertices).toEqual([
+      [107.8, 123.2],
+      [107.8, 92.2],
+      [92.2, 76.8],
+      [92.2, 107.8],
+    ]);
+  });
+
+  test("bboxDaPose exato de um caso conhecido", () => {
+    expect(bboxDaPose("q", { x: 100, y: 100, rotacao: 0, espelhado: false })).toEqual({
+      minX: 89,
+      maxX: 111,
+      minY: 89,
+      maxY: 111,
+    });
   });
 });
 

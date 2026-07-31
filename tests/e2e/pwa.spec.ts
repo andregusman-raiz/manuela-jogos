@@ -88,10 +88,11 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   // a rota mais nova da onda também interage offline (disciplina da onda 1)
   await page.goto("/tangram");
   await expect(page.locator("[data-peca='q']")).toBeVisible();
-  // selecionar uma peça e girar prova o JS vivo offline
-  await tocarNoElemento(page.locator("[data-peca='q']"));
+  // selecionar e GIRAR prova o JS vivo offline: os pontos do polígono MUDAM
+  const antes = await page.locator("[data-peca='p1']").getAttribute("points");
+  await tocarNoElemento(page.locator("[data-peca='p1']"));
   await tocarNoElemento(page.getByLabel("girar a peça", { exact: true }));
-  await expect(page.getByLabel("girar a peça", { exact: true })).toBeEnabled();
+  await expect(page.locator("[data-peca='p1']")).not.toHaveAttribute("points", antes!);
   await context.setOffline(false);
 });
 
