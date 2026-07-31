@@ -60,15 +60,14 @@ export function Forca() {
   }, [situacao]);
 
   function aoTeclar(letra: string) {
-    setEstado((atual) => {
-      if (!atual) return atual;
-      const proximo = tentar(atual, letra);
-      if (proximo !== atual) {
-        const acertou = [...palavraAtual(atual).palavra].some((c) => base(c) === letra);
-        tocar(acertou ? "cor" : "erro");
-      }
-      return proximo;
-    });
+    // Fora do updater: efeito colateral em updater não é puro (StrictMode
+    // reinvoca e o som sairia dobrado). Handler roda 1x por toque real.
+    if (!estado) return;
+    const proximo = tentar(estado, letra);
+    if (proximo === estado) return;
+    const acertou = [...palavraAtual(estado).palavra].some((c) => base(c) === letra);
+    tocar(acertou ? "cor" : "erro");
+    setEstado(proximo);
   }
 
   function novaFase(nivel: NivelForca) {

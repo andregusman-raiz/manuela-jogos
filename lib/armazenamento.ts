@@ -55,12 +55,20 @@ function abrir(): Promise<IDBDatabase> {
     // qualquer versão já publicada) é curta — abre, roda UMA transação e
     // fecha — e abas novas fecham via onversionchange. Bloqueio é transitório
     // por construção. NUNCA introduzir conexão de vida longa neste banco.
+    // Cinto de segurança para o cenário residual (aba com versão ANTIGA que
+    // vazou uma conexão por erro): rejeitar depois de 4s em vez de pendurar o
+    // jogo para sempre — os helpers degradam para "sem persistência".
+    const teto = setTimeout(() => reject(new Error("abertura do banco bloqueada")), 4000);
     pedido.onsuccess = () => {
+      clearTimeout(teto);
       // Esta aba é a antiga quando outra pede upgrade: fecha para ela seguir.
       pedido.result.onversionchange = () => pedido.result.close();
       resolve(pedido.result);
     };
-    pedido.onerror = () => reject(pedido.error);
+    pedido.onerror = () => {
+      clearTimeout(teto);
+      reject(pedido.error);
+    };
   });
 }
 
@@ -77,7 +85,13 @@ async function comLoja<T>(
       const pedido = acao(tx.objectStore(nomeLoja));
       pedido.onsuccess = () => resolve(pedido.result);
       pedido.onerror = () => reject(pedido.error);
+      // fechar em TODOS os finais — conexão vazada em erro segura upgrades de
+      // outras abas para sempre (é a invariante que permite esperar o blocked)
       tx.oncomplete = () => bd.close();
+      tx.onabort = () => {
+        bd.close();
+        reject(tx.error);
+      };
     });
   } catch {
     // Modo privado / cota cheia: o app continua desenhando, só não persiste.
@@ -186,7 +200,10 @@ export async function salvarProgresso(
         resolve();
       };
       tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
+      tx.onabort = () => {
+        bd.close();
+        reject(tx.error);
+      };
     });
   } catch {
     // Sem persistência (modo privado, aba bloqueada): o jogo segue em memória.

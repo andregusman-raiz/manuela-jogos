@@ -15,15 +15,16 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await page.goto("/");
 
   // espera o service worker ASSUMIR o controle e terminar o precache da casca
-  const controlado = await page
+  const sw = await page
     .evaluate(async () => {
-      if (!("serviceWorker" in navigator)) return false;
+      if (!("serviceWorker" in navigator)) return { controlado: false, precache: false };
       await navigator.serviceWorker.ready;
       // o primeiro load não é controlado (claim chega logo depois); aguarda
       for (let i = 0; i < 50; i++) {
         if (navigator.serviceWorker.controller) break;
         await new Promise((r) => setTimeout(r, 100));
       }
+      const controlado = Boolean(navigator.serviceWorker.controller);
       for (let i = 0; i < 50; i++) {
         // o nome do cache vem do SW publicado, nunca hardcoded: um bump de
         // versão não pode transformar esta espera em falsa verificação
@@ -38,17 +39,20 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
             (await cache.match("/palavras")) &&
             (await cache.match("/forca"))
           )
-            return true;
+            return { controlado, precache: true };
         }
         await new Promise((r) => setTimeout(r, 100));
       }
-      return Boolean(navigator.serviceWorker.controller);
+      return { controlado, precache: false };
     })
-    .catch(() => false);
+    .catch(() => ({ controlado: false, precache: false }));
 
   // WebKit headless às vezes não ativa SW em localhost — não mascarar: pular
   // explicitamente com anotação, nunca "passar" sem testar
-  test.skip(!controlado, `service worker não assumiu controle neste ambiente (${browserName})`);
+  test.skip(!sw.controlado, `service worker não assumiu controle neste ambiente (${browserName})`);
+  // com SW no controle, precache INCOMPLETO é FALHA — nunca vira skip (uma
+  // rota fora da CASCA passaria aquecida pela visita online logo abaixo)
+  expect(sw.precache, "rota da casca ausente do precache").toBe(true);
 
   // A checagem de PRECACHE acima roda ANTES de qualquer visita a /contas —
   // visitar primeiro aqueceria o cache em runtime e a asserção viraria mentira.

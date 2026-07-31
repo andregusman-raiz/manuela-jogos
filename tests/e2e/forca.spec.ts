@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { gerarFase } from "@/lib/forca/motor";
 import { tocarNoElemento } from "./_toque";
 
 /**
@@ -45,23 +46,28 @@ async function ganharPalavra(page: Page) {
   await page.waitForTimeout(1600);
 }
 
-/** Perde a palavra atual errando 6 letras fora dela. */
+/** Perde a palavra atual errando 6 letras fora dela — e PROVA o interstício. */
 async function perderPalavra(page: Page) {
   const palavra = (await page.locator("[data-palavra]").getAttribute("data-palavra"))!;
   const certas = new Set(bases(palavra));
   const jogadas = Number(await page.locator("[data-jogadas]").getAttribute("data-jogadas"));
   let erradas = 0;
+  let ultima = "";
   for (const letra of "ABCDEFGHIJKLMNOPQRSTUVWXYZ") {
     if (erradas === 6) break;
     if (certas.has(letra)) continue;
     await tocarNoElemento(page.getByLabel(`letra ${letra}`, { exact: true }));
     erradas++;
+    ultima = letra;
   }
   await expect(page.locator("[data-jogadas]")).toHaveAttribute(
     "data-jogadas",
     String(jogadas + 1),
     { timeout: 4000 },
   );
+  // interstício de derrota: a palavra se revela na tela e o teclado trava
+  await expect(page.getByText(`Era ${palavra}!`)).toBeVisible();
+  await expect(page.getByLabel(`letra ${ultima}`, { exact: true })).toBeDisabled();
   await page.waitForTimeout(1600);
 }
 
@@ -102,6 +108,22 @@ test("perder uma palavra revela, avança e a fase ainda fecha", async ({ page })
 });
 
 test("acento de graça: palavra com acento é ganhável só com letras-base", async ({ page }) => {
+  // seed DETERMINÍSTICO cuja 1ª palavra do nível 2 tem diacrítico — sem isso
+  // ~73% das execuções sorteiam ASCII puro e o NFD não é exercitado no fluxo
+  let seedComAcento = 0;
+  for (let c = 1; c < 500; c++) {
+    const primeira = gerarFase(2, c).fila[0].palavra;
+    if (primeira !== primeira.normalize("NFD").replace(/[̀-ͯ]/g, "")) {
+      seedComAcento = c;
+      break;
+    }
+  }
+  expect(seedComAcento).toBeGreaterThan(0);
+  await page.addInitScript((seed) => {
+    // o componente semeia com Date.now(); fixar torna a fase conhecida
+    Date.now = () => seed;
+  }, seedComAcento);
+
   // libera o nível 2 (palavras acentuadas) via progresso salvo
   await page.evaluate(
     () =>
@@ -121,7 +143,10 @@ test("acento de graça: palavra com acento é ganhável só com letras-base", as
   );
   await page.reload();
   await expect(page.locator("main")).toHaveAttribute("data-nivel", "2");
-  // ganhar 1 palavra do nível 2 usando SÓ o teclado A-Z prova o NFD no fluxo real
+  // a 1ª palavra é ACENTUADA por construção do seed; ganhá-la usando SÓ o
+  // teclado A-Z prova o NFD no fluxo real
+  const palavra = (await page.locator("[data-palavra]").getAttribute("data-palavra"))!;
+  expect(palavra).not.toBe(palavra.normalize("NFD").replace(/[̀-ͯ]/g, ""));
   await ganharPalavra(page);
   await expect(page.locator("[data-ganhas]")).toHaveAttribute("data-ganhas", "1");
 });
