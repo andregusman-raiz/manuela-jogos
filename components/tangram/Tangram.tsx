@@ -14,14 +14,17 @@ import { assinarMudo, definirMudo, estaMudo, feedback, mudoNoServidor, tocar } f
 
 /** Bandeja inicial em DUAS linhas — os bboxes somam 231 de largura, então uma
  *  fila única sobrepunha as peças (QAT 2026-07-31). Poses conferidas contra os
- *  VERTICES: nada se toca e nada vaza o viewBox 200. */
+ *  VERTICES: peças não se tocam entre si nem vazam o viewBox 200. A borda de
+ *  baixo de algumas silhuetas passa POR TRÁS da fila de cima — limitação do
+ *  viewBox compartilhado que já existia na bandeja antiga; as peças são
+ *  móveis e o alvo aparece assim que saem do lugar. */
 const BANDEJA: Record<NomePeca, { x: number; y: number }> = {
   g1: { x: 32, y: 150 },
   g2: { x: 90, y: 150 },
   m: { x: 145, y: 154 },
   q: { x: 185, y: 152 },
   p1: { x: 30, y: 184 },
-  p2: { x: 68, y: 184 },
+  p2: { x: 60, y: 184 },
   para: { x: 130, y: 188 },
 };
 

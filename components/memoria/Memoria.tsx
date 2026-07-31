@@ -135,8 +135,8 @@ export function Memoria() {
           <div
             className={`grid h-full ${colunas} content-center justify-center gap-2`}
             // gotcha do repo: aspect-ratio em grid sem auto-rows explícita
-            // colapsa as linhas (~18px); o teto 1fr impede sobreposição
-            style={{ gridAutoRows: "minmax(48px, min(28dvh, 110px))" }}
+            // colapsa as linhas (~18px)
+            style={{ gridAutoRows: "minmax(72px, auto)" }}
           >
             {estado.cartas.map((carta) => {
               const removida = estado.removidas.includes(carta.id);
@@ -153,7 +153,7 @@ export function Memoria() {
                   data-estado={aberta ? "aberta" : "fechada"}
                   onPointerDown={() => feedback("toque")}
                   onClick={() => aoTocar(carta.id)}
-                  className={`bolha mx-auto h-full max-h-28 w-full max-w-28 select-none transition-transform ${
+                  className={`bolha mx-auto aspect-square w-full max-w-28 select-none transition-transform ${
                     aberta
                       ? carta.tipo === "conta"
                         ? "bg-manu-ceu-claro ring-2 ring-manu-ceu"
