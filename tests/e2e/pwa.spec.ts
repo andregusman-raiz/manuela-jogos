@@ -39,7 +39,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
             (await cache.match("/palavras")) &&
             (await cache.match("/forca")) &&
             (await cache.match("/relogio")) &&
-            (await cache.match("/lojinha"))
+            (await cache.match("/lojinha")) &&
+            (await cache.match("/genius"))
           )
             return { controlado, precache: true };
         }
@@ -62,8 +63,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   // precacheado sem chunk renderiza mas não interage; o offline abaixo pega).
   await page.goto("/contas");
   await expect(page.locator("[data-conta]")).toBeVisible();
-  await page.goto("/lojinha");
-  await expect(page.locator("[data-preco]")).toBeVisible();
+  await page.goto("/genius");
+  await expect(page.getByLabel("começar a jogar", { exact: true })).toBeVisible();
   await page.goto("/");
 
   await context.setOffline(true);
@@ -82,10 +83,18 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
 
   // a rota mais nova da onda também interage offline (disciplina da onda 1)
-  await page.goto("/lojinha");
-  await expect(page.locator("[data-preco]")).toBeVisible();
-  await tocarNoElemento(page.getByLabel("nota de 2 reais", { exact: true }));
-  await expect(page.locator("[data-soma]")).toHaveAttribute("data-soma", "200");
+  await page.goto("/genius");
+  await tocarNoElemento(page.getByLabel("começar a jogar", { exact: true }));
+  await expect(page.locator("[data-fase-genius]")).toHaveAttribute("data-fase-genius", "ouvindo", {
+    timeout: 8000,
+  });
+  const seq = (await page.locator("[data-seq]").getAttribute("data-seq"))!.split(",").map(Number);
+  const cores = ["rosa", "azul", "amarelo", "verde"];
+  await tocarNoElemento(page.getByLabel(`botão ${cores[seq[0]]}`, { exact: true }));
+  await tocarNoElemento(page.getByLabel(`botão ${cores[seq[1]]}`, { exact: true }));
+  await expect(page.locator("[data-tamanho]")).toHaveAttribute("data-tamanho", "3", {
+    timeout: 5000,
+  });
   await context.setOffline(false);
 });
 

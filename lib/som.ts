@@ -23,7 +23,11 @@ export type Efeito =
   | "acerto" // resposta certa nos jogos (mais contido que salvar)
   | "erro" // resposta errada: aviso grave e suave, não punição
   | "vitoria" // fase completa
-  | "passo"; // um passo da Manu no labirinto / carta virando
+  | "passo" // um passo da Manu no labirinto / carta virando
+  | "nota1" // as 4 notas do Genius (dó, mi, sol, dó agudo)
+  | "nota2"
+  | "nota3"
+  | "nota4";
 
 const CHAVE_MUDO = "manu:mudo";
 
@@ -144,6 +148,11 @@ const RECEITAS: Record<Efeito, Nota[]> = {
     { hz: 1175, inicio: 0.32, dur: 0.3, vol: 0.2 },
   ],
   passo: [{ hz: 740, inicio: 0, dur: 0.05, tipo: "triangle", vol: 0.12 }],
+  // as notas do Genius: cada botão canta a sua (dó maior, timbre puro)
+  nota1: [{ hz: 523.25, inicio: 0, dur: 0.28, tipo: "sine", vol: 0.2 }],
+  nota2: [{ hz: 659.25, inicio: 0, dur: 0.28, tipo: "sine", vol: 0.2 }],
+  nota3: [{ hz: 783.99, inicio: 0, dur: 0.28, tipo: "sine", vol: 0.2 }],
+  nota4: [{ hz: 1046.5, inicio: 0, dur: 0.28, tipo: "sine", vol: 0.2 }],
 };
 
 function agendar(audio: AudioContext, efeito: Efeito): void {
