@@ -41,7 +41,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
             (await cache.match("/relogio")) &&
             (await cache.match("/lojinha")) &&
             (await cache.match("/genius")) &&
-            (await cache.match("/fracoes"))
+            (await cache.match("/fracoes")) &&
+            (await cache.match("/estados"))
           )
             return { controlado, precache: true };
         }
@@ -64,8 +65,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   // precacheado sem chunk renderiza mas não interage; o offline abaixo pega).
   await page.goto("/contas");
   await expect(page.locator("[data-conta]")).toBeVisible();
-  await page.goto("/fracoes");
-  await expect(page.locator("[data-fracao]")).toBeVisible();
+  await page.goto("/estados");
+  await expect(page.locator("[data-uf-pedida]")).toBeVisible();
   await page.goto("/");
 
   await context.setOffline(true);
@@ -84,9 +85,9 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
 
   // a rota mais nova da onda também interage offline (disciplina da onda 1)
-  await page.goto("/fracoes");
-  const alvo = (await page.locator("[data-fracao]").getAttribute("data-fracao"))!;
-  await tocarNoElemento(page.getByLabel(`fração ${alvo}`, { exact: true }));
+  await page.goto("/estados");
+  const pedida = (await page.locator("[data-uf-pedida]").getAttribute("data-uf-pedida"))!;
+  await tocarNoElemento(page.locator(`[data-uf='${pedida}']`).last());
   await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
   await context.setOffline(false);
 });
