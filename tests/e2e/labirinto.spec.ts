@@ -40,7 +40,8 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("fluxo feliz: do card do hub à estrela da fase 1, confete e fase 2", async ({ page }) => {
-  await page.goto("/");
+  // o reload do controllerchange do SW pode atropelar esta navegação — 1 retry
+  await page.goto("/").catch(() => page.goto("/"));
   await tocarNoElemento(page.getByLabel("Labirinto da Manu"));
   await expect(page).toHaveURL(/\/labirinto/);
   await expect(page.locator("main")).toHaveAttribute("data-fase", "1");
