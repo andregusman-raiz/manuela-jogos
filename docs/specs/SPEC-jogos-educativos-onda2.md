@@ -120,10 +120,12 @@ retângulos coloridos com o valor para notas — 2 azul, 5 roxo, 10 vermelho,
 
 **Regras (FECHADAS)**:
 - **Carteira infinita** (peças reutilizáveis sem limite — decisão fechada).
-- **Preço construído por soma (blocker #7)**: o motor SORTEIA 2-5 peças do
-  nível e o preço É a soma — pagável por construção, sem greedy, sem R$3
-  impagável. Peças por nível: 1 = notas {2,5,10,20} · 2 = notas + moedas
-  {0.25, 0.50, 1} · 3 = idem nível 2 para o preço.
+- **Preço construído por soma (blocker #7)** nos níveis 1-2: o motor SORTEIA
+  2-5 peças do nível e o preço É a soma — pagável por construção, sem greedy,
+  sem R$3 impagável. Peças: 1 = notas {2,5,10,20} · 2 = notas + moedas
+  {0.25, 0.50, 1}. **Nível 3 NÃO precisa de pagabilidade** (a criança só
+  calcula o troco, ninguém monta o preço com peças): preço direto na grade de
+  25c — decisão registrada no review do PR C.
 - **Nível 3 (troco, blocker #8)**: pagamento = **menor valor em {5,10,20}
   estritamente maior que o preço** (preço sorteado em 1.00–18.75) → troco
   sempre > 0. 4 opções: troco certo, ±0.25/±1 na grade, preço (o erro

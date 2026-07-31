@@ -38,7 +38,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
             (await cache.match("/labirinto")) &&
             (await cache.match("/palavras")) &&
             (await cache.match("/forca")) &&
-            (await cache.match("/relogio"))
+            (await cache.match("/relogio")) &&
+            (await cache.match("/lojinha"))
           )
             return { controlado, precache: true };
         }
@@ -61,8 +62,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   // precacheado sem chunk renderiza mas não interage; o offline abaixo pega).
   await page.goto("/contas");
   await expect(page.locator("[data-conta]")).toBeVisible();
-  await page.goto("/relogio");
-  await expect(page.locator("[data-hora]")).toBeVisible();
+  await page.goto("/lojinha");
+  await expect(page.locator("[data-preco]")).toBeVisible();
   await page.goto("/");
 
   await context.setOffline(true);
@@ -81,10 +82,10 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
 
   // a rota mais nova da onda também interage offline (disciplina da onda 1)
-  await page.goto("/relogio");
-  const hora = (await page.locator("[data-hora]").getAttribute("data-hora"))!;
-  await tocarNoElemento(page.getByLabel(`resposta ${hora}`, { exact: true }));
-  await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
+  await page.goto("/lojinha");
+  await expect(page.locator("[data-preco]")).toBeVisible();
+  await tocarNoElemento(page.getByLabel("nota de 2 reais", { exact: true }));
+  await expect(page.locator("[data-soma]")).toHaveAttribute("data-soma", "200");
   await context.setOffline(false);
 });
 

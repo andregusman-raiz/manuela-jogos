@@ -83,4 +83,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-sol/70",
     disponivel: true,
   },
+  {
+    id: "lojinha",
+    nome: "Lojinha da Manu",
+    descricao: "Pague e receba o troco",
+    rota: "/lojinha",
+    emoji: "🛒",
+    cor: "bg-manu-pele",
+    disponivel: true,
+  },
 ];
