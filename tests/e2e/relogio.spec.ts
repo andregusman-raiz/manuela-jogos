@@ -78,6 +78,8 @@ test("erro: shake, o relógio NÃO muda e a certa continua valendo", async ({ pa
   const errada = rotulos.find((r) => r !== `resposta ${rotulo}`)!;
 
   await tocarNoElemento(page.getByLabel(errada, { exact: true }));
+  // o shake é visível de verdade: a bolha errada remonta com anima-nao
+  await expect(page.locator(`.anima-nao:has([aria-label="${errada}"])`)).toBeAttached();
   await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "0");
   await expect(page.locator("[data-hora]")).toHaveAttribute("data-hora", rotulo);
 
