@@ -26,18 +26,19 @@ export default function Hub() {
             pose="corpo"
             tamanho={190}
             prioridade
-            className="anima-pulinho h-auto w-full drop-shadow-md"
+            className="anima-pulinho h-auto max-h-[30dvh] w-full object-contain drop-shadow-md"
           />
         </div>
       </header>
 
-      <div className="mt-2 grid flex-1 grid-cols-1 content-center gap-4 sm:grid-cols-2">
+      {/* 2 colunas já no celular: 5 jogos em 3 linhas compactas, tudo na dobra */}
+      <div className="mt-1 grid flex-1 grid-cols-2 content-center gap-3 sm:gap-4">
         {JOGOS.map((jogo) => (
           <CardJogo key={jogo.id} jogo={jogo} />
         ))}
       </div>
 
-      <p className="mt-auto pt-3 text-center text-xs text-manu-cacau-suave">
+      <p className="mt-auto pt-2 text-center text-xs text-manu-cacau-suave">
         Sem anúncios, sem cadastro. Tudo fica só neste aparelho.
       </p>
     </main>
