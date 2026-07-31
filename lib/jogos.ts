@@ -110,13 +110,4 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-rosa/60",
     disponivel: true,
   },
-  {
-    id: "estados",
-    nome: "Estados do Brasil",
-    descricao: "Ache no mapa",
-    rota: "/estados",
-    emoji: "🗺️",
-    cor: "bg-manu-grama/70",
-    disponivel: true,
-  },
 ];
