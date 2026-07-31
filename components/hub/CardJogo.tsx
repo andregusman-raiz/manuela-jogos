@@ -26,7 +26,7 @@ export function CardJogo({ jogo }: { jogo: Jogo }) {
 
   // Compacto no celular: com 5 jogos, TODOS os cards precisam caber na dobra —
   // criança não procura conteúdo escondido atrás de scroll.
-  const classes = `flex min-h-32 flex-col items-center justify-center gap-1 rounded-[2rem] p-3 text-center shadow-[0_5px_0_0_rgba(0,0,0,0.12)] transition-transform active:translate-y-1 active:scale-[0.98] sm:min-h-48 sm:gap-2 sm:p-5 ${jogo.cor}`;
+  const classes = `flex min-h-32 flex-col items-center justify-center gap-1 rounded-[2rem] p-3 text-center shadow-[0_5px_0_0_rgba(0,0,0,0.12)] transition-transform active:translate-y-1 active:scale-[0.98] sm:min-h-44 sm:gap-2 sm:p-5 ${jogo.cor}`;
 
   if (!jogo.disponivel) {
     return (

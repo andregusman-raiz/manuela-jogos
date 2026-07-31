@@ -153,30 +153,45 @@ test("upgrade v1→v2 preserva a galeria do Ateliê e cria as gavetas novas", as
       }),
   );
 
-  // recarregar faz o app abrir em v2 e migrar
+  // recarregar faz o app abrir na versão atual e migrar
   await page.reload();
   await expect(page.locator("[data-conta]")).toBeVisible();
 
-  const banco = await page.evaluate(
-    () =>
-      new Promise<{ versao: number; lojas: string[]; sentinela: boolean }>((resolve, reject) => {
-        const req = indexedDB.open("manu-jogos");
-        req.onsuccess = () => {
-          const bd = req.result;
-          const g = bd.transaction("atelie", "readonly").objectStore("atelie").get("sentinela-v1");
-          g.onsuccess = () => {
-            resolve({
-              versao: bd.version,
-              lojas: [...bd.objectStoreNames].sort(),
-              sentinela: Boolean(g.result),
-            });
-            bd.close();
+  const lerBanco = () =>
+    page.evaluate(
+      () =>
+        new Promise<{ versao: number; lojas: string[]; sentinela: boolean }>((resolve, reject) => {
+          const req = indexedDB.open("manu-jogos");
+          req.onsuccess = () => {
+            const bd = req.result;
+            const g = bd.transaction("atelie", "readonly").objectStore("atelie").get("sentinela-v1");
+            g.onsuccess = () => {
+              resolve({
+                versao: bd.version,
+                lojas: [...bd.objectStoreNames].sort(),
+                sentinela: Boolean(g.result),
+              });
+              bd.close();
+            };
+            g.onerror = () => reject(g.error);
           };
-          g.onerror = () => reject(g.error);
-        };
-        req.onerror = () => reject(req.error);
-      }),
-  );
+          req.onerror = () => reject(req.error);
+        }),
+    );
+
+  // o RegistrarServiceWorker recarrega a página quando o SW assume o controle
+  // (controllerchange) — se o evaluate morrer nessa navegação, tenta de novo
+  let banco: Awaited<ReturnType<typeof lerBanco>> | null = null;
+  for (let tentativa = 0; tentativa < 3 && !banco; tentativa++) {
+    try {
+      banco = await lerBanco();
+    } catch {
+      await page.waitForTimeout(700);
+      await expect(page.locator("[data-conta]")).toBeVisible();
+    }
+  }
+  expect(banco, "não conseguiu ler o banco após o reload do SW").not.toBeNull();
+  banco = banco!;
   expect(banco.versao).toBe(3);
   expect(banco.sentinela, "desenho da galeria sumiu no upgrade").toBe(true);
   expect(banco.lojas).toEqual([
