@@ -33,6 +33,7 @@ const CORES = [
  */
 export function Genius() {
   const [estado, setEstado] = useState<EstadoGenius | null>(null);
+  const [carregou, setCarregou] = useState(false);
   const [recorde, setRecorde] = useState(0);
   const [negacao, setNegacao] = useState(0);
   const anterior = useRef<{ tamanho: number; fase: string } | null>(null);
@@ -41,20 +42,36 @@ export function Genius() {
   useEffect(() => {
     void lerProgresso("genius").then((p) => {
       setRecorde(p?.nivel ?? 0);
-      setEstado(criarPartida((Date.now() % 2147483647) || 1));
+      setCarregou(true);
     });
   }, []);
+
+  // A partida SÓ nasce de um gesto: sem toque, o WebAudio fica suspenso pela
+  // política de autoplay e o replay inicial sairia MUDO — num jogo de memória
+  // auditiva isso é fatal (blocker do review).
+  function comecar() {
+    anterior.current = null;
+    setNegacao(0);
+    setEstado(criarPartida((Date.now() % 2147483647) || 1));
+  }
 
   const fase = estado?.fase;
   const indiceReplay = estado?.indiceReplay ?? 0;
   const tamanho = estado?.tamanho ?? 0;
 
-  // Replay: toca a nota do item corrente e agenda o próximo passo.
+  // Replay: toca a nota do item corrente e agenda o próximo passo. O PRIMEIRO
+  // item espera 700ms — sem o respiro, a nota colide com o som de acerto/erro
+  // da transição e a criança não distingue o começo da sequência.
   useEffect(() => {
     if (!estado || fase !== "mostrando") return;
-    tocar(NOTAS[estado.sequencia[indiceReplay]]);
-    const t = setTimeout(() => setEstado((e) => (e ? avancarReplay(e) : e)), 450);
-    return () => clearTimeout(t);
+    const respiro = indiceReplay === 0 ? 700 : 0;
+    const nota = NOTAS[estado.sequencia[indiceReplay]];
+    const t0 = setTimeout(() => tocar(nota), respiro);
+    const t1 = setTimeout(() => setEstado((e) => (e ? avancarReplay(e) : e)), respiro + 450);
+    return () => {
+      clearTimeout(t0);
+      clearTimeout(t1);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fase, indiceReplay]);
 
@@ -92,11 +109,7 @@ export function Genius() {
     setEstado((e) => (e ? ouvir(e, indice) : e));
   }
 
-  function deNovo() {
-    anterior.current = null;
-    setNegacao(0);
-    setEstado(criarPartida((Date.now() % 2147483647) || 1));
-  }
+  const deNovo = comecar;
 
   const aceso = estado && fase === "mostrando" ? estado.sequencia[indiceReplay] : null;
 
@@ -155,6 +168,14 @@ export function Genius() {
       ) : null}
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {!estado && carregou ? (
+          <div className="flex flex-col items-center gap-4">
+            <Manu pose="corpo" tamanho={140} className="h-40 w-auto drop-shadow-md" />
+            <BotaoBolha rotulo="começar a jogar" tamanho="xl" efeito="abrir" onClick={comecar}>
+              <span className="px-4 font-titulo text-2xl">Começar ▶</span>
+            </BotaoBolha>
+          </div>
+        ) : null}
         {estado && fase !== "fase-completa" ? (
           <div
             key={`tabuleiro-${negacao}`}

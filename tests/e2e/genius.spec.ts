@@ -32,9 +32,11 @@ async function repetirRodada(page: Page, errarNoMeio = false) {
   const tamanho = Number(await page.locator("[data-tamanho]").getAttribute("data-tamanho"));
 
   if (errarNoMeio) {
-    const errado = (seq[0] + 1) % 4;
+    // acerta o 1º e erra NO MEIO (2º) — prova que o erro intermediário
+    // reapresenta o MESMO prefixo do zero
+    await tocarNoElemento(page.getByLabel(`botão ${CORES[seq[0]]}`, { exact: true }));
+    const errado = (seq[1] + 1) % 4;
     await tocarNoElemento(page.getByLabel(`botão ${CORES[errado]}`, { exact: true }));
-    // errou: MESMO tamanho, replay recomeça
     await expect(page.locator("[data-fase-genius]")).toHaveAttribute(
       "data-fase-genius",
       "mostrando",
@@ -48,11 +50,17 @@ async function repetirRodada(page: Page, errarNoMeio = false) {
   }
 }
 
+async function iniciar(page: Page) {
+  await tocarNoElemento(page.getByLabel("começar a jogar", { exact: true }));
+  await expect(page.locator("[data-seq]")).toBeVisible();
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/genius");
   await limparBanco(page);
   await page.reload();
-  await expect(page.locator("[data-seq]")).toBeVisible();
+  // a partida só nasce de um gesto (autoplay do WebAudio)
+  await iniciar(page);
 });
 
 test("fluxo feliz: do card do hub à sequência de 8, com som DE VERDADE", async ({ page }) => {
@@ -69,6 +77,19 @@ test("fluxo feliz: do card do hub à sequência de 8, com som DE VERDADE", async
   await page.goto("/").catch(() => page.goto("/"));
   await tocarNoElemento(page.getByLabel("Genius dos Sons"));
   await expect(page).toHaveURL(/\/genius/);
+  await iniciar(page);
+
+  // ISOLA o replay: zera o contador logo após o gesto de início (antes de
+  // qualquer toque da criança) e mede quando a vez chega — só as notas do
+  // replay podem ter tocado nesse intervalo
+  await page.evaluate(() => {
+    (window as unknown as { __osciladores: number }).__osciladores = 0;
+  });
+  await esperarVez(page);
+  const osciladoresDoReplay = await page.evaluate(
+    () => (window as unknown as { __osciladores: number }).__osciladores,
+  );
+  expect(osciladoresDoReplay, "replay mudo: nenhuma nota tocada").toBeGreaterThanOrEqual(2);
 
   // rodadas 2..8
   for (let rodada = 2; rodada <= 8; rodada++) {
@@ -77,11 +98,6 @@ test("fluxo feliz: do card do hub à sequência de 8, com som DE VERDADE", async
 
   await expect(page.getByText("Que memória! 8 sons seguidos!")).toBeVisible({ timeout: 15000 });
   await expect(page.locator("canvas[data-ativo='true']")).toBeAttached();
-
-  const osciladores = await page.evaluate(
-    () => (window as unknown as { __osciladores: number }).__osciladores,
-  );
-  expect(osciladores, "Genius mudo: nenhuma nota tocada").toBeGreaterThan(0);
 });
 
 test("erro: replay do MESMO prefixo, nunca encolhe, e ainda dá para completar a rodada", async ({
@@ -122,6 +138,7 @@ test("três formatos: quadrantes >= 120px e dentro da tela", async ({ browser })
     const contexto = await browser.newContext({ viewport: formato.viewport });
     const pagina = await contexto.newPage();
     await pagina.goto("/genius");
+    await tocarNoElemento(pagina.getByLabel("começar a jogar", { exact: true }));
     await expect(pagina.locator("[data-seq]")).toBeVisible();
 
     for (const cor of CORES) {

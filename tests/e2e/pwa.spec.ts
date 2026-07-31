@@ -64,7 +64,7 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await page.goto("/contas");
   await expect(page.locator("[data-conta]")).toBeVisible();
   await page.goto("/genius");
-  await expect(page.locator("[data-seq]")).toBeVisible();
+  await expect(page.getByLabel("começar a jogar", { exact: true })).toBeVisible();
   await page.goto("/");
 
   await context.setOffline(true);
@@ -84,6 +84,7 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
 
   // a rota mais nova da onda também interage offline (disciplina da onda 1)
   await page.goto("/genius");
+  await tocarNoElemento(page.getByLabel("começar a jogar", { exact: true }));
   await expect(page.locator("[data-fase-genius]")).toHaveAttribute("data-fase-genius", "ouvindo", {
     timeout: 8000,
   });
