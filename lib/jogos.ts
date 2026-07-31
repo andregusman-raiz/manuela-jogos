@@ -92,4 +92,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-pele",
     disponivel: true,
   },
+  {
+    id: "genius",
+    nome: "Genius dos Sons",
+    descricao: "Escute e repita",
+    rota: "/genius",
+    emoji: "🎵",
+    cor: "bg-manu-ceu",
+    disponivel: true,
+  },
 ];
