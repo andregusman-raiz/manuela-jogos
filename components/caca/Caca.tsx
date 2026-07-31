@@ -135,7 +135,7 @@ export function Caca() {
         <p
           data-instrucao={
             "alvo" in rodada.instrucao
-              ? `${rodada.instrucao.tipo}-${rodada.instrucao.alvo}`
+              ? `${rodada.instrucao.tipo}-de-${rodada.instrucao.alvo}`
               : rodada.instrucao.tipo
           }
           data-restantes={restantes}
@@ -165,7 +165,7 @@ export function Caca() {
                       if (!achado) feedback("toque");
                     }}
                     onClick={() => aoTocar(indice)}
-                    className={`bolha h-full min-h-16 w-full font-titulo text-xl ${
+                    className={`bolha h-full w-full font-titulo text-xl ${
                       achado
                         ? "bg-manu-grama/70 opacity-80"
                         : "bg-manu-papel ring-2 ring-manu-cacau/10"

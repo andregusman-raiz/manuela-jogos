@@ -101,7 +101,7 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   const certo = numeros.find((n) => {
     if (instrucao === "pares") return n % 2 === 0;
     if (instrucao === "impares") return n % 2 === 1;
-    const [tipo, alvo] = instrucao.split("-");
+    const [tipo, alvo] = instrucao.split("-de-");
     return tipo === "multiplos" ? n % Number(alvo) === 0 : Number(alvo) % n === 0;
   })!;
   await tocarNoElemento(page.locator(`[data-numero='${certo}'][data-estado='livre']`).first());

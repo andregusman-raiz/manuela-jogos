@@ -1,13 +1,10 @@
 import { describe, expect, test } from "vitest";
-import {
-  CELULAS,
-  ENES,
-  criarRng,
-  ehCerto,
-  gerarRodada,
-  proximoNivelCaca,
-} from "@/lib/caca/motor";
+import { ENES, criarRng, ehCerto, gerarRodada, proximoNivelCaca } from "@/lib/caca/motor";
 import type { NivelCaca } from "@/lib/caca/motor";
+
+/** Constantes da SPEC HARD-CODED (importar do SUT deixaria mutações passarem). */
+const CELULAS_SPEC = 16;
+const ENES_SPEC = [12, 16, 18, 20, 24, 30];
 
 /** ORÁCULO INDEPENDENTE: par/múltiplo/fator reimplementados aqui. */
 function certoOraculo(tipo: string, alvo: number | undefined, n: number): boolean {
@@ -23,13 +20,13 @@ describe("gerarRodada — 200 por nível com oráculo próprio", () => {
       const rng = criarRng(700 + nivel);
       for (let i = 0; i < 200; i++) {
         const r = gerarRodada(nivel, rng);
-        expect(r.grade).toHaveLength(CELULAS);
-        expect(new Set(r.grade).size).toBe(CELULAS);
+        expect(r.grade).toHaveLength(CELULAS_SPEC);
+        expect(new Set(r.grade).size).toBe(CELULAS_SPEC);
         expect(r.certos.length).toBeGreaterThanOrEqual(4);
         expect(r.certos.length).toBeLessThanOrEqual(8);
 
         const alvo = "alvo" in r.instrucao ? r.instrucao.alvo : undefined;
-        for (let idx = 0; idx < CELULAS; idx++) {
+        for (let idx = 0; idx < CELULAS_SPEC; idx++) {
           const deveria = certoOraculo(r.instrucao.tipo, alvo, r.grade[idx]);
           expect(r.certos.includes(idx), `${r.instrucao.rotulo}: ${r.grade[idx]}`).toBe(deveria);
         }
@@ -47,13 +44,13 @@ describe("gerarRodada — 200 por nível com oráculo próprio", () => {
     }
   });
 
-  test("os N escolhidos têm 5-8 fatores (36 com nove ficou fora — juízo)", () => {
-    for (const n of ENES) {
+  test("os N são EXATAMENTE os da SPEC (36 com nove fatores fora — juízo)", () => {
+    expect([...ENES].sort((a, b) => a - b)).toEqual(ENES_SPEC);
+    for (const n of ENES_SPEC) {
       const fatores = Array.from({ length: n }, (_, k) => k + 1).filter((x) => n % x === 0);
       expect(fatores.length, `N=${n}`).toBeGreaterThanOrEqual(5);
       expect(fatores.length, `N=${n}`).toBeLessThanOrEqual(8);
     }
-    expect(ENES).not.toContain(36);
   });
 });
 
@@ -65,6 +62,9 @@ describe("ehCerto — fixtures", () => {
     expect(ehCerto({ tipo: "multiplos", alvo: 7, rotulo: "" }, 50)).toBe(false);
     expect(ehCerto({ tipo: "fatores", alvo: 24, rotulo: "" }, 8)).toBe(true);
     expect(ehCerto({ tipo: "fatores", alvo: 24, rotulo: "" }, 9)).toBe(false);
+    // número MAIOR que o alvo nunca é fator — mata a mutação `||` (48 "fator" de 24)
+    expect(ehCerto({ tipo: "fatores", alvo: 24, rotulo: "" }, 48)).toBe(false);
+    expect(ehCerto({ tipo: "fatores", alvo: 12, rotulo: "" }, 24)).toBe(false);
   });
 });
 

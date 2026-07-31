@@ -9,7 +9,7 @@ import { tocarNoElemento } from "./_toque";
 function certoOraculo(instrucao: string, n: number): boolean {
   if (instrucao === "pares") return n % 2 === 0;
   if (instrucao === "impares") return n % 2 === 1;
-  const [tipo, alvoStr] = instrucao.split("-");
+  const [tipo, alvoStr] = instrucao.split("-de-");
   const alvo = Number(alvoStr);
   return tipo === "multiplos" ? n % alvo === 0 : alvo % n === 0;
 }
@@ -144,7 +144,7 @@ test("três formatos: células >= 44px e dentro da tela", async ({ browser }) =>
       const caixa = await alvo.boundingBox();
       expect(caixa, `${formato.nome}: célula sem caixa`).not.toBeNull();
       const menor = Math.min(caixa!.width, caixa!.height);
-      expect(menor, `${formato.nome}: célula pequena (${Math.round(menor)}px)`).toBeGreaterThanOrEqual(44);
+      expect(menor, `${formato.nome}: célula pequena (${Math.round(menor)}px)`).toBeGreaterThanOrEqual(72);
       expect(caixa!.x, `${formato.nome}: fora à esquerda`).toBeGreaterThanOrEqual(0);
       expect(caixa!.x + caixa!.width, `${formato.nome}: vaza à direita`).toBeLessThanOrEqual(
         formato.viewport.width,
