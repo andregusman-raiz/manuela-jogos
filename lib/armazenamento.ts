@@ -14,10 +14,19 @@ import type { Desenho } from "./desenho/tipos";
  */
 
 const NOME_BD = "manu-jogos";
-const VERSAO_BD = 2;
+const VERSAO_BD = 3;
 /** Uma gaveta por jogo: um jogo do hub não colide com o outro. */
 const LOJA_ATELIE = "atelie";
-const LOJAS_JOGOS = ["contas", "memoria", "labirinto", "palavras"] as const;
+const LOJAS_JOGOS = [
+  "contas",
+  "memoria",
+  "labirinto",
+  "palavras",
+  "forca",
+  "relogio",
+  "lojinha",
+  "genius",
+] as const;
 export type LojaJogo = (typeof LOJAS_JOGOS)[number];
 const ID_RASCUNHO = "rascunho";
 
@@ -28,27 +37,6 @@ function suportado(): boolean {
 function abrir(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const pedido = indexedDB.open(NOME_BD, VERSAO_BD);
-    let decidido = false;
-    let bloqueio: ReturnType<typeof setTimeout> | null = null;
-
-    // Uma única saída: fecha conexão atrasada (o open bloqueado ainda completa
-    // quando a aba antiga fecha — sem isto ele vazava aberto para sempre).
-    const decidir = (bd: IDBDatabase | null, erro?: unknown) => {
-      if (bloqueio) clearTimeout(bloqueio);
-      if (decidido) {
-        bd?.close();
-        return;
-      }
-      decidido = true;
-      if (bd) {
-        // Esta aba é a antiga quando outra pede upgrade: fecha para ela seguir.
-        bd.onversionchange = () => bd.close();
-        resolve(bd);
-      } else {
-        reject(erro instanceof Error ? erro : new Error(String(erro)));
-      }
-    };
-
     // Migração ADITIVA: só cria gavetas que faltam, nunca toca nas existentes —
     // o upgrade de versão não pode custar um desenho da galeria.
     pedido.onupgradeneeded = () => {
@@ -60,19 +48,27 @@ function abrir(): Promise<IDBDatabase> {
         }
       }
     };
-    // Aba com a versão ANTIGA do app segura o upgrade indefinidamente (ela não
-    // tem onversionchange). Após 3s caímos para o banco existente SEM upgrade:
-    // o Ateliê continua salvando de verdade (nada de "Guardado!" mentiroso);
-    // gavetas novas ainda não existem e os jogos rodam sem persistir nesta aba.
-    pedido.onblocked = () => {
-      bloqueio ??= setTimeout(() => {
-        const fallback = indexedDB.open(NOME_BD);
-        fallback.onsuccess = () => decidir(fallback.result);
-        fallback.onerror = () => decidir(null, fallback.error);
-      }, 3000);
+    // onblocked: apenas AGUARDAR. Um segundo open() de "fallback" seria inútil
+    // — pedidos de abertura do mesmo banco são serializados e entrariam na
+    // fila ATRÁS deste upgrade bloqueado (lição do juiz da onda 2).
+    // INVARIANTE que torna a espera segura: toda conexão deste app (em
+    // qualquer versão já publicada) é curta — abre, roda UMA transação e
+    // fecha — e abas novas fecham via onversionchange. Bloqueio é transitório
+    // por construção. NUNCA introduzir conexão de vida longa neste banco.
+    // Cinto de segurança para o cenário residual (aba com versão ANTIGA que
+    // vazou uma conexão por erro): rejeitar depois de 4s em vez de pendurar o
+    // jogo para sempre — os helpers degradam para "sem persistência".
+    const teto = setTimeout(() => reject(new Error("abertura do banco bloqueada")), 4000);
+    pedido.onsuccess = () => {
+      clearTimeout(teto);
+      // Esta aba é a antiga quando outra pede upgrade: fecha para ela seguir.
+      pedido.result.onversionchange = () => pedido.result.close();
+      resolve(pedido.result);
     };
-    pedido.onsuccess = () => decidir(pedido.result);
-    pedido.onerror = () => decidir(null, pedido.error);
+    pedido.onerror = () => {
+      clearTimeout(teto);
+      reject(pedido.error);
+    };
   });
 }
 
@@ -89,7 +85,13 @@ async function comLoja<T>(
       const pedido = acao(tx.objectStore(nomeLoja));
       pedido.onsuccess = () => resolve(pedido.result);
       pedido.onerror = () => reject(pedido.error);
+      // fechar em TODOS os finais — conexão vazada em erro segura upgrades de
+      // outras abas para sempre (é a invariante que permite esperar o blocked)
       tx.oncomplete = () => bd.close();
+      tx.onabort = () => {
+        bd.close();
+        reject(tx.error);
+      };
     });
   } catch {
     // Modo privado / cota cheia: o app continua desenhando, só não persiste.
@@ -198,7 +200,10 @@ export async function salvarProgresso(
         resolve();
       };
       tx.onerror = () => reject(tx.error);
-      tx.onabort = () => reject(tx.error);
+      tx.onabort = () => {
+        bd.close();
+        reject(tx.error);
+      };
     });
   } catch {
     // Sem persistência (modo privado, aba bloqueada): o jogo segue em memória.

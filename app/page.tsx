@@ -31,8 +31,9 @@ export default function Hub() {
         </div>
       </header>
 
-      {/* 2 colunas já no celular: 5 jogos em 3 linhas compactas, tudo na dobra */}
-      <div className="mt-1 grid flex-1 grid-cols-2 content-center gap-3 sm:gap-4">
+      {/* 3 colunas em todo formato: com 6+ jogos é o que segura TUDO na dobra
+          (hub.spec é o gate — a conta está na SPEC da onda 2) */}
+      <div className="mt-1 grid flex-1 grid-cols-3 content-center gap-3 sm:gap-4">
         {JOGOS.map((jogo) => (
           <CardJogo key={jogo.id} jogo={jogo} />
         ))}

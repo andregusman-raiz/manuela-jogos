@@ -14,10 +14,10 @@ import type { Jogo } from "@/lib/jogos";
 export function CardJogo({ jogo }: { jogo: Jogo }) {
   const conteudo = (
     <>
-      <span aria-hidden className="text-5xl drop-shadow-sm sm:text-7xl">
+      <span aria-hidden className="text-4xl drop-shadow-sm sm:text-6xl">
         {jogo.emoji}
       </span>
-      <span className="font-titulo text-lg leading-tight text-manu-cacau sm:text-2xl">
+      <span className="font-titulo text-sm leading-tight text-manu-cacau sm:text-xl">
         {jogo.nome}
       </span>
       <span className="hidden text-sm text-manu-cacau-suave sm:block">{jogo.descricao}</span>

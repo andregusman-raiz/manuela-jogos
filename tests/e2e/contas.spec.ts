@@ -177,7 +177,17 @@ test("upgrade v1→v2 preserva a galeria do Ateliê e cria as gavetas novas", as
         req.onerror = () => reject(req.error);
       }),
   );
-  expect(banco.versao).toBe(2);
+  expect(banco.versao).toBe(3);
   expect(banco.sentinela, "desenho da galeria sumiu no upgrade").toBe(true);
-  expect(banco.lojas).toEqual(["atelie", "contas", "labirinto", "memoria", "palavras"]);
+  expect(banco.lojas).toEqual([
+    "atelie",
+    "contas",
+    "forca",
+    "genius",
+    "labirinto",
+    "lojinha",
+    "memoria",
+    "palavras",
+    "relogio",
+  ]);
 });
