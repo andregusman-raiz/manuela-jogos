@@ -129,20 +129,38 @@ test("três formatos: alvos de toque >= 72px em celular, tablet e desktop", asyn
   }
 });
 
-test("upgrade v1→v2 preserva a galeria do Ateliê e cria as gavetas novas", async ({ page }) => {
-  // recria do zero um banco v1 com o esquema do app antigo + desenho sentinela
+test("upgrade v3→v4 preserva galeria E progresso antigos e cria as gavetas novas", async ({
+  page,
+}) => {
+  // recria um banco v3 com o esquema antigo + DUAS sentinelas: desenho na
+  // atelie e progresso na contas — uma mutação apague-e-recrie de gaveta
+  // antiga morre aqui (blocker #1 do juízo da onda 3)
   await limparBanco(page);
   await page.evaluate(
     () =>
       new Promise<void>((resolve, reject) => {
-        const req = indexedDB.open("manu-jogos", 1);
+        const req = indexedDB.open("manu-jogos", 3);
         req.onupgradeneeded = () => {
-          const loja = req.result.createObjectStore("atelie", { keyPath: "id" });
-          loja.createIndex("atualizadoEm", "atualizadoEm");
+          // o v3 REAL completo, como estava publicado na onda 2
+          for (const nome of [
+            "atelie",
+            "contas",
+            "memoria",
+            "labirinto",
+            "palavras",
+            "forca",
+            "relogio",
+            "lojinha",
+            "genius",
+          ]) {
+            const loja = req.result.createObjectStore(nome, { keyPath: "id" });
+            loja.createIndex("atualizadoEm", "atualizadoEm");
+          }
         };
         req.onsuccess = () => {
-          const tx = req.result.transaction("atelie", "readwrite");
+          const tx = req.result.transaction(["atelie", "contas"], "readwrite");
           tx.objectStore("atelie").put({ id: "sentinela-v1", atualizadoEm: 111, operacoes: [] });
+          tx.objectStore("contas").put({ id: "progresso", nivel: 4, melhor: null, atualizadoEm: 222 });
           tx.oncomplete = () => {
             req.result.close();
             resolve();
@@ -160,20 +178,28 @@ test("upgrade v1→v2 preserva a galeria do Ateliê e cria as gavetas novas", as
   const lerBanco = () =>
     page.evaluate(
       () =>
-        new Promise<{ versao: number; lojas: string[]; sentinela: boolean }>((resolve, reject) => {
+        new Promise<{
+          versao: number;
+          lojas: string[];
+          sentinela: boolean;
+          nivelContas: number;
+        }>((resolve, reject) => {
           const req = indexedDB.open("manu-jogos");
           req.onsuccess = () => {
             const bd = req.result;
-            const g = bd.transaction("atelie", "readonly").objectStore("atelie").get("sentinela-v1");
-            g.onsuccess = () => {
+            const tx = bd.transaction(["atelie", "contas"], "readonly");
+            const g = tx.objectStore("atelie").get("sentinela-v1");
+            const p = tx.objectStore("contas").get("progresso");
+            tx.oncomplete = () => {
               resolve({
                 versao: bd.version,
                 lojas: [...bd.objectStoreNames].sort(),
                 sentinela: Boolean(g.result),
+                nivelContas: (p.result as { nivel?: number } | undefined)?.nivel ?? -1,
               });
               bd.close();
             };
-            g.onerror = () => reject(g.error);
+            tx.onerror = () => reject(tx.error);
           };
           req.onerror = () => reject(req.error);
         }),
@@ -192,17 +218,23 @@ test("upgrade v1→v2 preserva a galeria do Ateliê e cria as gavetas novas", as
   }
   expect(banco, "não conseguiu ler o banco após o reload do SW").not.toBeNull();
   banco = banco!;
-  expect(banco.versao).toBe(3);
+  expect(banco.versao).toBe(4);
   expect(banco.sentinela, "desenho da galeria sumiu no upgrade").toBe(true);
+  expect(banco.nivelContas, "progresso antigo sumiu no upgrade").toBe(4);
   expect(banco.lojas).toEqual([
     "atelie",
+    "caca",
     "contas",
+    "damas",
+    "estados",
     "forca",
+    "fracoes",
     "genius",
     "labirinto",
     "lojinha",
     "memoria",
     "palavras",
     "relogio",
+    "tangram",
   ]);
 });

@@ -14,7 +14,7 @@ import type { Desenho } from "./desenho/tipos";
  */
 
 const NOME_BD = "manu-jogos";
-const VERSAO_BD = 3;
+const VERSAO_BD = 4;
 /** Uma gaveta por jogo: um jogo do hub não colide com o outro. */
 const LOJA_ATELIE = "atelie";
 const LOJAS_JOGOS = [
@@ -26,6 +26,11 @@ const LOJAS_JOGOS = [
   "relogio",
   "lojinha",
   "genius",
+  "fracoes",
+  "estados",
+  "tangram",
+  "damas",
+  "caca",
 ] as const;
 export type LojaJogo = (typeof LOJAS_JOGOS)[number];
 const ID_RASCUNHO = "rascunho";
@@ -162,6 +167,41 @@ export type Progresso = {
 export async function lerProgresso(jogo: LojaJogo): Promise<Progresso | null> {
   const r = await comLoja<Progresso>(jogo, "readonly", (loja) => loja.get("progresso"));
   return r ?? null;
+}
+
+/**
+ * Read-modify-write genérico numa ÚNICA transação readwrite: para registros
+ * que INCREMENTAM (ex.: placar das Damas) — o Progresso monotônico não serve,
+ * Math.max de duas abas perderia uma contagem.
+ */
+export async function atualizarRegistro<T extends { id: string }>(
+  jogo: LojaJogo,
+  id: string,
+  atualizar: (atual: T | null) => T,
+): Promise<void> {
+  if (!suportado()) return;
+  try {
+    const bd = await abrir();
+    await new Promise<void>((resolve, reject) => {
+      const tx = bd.transaction(jogo, "readwrite");
+      const loja = tx.objectStore(jogo);
+      const leitura = loja.get(id);
+      leitura.onsuccess = () => {
+        loja.put(atualizar((leitura.result as T | undefined) ?? null));
+      };
+      tx.oncomplete = () => {
+        bd.close();
+        resolve();
+      };
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => {
+        bd.close();
+        reject(tx.error);
+      };
+    });
+  } catch {
+    // sem persistência: o jogo segue em memória
+  }
 }
 
 /**
