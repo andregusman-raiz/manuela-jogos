@@ -42,7 +42,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
             (await cache.match("/lojinha")) &&
             (await cache.match("/genius")) &&
             (await cache.match("/fracoes")) &&
-            (await cache.match("/estados"))
+            (await cache.match("/estados")) &&
+            (await cache.match("/tangram"))
           )
             return { controlado, precache: true };
         }
@@ -65,8 +66,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   // precacheado sem chunk renderiza mas não interage; o offline abaixo pega).
   await page.goto("/contas");
   await expect(page.locator("[data-conta]")).toBeVisible();
-  await page.goto("/estados");
-  await expect(page.locator("[data-uf-pedida]")).toBeVisible();
+  await page.goto("/tangram");
+  await expect(page.locator("[data-peca='q']")).toBeVisible();
   await page.goto("/");
 
   await context.setOffline(true);
@@ -85,10 +86,13 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
 
   // a rota mais nova da onda também interage offline (disciplina da onda 1)
-  await page.goto("/estados");
-  const pedida = (await page.locator("[data-uf-pedida]").getAttribute("data-uf-pedida"))!;
-  await tocarNoElemento(page.locator(`[data-uf='${pedida}']`).last());
-  await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
+  await page.goto("/tangram");
+  await expect(page.locator("[data-peca='q']")).toBeVisible();
+  // selecionar e GIRAR prova o JS vivo offline: os pontos do polígono MUDAM
+  const antes = await page.locator("[data-peca='p1']").getAttribute("points");
+  await tocarNoElemento(page.locator("[data-peca='p1']"));
+  await tocarNoElemento(page.getByLabel("girar a peça", { exact: true }));
+  await expect(page.locator("[data-peca='p1']")).not.toHaveAttribute("points", antes!);
   await context.setOffline(false);
 });
 

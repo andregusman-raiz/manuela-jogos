@@ -181,7 +181,11 @@ morrem aqui). Aceite VISUAL obrigatório: o PR inclui screenshot das 10
 silhuetas montadas (script de render) revisado como intent. E2E — arrastar 1
 peça até o alvo com dedo real (PointerEvents com `pointermove`), snap
 confirmado; completar uma silhueta guiada por `data-alvo-*` com a conversão
-do §; 3 formatos (peças ≥ 56px na tela — exceção documentada).
+do §; 3 formatos. **Pisos de toque das peças (medidos e FECHADOS no review do
+PR C)**: menor dimensão ≥ 26px (o paralelogramo tem 15.6 lógicos de altura —
+~29px em 390px); as demais peças ficam ≥ 40px. O arrasto real é provado no
+fluxo feliz; um teste de seleção por TOQUE sintético (pointerType touch)
+cobre o caminho de dedo.
 
 ### 3.4 Damas (`/damas`) — PR D
 

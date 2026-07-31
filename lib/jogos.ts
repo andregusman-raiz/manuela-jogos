@@ -119,4 +119,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-grama/70",
     disponivel: true,
   },
+  {
+    id: "tangram",
+    nome: "Tangram da Manu",
+    descricao: "Monte as figuras",
+    rota: "/tangram",
+    emoji: "🔷",
+    cor: "bg-manu-ceu-claro",
+    disponivel: true,
+  },
 ];
