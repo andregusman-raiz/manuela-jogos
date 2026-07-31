@@ -106,7 +106,7 @@ describe("gerarRodada por nível", () => {
   for (const nivel of [1, 2, 3] as NivelFracoes[]) {
     test(`nível ${nivel}: frações próprias com D 2..8`, () => {
       const rng = criarRng(500 + nivel);
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 200; i++) {
         const r = gerarRodada(nivel, rng);
         const fracoes =
           r.tipo === "comparar" ? [r.a, r.b] : [r.alvo];

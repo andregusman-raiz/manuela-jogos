@@ -75,6 +75,10 @@ export function Fracoes() {
   const [acertos, setAcertos] = useState(0);
   const [negada, setNegada] = useState<{ opcao: string; chave: number } | null>(null);
   const rng = useRef<(() => number) | null>(null);
+  // guardas SÍNCRONAS (padrão da Lojinha): dois cliques no mesmo tick veem a
+  // MESMA rodada renderizada — a identidade dela barra o segundo
+  const respondida = useRef<RodadaFracoes | null>(null);
+  const acertosRef = useRef(0);
   const mudo = useSyncExternalStore(assinarMudo, estaMudo, mudoNoServidor);
 
   useEffect(() => {
@@ -95,15 +99,16 @@ export function Fracoes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [completa]);
 
-  function acertou() {
+  function acertou(daRodada: RodadaFracoes) {
+    if (respondida.current === daRodada) return; // segundo clique do mesmo tick
+    respondida.current = daRodada;
     tocar("acerto");
     setNegada(null);
-    setAcertos((a) => {
-      if (a + 1 < ACERTOS_POR_FASE_FRACOES && rng.current && nivel !== null) {
-        setRodada(gerarRodada(nivel, rng.current));
-      }
-      return a + 1;
-    });
+    acertosRef.current += 1;
+    setAcertos(acertosRef.current);
+    if (acertosRef.current < ACERTOS_POR_FASE_FRACOES && rng.current && nivel !== null) {
+      setRodada(gerarRodada(nivel, rng.current));
+    }
   }
 
   function errou(opcao: string) {
@@ -113,7 +118,7 @@ export function Fracoes() {
 
   function aoResponderLer(opcao: string) {
     if (!rodada || rodada.tipo !== "ler" || completa) return;
-    if (opcao === rotular(rodada.alvo)) acertou();
+    if (opcao === rotular(rodada.alvo)) acertou(rodada);
     else errou(opcao);
   }
 
@@ -125,21 +130,19 @@ export function Fracoes() {
     if (!rodada || rodada.tipo !== "construir" || completa) return;
     const resultado = conferir(rodada);
     if (resultado.rodada === rodada && resultado.certo) return; // já resolvida (idempotente)
-    if (resultado.certo) {
-      setRodada(resultado.rodada);
-      acertou();
-    } else {
-      errou("conferir");
-    }
+    if (resultado.certo) acertou(rodada);
+    else errou("conferir");
   }
 
   function aoComparar(resposta: "a" | "igual" | "b") {
     if (!rodada || rodada.tipo !== "comparar" || completa) return;
-    if (comparar(rodada.a, rodada.b) === resposta) acertou();
+    if (comparar(rodada.a, rodada.b) === resposta) acertou(rodada);
     else errou(resposta);
   }
 
   function novaFase(n: NivelFracoes) {
+    respondida.current = null;
+    acertosRef.current = 0;
     setNivel(n);
     setAcertos(0);
     setNegada(null);

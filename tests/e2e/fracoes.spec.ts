@@ -103,10 +103,16 @@ test("nível 2: pintar a fração pedida e conferir (via progresso salvo)", asyn
     await tocarNoElemento(page.locator(`path[data-fatia='${k}']`));
   }
   await expect(page.locator("path[data-pintada='true']")).toHaveCount(n);
-  await tocarNoElemento(page.getByLabel("conferir", { exact: true }));
+  // CORRIDA: dois cliques SÍNCRONOS no mesmo tick — só 1 acerto pode contar
+  await page.getByLabel("conferir", { exact: true }).evaluate((el) => {
+    (el as HTMLButtonElement).click();
+    (el as HTMLButtonElement).click();
+  });
   await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1", {
     timeout: 4000,
   });
+  await page.waitForTimeout(400);
+  await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
 });
 
 test("nível 3: comparar com aritmética PRÓPRIA do teste (via progresso salvo)", async ({

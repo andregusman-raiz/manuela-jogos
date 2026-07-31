@@ -141,7 +141,18 @@ test("upgrade v3→v4 preserva galeria E progresso antigos e cria as gavetas nov
       new Promise<void>((resolve, reject) => {
         const req = indexedDB.open("manu-jogos", 3);
         req.onupgradeneeded = () => {
-          for (const nome of ["atelie", "contas"]) {
+          // o v3 REAL completo, como estava publicado na onda 2
+          for (const nome of [
+            "atelie",
+            "contas",
+            "memoria",
+            "labirinto",
+            "palavras",
+            "forca",
+            "relogio",
+            "lojinha",
+            "genius",
+          ]) {
             const loja = req.result.createObjectStore(nome, { keyPath: "id" });
             loja.createIndex("atualizadoEm", "atualizadoEm");
           }
