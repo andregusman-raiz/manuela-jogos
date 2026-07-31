@@ -65,4 +65,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-nuvem",
     disponivel: true,
   },
+  {
+    id: "forca",
+    nome: "Forca da Manu",
+    descricao: "Adivinhe a palavra",
+    rota: "/forca",
+    emoji: "🎈",
+    cor: "bg-manu-ceu-claro",
+    disponivel: true,
+  },
 ];
