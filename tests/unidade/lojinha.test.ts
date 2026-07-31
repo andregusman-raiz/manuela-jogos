@@ -5,12 +5,17 @@ import {
   devolverPeca,
   formatar,
   gerarRodada,
-  pecasDoNivel,
   proximoNivelLojinha,
   somaDe,
   tocarPeca,
 } from "@/lib/lojinha/motor";
 import type { NivelLojinha } from "@/lib/lojinha/motor";
+
+/** Peças HARD-CODED no teste (oráculo independente do SUT). */
+const PECAS_TESTE: Record<1 | 2, number[]> = {
+  1: [200, 500, 1000, 2000],
+  2: [25, 50, 100, 200, 500, 1000, 2000],
+};
 
 /**
  * ORÁCULO INDEPENDENTE (exigência da SPEC pós-juiz): DP de "moedas com
@@ -35,7 +40,7 @@ describe("gerarRodada — 200 por nível, oráculo DP", () => {
   for (const nivel of [1, 2] as NivelLojinha[]) {
     test(`nível ${nivel}: todo preço é pagável com as peças do nível (DP)`, () => {
       const rng = criarRng(600 + nivel);
-      const pecas = pecasDoNivel(nivel);
+      const pecas = PECAS_TESTE[nivel as 1 | 2];
       for (let i = 0; i < 200; i++) {
         const r = gerarRodada(nivel, rng);
         expect(r.preco).toBeGreaterThan(0);
@@ -59,6 +64,9 @@ describe("gerarRodada — 200 por nível, oráculo DP", () => {
       expect(r.opcoesTroco).toHaveLength(4);
       expect(new Set(r.opcoesTroco).size).toBe(4);
       expect(r.opcoesTroco).toContain(troco);
+      // o erro clássico ("troco = o que custou") tem de estar entre as opções
+      // (quando preço == troco, ele JÁ é a resposta certa)
+      expect(r.opcoesTroco).toContain(r.preco === troco ? troco : r.preco);
       for (const o of r.opcoesTroco!) expect(o).toBeGreaterThan(0);
     }
   });

@@ -58,7 +58,9 @@ export function gerarRodada(nivel: NivelLojinha, rng: () => number): RodadaLojin
     const preco = 100 + Math.floor(rng() * ((1875 - 100) / 25 + 1)) * 25;
     const pagamento = [500, 1000, 2000].find((n) => n > preco)!;
     const certo = pagamento - preco;
-    const candidatos = [certo + 25, certo - 25, certo + 100, certo - 100, preco];
+    // o PREÇO vem primeiro: é o erro clássico ("troco = o que custou") e a
+    // SPEC o exige presente — no fim da lista ele nunca entrava (review PR C)
+    const candidatos = [preco, certo + 25, certo - 25, certo + 100, certo - 100];
     const opcoes = new Set<number>([certo]);
     for (const c of candidatos) {
       if (opcoes.size === 4) break;

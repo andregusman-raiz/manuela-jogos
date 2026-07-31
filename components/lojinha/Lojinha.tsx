@@ -70,6 +70,9 @@ export function Lojinha() {
   const [tremeu, setTremeu] = useState(0);
   const [negada, setNegada] = useState<{ opcao: number; chave: number } | null>(null);
   const [pagando, setPagando] = useState(false);
+  // guarda SÍNCRONA contra pagamento duplo: dois cliques no mesmo tick veem
+  // o mesmo estado React, mas não o mesmo ref
+  const pagandoRef = useRef(false);
   const rng = useRef<(() => number) | null>(null);
   const mudo = useSyncExternalStore(assinarMudo, estaMudo, mudoNoServidor);
 
@@ -94,9 +97,11 @@ export function Lojinha() {
 
   function proximaCompra() {
     if (!rng.current || nivel === null) return;
+    pagandoRef.current = false;
     setPilha([]);
     setPagando(false);
     setNegada(null);
+    setTremeu(0);
     setRodada(gerarRodada(nivel, rng.current));
   }
 
@@ -119,7 +124,8 @@ export function Lojinha() {
   }
 
   function aoPagar() {
-    if (!rodada || pagando || soma !== rodada.preco) return;
+    if (!rodada || pagandoRef.current || soma !== rodada.preco) return;
+    pagandoRef.current = true;
     setPagando(true);
     tocar("acerto");
     setAcertos((a) => a + 1);
@@ -127,8 +133,9 @@ export function Lojinha() {
   }
 
   function aoResponderTroco(opcao: number) {
-    if (!rodada?.pagamento || pagando || completa) return;
+    if (!rodada?.pagamento || pagandoRef.current || completa) return;
     if (opcao === rodada.pagamento - rodada.preco) {
+      pagandoRef.current = true;
       setPagando(true);
       tocar("acerto");
       setNegada(null);
@@ -141,11 +148,13 @@ export function Lojinha() {
   }
 
   function novaFase(n: NivelLojinha) {
+    pagandoRef.current = false;
     setNivel(n);
     setAcertos(0);
     setPilha([]);
     setPagando(false);
     setNegada(null);
+    setTremeu(0);
     if (rng.current) setRodada(gerarRodada(n, rng.current));
   }
 
@@ -236,8 +245,9 @@ export function Lojinha() {
                       key={`${i}-${valor}`}
                       type="button"
                       aria-label={`devolver ${rotuloPeca(valor)}`}
+                      disabled={pagando}
                       onClick={() => aoDevolver(i)}
-                      className="rounded-lg p-0.5 active:scale-95"
+                      className="rounded-lg p-0.5 active:scale-95 disabled:opacity-60"
                     >
                       <Peca valor={valor} />
                     </button>
