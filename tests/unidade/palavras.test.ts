@@ -58,14 +58,15 @@ describe("gerarFase — 100 fases por nível", () => {
     });
   }
 
-  test("nível 3: a resposta é uma sílaba EXATA do campo silabas", () => {
+  test("nível 3: resposta é sílaba EXATA (2+ letras) e distratores têm o MESMO tamanho", () => {
     for (let seed = 0; seed < 100; seed++) {
       for (const rodada of gerarFase(3, seed)) {
         const dona = PALAVRAS.find((p) => p.palavra === rodada.palavra)!;
         expect(dona.silabas).toContain(rodada.resposta);
-        // distratores vêm do banco (sílabas de outras palavras), tamanho ±1
+        expect(rodada.resposta.length).toBeGreaterThanOrEqual(2);
+        // regra FECHADA da SPEC: mesmo nº de letras, e do banco — nunca inventada
         for (const opcao of rodada.opcoes.filter((o) => o !== rodada.resposta)) {
-          expect(Math.abs(opcao.length - rodada.resposta.length)).toBeLessThanOrEqual(1);
+          expect(opcao.length, `${opcao} vs ${rodada.resposta}`).toBe(rodada.resposta.length);
           expect(PALAVRAS.some((p) => p.silabas.includes(opcao)), `${opcao} fora do banco`).toBe(
             true,
           );

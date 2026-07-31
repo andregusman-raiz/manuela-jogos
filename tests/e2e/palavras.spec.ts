@@ -94,8 +94,9 @@ test("nível 3 pede SÍLABA e a lacuna recorta a palavra certa", async ({ page }
   );
   await page.reload();
   await expect(page.locator("main")).toHaveAttribute("data-nivel", "3");
+  // sílaba elegível tem SEMPRE 2+ letras — nível 3 mutado para letra falha aqui
   const resposta = await page.locator("[data-resposta]").getAttribute("data-resposta");
-  expect(resposta!.length, "nível 3 pede sílaba, não letra").toBeGreaterThanOrEqual(1);
+  expect(resposta!.length, "nível 3 pede sílaba, não letra").toBeGreaterThanOrEqual(2);
   await acertarUma(page, 0);
 });
 

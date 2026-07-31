@@ -57,25 +57,33 @@ function opcoesDeLetra(letra: string, rng: () => number): string[] {
   return embaralhar([...opcoes], rng);
 }
 
-/** Distratores de sílaba: sílabas de OUTRAS palavras do banco, mesmo tamanho
- *  (regra determinística da SPEC; relaxa para ±1 letra se faltar candidata). */
-function opcoesDeSilaba(certa: string, dona: Palavra, rng: () => number): string[] {
-  const alheias = [
-    ...new Set(
-      PALAVRAS.filter((p) => p.palavra !== dona.palavra)
-        .flatMap((p) => p.silabas)
-        .filter((s) => s !== certa),
-    ),
+function silabasAlheias(dona: Palavra): string[] {
+  return [
+    ...new Set(PALAVRAS.filter((p) => p.palavra !== dona.palavra).flatMap((p) => p.silabas)),
   ];
-  const mesmoTamanho = alheias.filter((s) => s.length === certa.length);
-  const quase = alheias.filter((s) => Math.abs(s.length - certa.length) === 1);
+}
 
+/**
+ * Sílaba ELEGÍVEL para virar lacuna: 2+ letras (lacuna de "A" é trivial) e com
+ * pelo menos 3 distratoras do MESMO tamanho no banco — a regra da SPEC é
+ * fechada em "mesmo nº de letras", então quem não tem vizinhança não é
+ * sorteada (ex.: PRIN/QUEI são as únicas de 4 letras).
+ */
+function silabaElegivel(silaba: string, dona: Palavra): boolean {
+  if (silaba.length < 2) return false;
+  const iguais = silabasAlheias(dona).filter(
+    (s) => s !== silaba && s.length === silaba.length,
+  );
+  return iguais.length >= 3;
+}
+
+/** Distratores de sílaba: OUTRAS palavras do banco, MESMO tamanho (SPEC §4.4). */
+function opcoesDeSilaba(certa: string, dona: Palavra, rng: () => number): string[] {
+  const mesmoTamanho = silabasAlheias(dona).filter(
+    (s) => s !== certa && s.length === certa.length,
+  );
   const opcoes = new Set<string>([certa]);
   for (const s of embaralhar(mesmoTamanho, rng)) {
-    if (opcoes.size === 4) break;
-    opcoes.add(s);
-  }
-  for (const s of embaralhar(quase, rng)) {
     if (opcoes.size === 4) break;
     opcoes.add(s);
   }
@@ -96,8 +104,12 @@ function rodadaDeLetra(item: Palavra, rng: () => number): Rodada {
 }
 
 function rodadaDeSilaba(item: Palavra, rng: () => number): Rodada {
-  const indice = Math.floor(rng() * item.silabas.length);
-  const resposta = item.silabas[indice];
+  const elegiveis = item.silabas
+    .map((s, i) => ({ s, i }))
+    .filter(({ s }) => silabaElegivel(s, item));
+  const escolhida = elegiveis[Math.floor(rng() * elegiveis.length)];
+  const indice = escolhida.i;
+  const resposta = escolhida.s;
   const inicio = item.silabas.slice(0, indice).join("").length;
   return {
     palavra: item.palavra,
@@ -111,10 +123,11 @@ function rodadaDeSilaba(item: Palavra, rng: () => number): Rodada {
 
 export function gerarFase(nivel: NivelPalavras, seed: number): Rodada[] {
   const rng = criarRng(seed);
-  // nível 1/2 filtram por dificuldade; nível 3 usa o banco todo (2+ sílabas)
+  // nível 1/2 filtram por dificuldade; nível 3 exige palavra com pelo menos
+  // uma sílaba elegível (2+ letras e vizinhança de mesmo tamanho no banco)
   const pool =
     nivel === 3
-      ? PALAVRAS.filter((p) => p.silabas.length >= 2)
+      ? PALAVRAS.filter((p) => p.silabas.some((s) => silabaElegivel(s, p)))
       : PALAVRAS.filter((p) => p.nivel === nivel);
 
   return embaralhar(pool, rng)

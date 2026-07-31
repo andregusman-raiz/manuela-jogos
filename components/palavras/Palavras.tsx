@@ -32,7 +32,7 @@ export function Palavras() {
   const mudo = useSyncExternalStore(assinarMudo, estaMudo, mudoNoServidor);
 
   useEffect(() => {
-    seed.current = Date.now() % 2147483647;
+    seed.current = (Date.now() % 2147483647) || 1; // 0 travaria o gerador de fases
     void lerProgresso("palavras").then((p) => {
       const n = Math.min(p?.nivel ?? 1, NIVEL_MAXIMO_PALAVRAS) as NivelPalavras;
       setNivel(n);
@@ -203,7 +203,8 @@ export function Palavras() {
         </div>
       ) : null}
 
-      <Confete gatilho={indice} duracao={completa ? 1800 : 700} />
+      {/* §4.4: confete SÓ na fase completa (o acerto já tem som + lacuna piscando) */}
+      <Confete gatilho={completa ? 1 : 0} duracao={1800} />
     </main>
   );
 }
