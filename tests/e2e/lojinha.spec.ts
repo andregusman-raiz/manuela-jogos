@@ -136,6 +136,10 @@ test("nível 3: o troco certo é pagamento − preço (via progresso salvo)", as
   await page.reload();
   await expect(page.locator("main")).toHaveAttribute("data-nivel", "3");
 
+  // o reload do controllerchange do SW pode destruir o contexto no meio —
+  // esperar a página estabilizar antes de ler o DOM (padrão do contas.spec)
+  await page.waitForTimeout(800);
+  await expect(page.locator("[data-preco]")).toBeVisible();
   const preco = Number(await page.locator("[data-preco]").getAttribute("data-preco"));
   const pagamento = Number(await page.locator("[data-preco]").getAttribute("data-pagamento"));
   expect(pagamento).toBeGreaterThan(preco);
