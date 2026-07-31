@@ -137,4 +137,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-nuvem",
     disponivel: true,
   },
+  {
+    id: "caca",
+    nome: "Caça-Números",
+    descricao: "Pares, múltiplos e fatores",
+    rota: "/caca",
+    emoji: "🔢",
+    cor: "bg-manu-sol",
+    disponivel: true,
+  },
 ];

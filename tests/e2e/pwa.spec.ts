@@ -44,7 +44,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
             (await cache.match("/fracoes")) &&
             (await cache.match("/estados")) &&
             (await cache.match("/tangram")) &&
-            (await cache.match("/damas"))
+            (await cache.match("/damas")) &&
+            (await cache.match("/caca"))
           )
             return { controlado, precache: true };
         }
@@ -67,8 +68,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   // precacheado sem chunk renderiza mas não interage; o offline abaixo pega).
   await page.goto("/contas");
   await expect(page.locator("[data-conta]")).toBeVisible();
-  await page.goto("/damas");
-  await expect(page.getByLabel("começar a partida", { exact: true })).toBeVisible();
+  await page.goto("/caca");
+  await expect(page.locator("[data-instrucao]")).toBeVisible();
   await page.goto("/");
 
   await context.setOffline(true);
@@ -87,12 +88,27 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
 
   // a rota mais nova da onda também interage offline (disciplina da onda 1)
-  await page.goto("/damas");
-  await tocarNoElemento(page.getByLabel("começar a partida", { exact: true }));
-  // mover uma peça prova o JS vivo offline
-  await tocarNoElemento(page.locator("[data-casa='5-2']"));
-  await tocarNoElemento(page.locator("[data-casa='4-3']"));
-  await expect(page.locator("main")).toHaveAttribute("data-vez", "azul");
+  await page.goto("/caca");
+  await expect(page.locator("[data-instrucao]")).toBeVisible();
+  // achar um número certo prova o JS vivo offline
+  const restantesAntes = Number(
+    await page.locator("[data-restantes]").getAttribute("data-restantes"),
+  );
+  const instrucao = (await page.locator("[data-instrucao]").getAttribute("data-instrucao"))!;
+  const numeros = await page
+    .locator("[data-numero]")
+    .evaluateAll((els) => els.map((e) => Number(e.getAttribute("data-numero"))));
+  const certo = numeros.find((n) => {
+    if (instrucao === "pares") return n % 2 === 0;
+    if (instrucao === "impares") return n % 2 === 1;
+    const [tipo, alvo] = instrucao.split("-");
+    return tipo === "multiplos" ? n % Number(alvo) === 0 : Number(alvo) % n === 0;
+  })!;
+  await tocarNoElemento(page.locator(`[data-numero='${certo}'][data-estado='livre']`).first());
+  await expect(page.locator("[data-restantes]")).toHaveAttribute(
+    "data-restantes",
+    String(restantesAntes - 1),
+  );
   await context.setOffline(false);
 });
 
