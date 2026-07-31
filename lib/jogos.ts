@@ -101,4 +101,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-ceu",
     disponivel: true,
   },
+  {
+    id: "fracoes",
+    nome: "Pizza das Frações",
+    descricao: "Leia, pinte e compare",
+    rota: "/fracoes",
+    emoji: "🍕",
+    cor: "bg-manu-rosa/60",
+    disponivel: true,
+  },
 ];

@@ -26,14 +26,14 @@ export default function Hub() {
             pose="corpo"
             tamanho={190}
             prioridade
-            className="anima-pulinho h-auto max-h-[30dvh] w-full object-contain drop-shadow-md"
+            className="anima-pulinho h-auto max-h-[24dvh] w-full object-contain drop-shadow-md"
           />
         </div>
       </header>
 
-      {/* 3 colunas em todo formato: com 6+ jogos é o que segura TUDO na dobra
-          (hub.spec é o gate — a conta está na SPEC da onda 2) */}
-      <div className="mt-1 grid flex-1 grid-cols-3 content-center gap-3 sm:gap-4">
+      {/* 10+ jogos: 4 colunas no celular, 5 no sm — as contas estão na SPEC
+          da onda 3 §2; hub.spec é o gate da dobra */}
+      <div className="mt-1 grid flex-1 grid-cols-4 content-center gap-2 sm:grid-cols-5 sm:gap-4">
         {JOGOS.map((jogo) => (
           <CardJogo key={jogo.id} jogo={jogo} />
         ))}

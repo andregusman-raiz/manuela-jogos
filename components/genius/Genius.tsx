@@ -7,13 +7,7 @@ import { Confete } from "@/components/ui-kids/Confete";
 import { Icone } from "@/components/ui-kids/Icone";
 import { Manu } from "@/components/ui-kids/Manu";
 import { lerProgresso, salvarProgresso } from "@/lib/armazenamento";
-import {
-  SEQUENCIA_ALVO,
-  TAMANHO_INICIAL,
-  avancarReplay,
-  criarPartida,
-  ouvir,
-} from "@/lib/genius/motor";
+import { SEQUENCIA_ALVO, avancarReplay, criarPartida, ouvir } from "@/lib/genius/motor";
 import type { EstadoGenius } from "@/lib/genius/motor";
 import type { Efeito } from "@/lib/som";
 import { assinarMudo, definirMudo, estaMudo, feedback, mudoNoServidor, tocar } from "@/lib/som";
