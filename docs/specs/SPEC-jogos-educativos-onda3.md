@@ -215,7 +215,9 @@ de início)**:
   incremento na MESMA transação; duas abas somam, nunca sobrescrevem). O
   TABULEIRO nunca persiste — partida viva só em memória.
 - data-attrs: `data-vez`, `data-pecas-rosa`, `data-pecas-azul`, casas
-  `data-casa="c3"`, peças `data-dama` quando promovidas.
+  `data-casa="linha-coluna"` (ex.: "5-2"; formato fechado no review do PR D —
+  mais simples que notação de xadrez), peças `data-dama="true|false"`
+  explícito (padrão dos ganchos do app).
 - **Alvos (exceção documentada)**: casas de 8×8 em 390px ≈ 44px — piso
   próprio de 44px (tabuleiro real não comporta 72), E2E valida ≥44 e
   containment.

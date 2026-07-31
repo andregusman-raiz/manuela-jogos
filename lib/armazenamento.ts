@@ -169,6 +169,16 @@ export async function lerProgresso(jogo: LojaJogo): Promise<Progresso | null> {
   return r ?? null;
 }
 
+/** Leitura genérica de um registro (readonly — NUNCA grava; ler o placar das
+ *  Damas com atualizarRegistro criava um registro zerado só de visitar). */
+export async function lerRegistro<T extends { id: string }>(
+  jogo: LojaJogo,
+  id: string,
+): Promise<T | null> {
+  const r = await comLoja<T>(jogo, "readonly", (loja) => loja.get(id));
+  return r ?? null;
+}
+
 /**
  * Read-modify-write genérico numa ÚNICA transação readwrite: para registros
  * que INCREMENTAM (ex.: placar das Damas) — o Progresso monotônico não serve,
