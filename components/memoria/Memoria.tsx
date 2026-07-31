@@ -77,7 +77,12 @@ export function Memoria() {
     setEstado(criarTabuleiro(proximoNivelMemoria(estado.nivel), rng.current));
   }
 
-  const colunas = estado?.nivel === 2 ? "grid-cols-4" : "grid-cols-3";
+  // deitado: mais colunas e menos linhas — 4 linhas de cartas quadradas não
+  // cabem em ~290px de altura e sobrepunham (QAT 2026-07-31)
+  const colunas =
+    estado?.nivel === 2
+      ? "grid-cols-4 deitado:grid-cols-8"
+      : "grid-cols-3 deitado:grid-cols-6";
 
   return (
     <main data-nivel={estado?.nivel ?? 0} className="flex h-[100dvh] flex-col overflow-hidden">
@@ -130,8 +135,8 @@ export function Memoria() {
           <div
             className={`grid h-full ${colunas} content-center justify-center gap-2`}
             // gotcha do repo: aspect-ratio em grid sem auto-rows explícita
-            // colapsa as linhas (~18px)
-            style={{ gridAutoRows: "minmax(72px, auto)" }}
+            // colapsa as linhas (~18px); o teto 1fr impede sobreposição
+            style={{ gridAutoRows: "minmax(48px, min(28dvh, 110px))" }}
           >
             {estado.cartas.map((carta) => {
               const removida = estado.removidas.includes(carta.id);
@@ -148,7 +153,7 @@ export function Memoria() {
                   data-estado={aberta ? "aberta" : "fechada"}
                   onPointerDown={() => feedback("toque")}
                   onClick={() => aoTocar(carta.id)}
-                  className={`bolha mx-auto aspect-square w-full max-w-28 select-none transition-transform ${
+                  className={`bolha mx-auto h-full max-h-28 w-full max-w-28 select-none transition-transform ${
                     aberta
                       ? carta.tipo === "conta"
                         ? "bg-manu-ceu-claro ring-2 ring-manu-ceu"

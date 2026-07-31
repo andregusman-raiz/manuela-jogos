@@ -147,7 +147,10 @@ export function Caca() {
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {rodada && !completa ? (
-          <div className="grid aspect-square max-h-full w-full max-w-[min(94vw,56dvh)] grid-cols-4 gap-2">
+          <div
+            className="grid h-full max-h-full w-full max-w-[min(94vw,56dvh)] grid-cols-4 gap-2 deitado:max-w-full deitado:grid-cols-8"
+            style={{ gridAutoRows: "minmax(0, 1fr)" }}
+          >
             {rodada.grade.map((numero, indice) => {
               const achado = achados.includes(indice);
               return (
