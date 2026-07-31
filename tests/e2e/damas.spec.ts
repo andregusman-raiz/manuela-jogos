@@ -65,7 +65,11 @@ test("toque em peça fora da vez não seleciona nada", async ({ page }) => {
   await expect(page.locator("[data-destino='true']")).toHaveCount(0);
 });
 
-test("placar persiste e soma (registro transacional)", async ({ page }) => {
+test("PARTIDA COMPLETA: vitória SOMA no placar pré-existente (transacional)", async ({
+  page,
+}) => {
+  test.setTimeout(180000);
+  // placar pré-existente: a vitória tem de SOMAR sobre ele, não sobrescrever
   await page.evaluate(
     () =>
       new Promise<void>((resolve, reject) => {
@@ -84,6 +88,28 @@ test("placar persiste e soma (registro transacional)", async ({ page }) => {
   );
   await page.reload();
   await expect(page.locator("[data-placar-rosa]")).toHaveAttribute("data-placar-rosa", "3", {
+    timeout: 5000,
+  });
+  await iniciar(page);
+
+  // partida determinística GERADA PELO MOTOR (rosa greedy × azul entregando)
+  const lances: Array<[string, string]> = [
+    ["5-0", "4-1"], ["2-1", "3-0"], ["4-1", "3-2"], ["1-0", "2-1"], ["3-2", "1-0"],
+    ["1-2", "2-1"], ["1-0", "3-2"], ["0-1", "1-0"], ["3-2", "2-1"], ["0-3", "1-2"],
+    ["2-1", "0-3"], ["1-0", "2-1"], ["0-3", "1-2"], ["2-1", "3-2"], ["1-2", "3-4"],
+    ["1-4", "2-3"], ["3-4", "1-2"], ["0-5", "1-4"], ["1-2", "0-1"], ["1-4", "2-3"],
+    ["0-1", "1-0"], ["2-3", "3-4"], ["1-0", "0-1"], ["2-5", "3-6"], ["0-1", "1-0"],
+    ["1-6", "2-5"], ["1-0", "0-1"], ["0-7", "1-6"], ["0-1", "1-0"], ["3-0", "4-1"],
+    ["5-2", "3-0"], ["3-2", "4-1"], ["3-0", "5-2"], ["3-4", "4-3"], ["5-2", "3-4"],
+    ["3-6", "4-5"], ["5-4", "3-6"], ["3-6", "1-4"], ["1-6", "2-5"], ["1-4", "3-6"],
+    ["2-7", "4-5"], ["4-5", "2-3"], ["1-0", "0-1"], ["2-3", "3-2"], ["0-1", "1-0"],
+    ["3-2", "4-1"], ["1-0", "0-1"], ["4-1", "5-0"], ["0-1", "1-0"],
+  ];
+  for (const [de, para] of lances) await lance(page, de, para);
+
+  await expect(page.getByText(/venceu!/i).first()).toBeVisible({ timeout: 8000 });
+  // 3 pré-existentes + 1 vitória = 4 (soma, nunca sobrescrita)
+  await expect(page.locator("[data-placar-rosa]")).toHaveAttribute("data-placar-rosa", "4", {
     timeout: 5000,
   });
   await expect(page.locator("[data-placar-rosa]")).toHaveAttribute("data-placar-azul", "1");

@@ -117,6 +117,48 @@ describe("movimentos e capturas — regras da casa", () => {
     }
   });
 
+  test("fim NATURAL da cadeia (sem segundo pulo): vez troca sozinha", () => {
+    const e = tabuleiroCom({ "6,1": R, "5,2": A, "0,7": A });
+    const captura = movimentosLegais(e, { linha: 6, coluna: 1 }).find((m) => m.captura)!;
+    const depois = mover(e, captura);
+    expect(depois.cadeia).toBeNull();
+    expect(depois.vez).toBe("azul");
+  });
+
+  test("temMovimento DURANTE cadeia ignora a trava (sonda o jogo inteiro)", () => {
+    const e = tabuleiroCom({ "6,1": R, "5,2": A, "3,4": A, "0,1": A });
+    const primeira = movimentosLegais(e, { linha: 6, coluna: 1 }).find((m) => m.captura)!;
+    const meio = mover(e, primeira);
+    expect(meio.cadeia).not.toBeNull();
+    expect(temMovimento(meio, "azul")).toBe(true);
+  });
+
+  test("'parar aqui' pode DECLARAR vencedor (adversário bloqueado)", () => {
+    // azul única em 0,1 travada; rosa entra em cadeia e para — azul sem lance
+    const e = tabuleiroCom({ "6,1": R, "5,2": A, "3,4": A, "0,1": A, "1,0": R, "1,2": R, "2,3": R });
+    const primeira = movimentosLegais(e, { linha: 6, coluna: 1 }).find((m) => m.captura)!;
+    const meio = mover(e, primeira);
+    expect(meio.cadeia).not.toBeNull();
+    const parado = pararCadeia(meio);
+    // azul restante: 3,4 (a segunda foi... não: 5,2 capturada; restam 3,4 e 0,1)
+    // 3,4 TEM movimento → sem vencedor neste cenário; agora o de bloqueio real:
+    expect(parado.vencedor).toBeNull();
+
+    const bloqueado = tabuleiroCom({ "6,1": R, "5,2": A, "0,1": A, "1,0": R, "1,2": R, "2,3": R });
+    const cap = movimentosLegais(bloqueado, { linha: 6, coluna: 1 }).find((m) => m.captura)!;
+    const m2 = mover(bloqueado, cap);
+    // capturou a 5,2; azul só tem a 0,1 travada → vencedor imediato ou ao parar
+    const final = m2.cadeia ? pararCadeia(m2) : m2;
+    expect(final.vencedor).toBe("rosa");
+  });
+
+  test("DAMA captura PARA TRÁS (a fixture anterior só cobria para frente)", () => {
+    // dama rosa em 3,2 com azul ATRÁS dela (4,3): pulo para trás cai em 5,4
+    const e = tabuleiroCom({ "3,2": DR, "4,3": A, "0,7": A });
+    const capturas = movimentosLegais(e, { linha: 3, coluna: 2 }).filter((m) => m.captura);
+    expect(capturas.some((m) => m.para.linha === 5 && m.para.coluna === 4)).toBe(true);
+  });
+
   test("fim por BLOQUEIO: adversário com peça mas sem movimento perde", () => {
     // azul em 0,1 travada: 1,0 ocupada por rosa protegida (pulo cairia fora) e 1,2 ocupada com 2,3 ocupada
     const e = tabuleiroCom({ "0,1": A, "1,0": R, "1,2": R, "2,3": R, "7,6": R }, "rosa");

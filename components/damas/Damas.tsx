@@ -6,7 +6,7 @@ import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
 import { Icone } from "@/components/ui-kids/Icone";
 import { Manu } from "@/components/ui-kids/Manu";
-import { atualizarRegistro, lerProgresso, salvarProgresso } from "@/lib/armazenamento";
+import { atualizarRegistro, lerRegistro, salvarProgresso } from "@/lib/armazenamento";
 import {
   contar,
   estadoInicial,
@@ -34,15 +34,11 @@ export function Damas() {
   const mudo = useSyncExternalStore(assinarMudo, estaMudo, mudoNoServidor);
 
   useEffect(() => {
-    void lerProgresso("damas").then(() => undefined);
-    void (async () => {
-      // lê o placar salvo (registro próprio, fora do Progresso)
-      await atualizarRegistro<Placar>("damas", "placar", (atual) => {
-        const registro = atual ?? { id: "placar", rosa: 0, azul: 0, atualizadoEm: Date.now() };
-        setPlacar({ rosa: registro.rosa, azul: registro.azul });
-        return registro;
-      });
-    })();
+    // LEITURA pura do placar — atualizarRegistro aqui criava um registro
+    // zerado só de visitar a página (review do PR D)
+    void lerRegistro<Placar>("damas", "placar").then((registro) => {
+      if (registro) setPlacar({ rosa: registro.rosa, azul: registro.azul });
+    });
   }, []);
 
   const vencedor = estado.vencedor;
@@ -105,7 +101,9 @@ export function Damas() {
       data-vez={estado.vez}
       data-pecas-rosa={contar(estado, "rosa")}
       data-pecas-azul={contar(estado, "azul")}
-      className="flex h-[100dvh] flex-col overflow-hidden"
+      className={`flex h-[100dvh] flex-col overflow-hidden ${
+        comecou && !vencedor ? `ring-8 ring-inset ${corVez}` : ""
+      }`}
     >
       <header className="flex h-16 shrink-0 items-center gap-2 px-2 pt-[env(safe-area-inset-top)] deitado:h-12">
         <Link
@@ -145,9 +143,11 @@ export function Damas() {
           <div className="max-w-sm rounded-2xl bg-manu-papel p-4 text-sm text-manu-cacau ring-2 ring-manu-cacau/10">
             <p className="mb-1 font-titulo text-lg">Regras da casa</p>
             <p>
-              Pula por cima para capturar (pra frente ou pra trás) e pode emendar vários pulos —
-              mas capturar nunca é obrigatório. Chegou do outro lado? Vira dama (e a jogada
-              termina). Quem ficar sem peças ou sem jogadas perde.
+              A peça anda 1 casa na diagonal, pra frente. Pula por cima para capturar (pra frente
+              OU pra trás) e pode emendar vários pulos — mas capturar nunca é obrigatório: o botão
+              &quot;parar aqui&quot; encerra a sequência quando você quiser. Chegou do outro lado?
+              Vira dama ★ (e a jogada termina); a dama anda 1 casa em QUALQUER diagonal. Quem
+              ficar sem peças ou sem jogadas perde.
             </p>
           </div>
           <BotaoBolha rotulo="começar a partida" tamanho="xl" efeito="abrir" onClick={() => setComecou(true)}>
