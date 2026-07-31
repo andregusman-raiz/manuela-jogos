@@ -74,4 +74,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-ceu-claro",
     disponivel: true,
   },
+  {
+    id: "relogio",
+    nome: "Relógio Mágico",
+    descricao: "Que horas são?",
+    rota: "/relogio",
+    emoji: "⏰",
+    cor: "bg-manu-sol/70",
+    disponivel: true,
+  },
 ];

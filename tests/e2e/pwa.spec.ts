@@ -37,7 +37,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
             (await cache.match("/memoria")) &&
             (await cache.match("/labirinto")) &&
             (await cache.match("/palavras")) &&
-            (await cache.match("/forca"))
+            (await cache.match("/forca")) &&
+            (await cache.match("/relogio"))
           )
             return { controlado, precache: true };
         }
@@ -60,8 +61,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   // precacheado sem chunk renderiza mas não interage; o offline abaixo pega).
   await page.goto("/contas");
   await expect(page.locator("[data-conta]")).toBeVisible();
-  await page.goto("/forca");
-  await expect(page.locator("[data-palavra]")).toBeVisible();
+  await page.goto("/relogio");
+  await expect(page.locator("[data-hora]")).toBeVisible();
   await page.goto("/");
 
   await context.setOffline(true);
@@ -80,14 +81,10 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
 
   // a rota mais nova da onda também interage offline (disciplina da onda 1)
-  await page.goto("/forca");
-  const palavra = (await page.locator("[data-palavra]").getAttribute("data-palavra"))!;
-  const letra = palavra
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toUpperCase()[0];
-  await tocarNoElemento(page.getByLabel(`letra ${letra}`, { exact: true }));
-  await expect(page.getByLabel(`letra ${letra}`, { exact: true })).toBeDisabled();
+  await page.goto("/relogio");
+  const hora = (await page.locator("[data-hora]").getAttribute("data-hora"))!;
+  await tocarNoElemento(page.getByLabel(`resposta ${hora}`, { exact: true }));
+  await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
   await context.setOffline(false);
 });
 
