@@ -44,7 +44,7 @@ UFS = {
 }
 
 # 24px de dedo em tela de 390px ≈ 13.4 unidades lógicas do viewBox 200
-PISO_LOGICO_SEM_PINO = 13.4
+PISO_LOGICO_SEM_PINO = 17.5  # pior formato: celular deitado (~290px uteis)
 # tolerância do Douglas-Peucker em unidades lógicas (orçamento: <=2KB/UF)
 TOLERANCIA_DP = 0.4
 
@@ -91,6 +91,79 @@ def aneis(geometria):
     return saida
 
 
+def _area_shoelace(pontos):
+    soma = 0.0
+    for i in range(len(pontos)):
+        x1, y1 = pontos[i]
+        x2, y2 = pontos[(i + 1) % len(pontos)]
+        soma += x1 * y2 - x2 * y1
+    return soma / 2.0
+
+
+def _centroide_por_area(aneis_pts):
+    """Centroide poligonal (shoelace) do MAIOR anel — média de vértices cai
+    fora do polígono em formas côncavas como AL/PA (review do PR B)."""
+    maior = max(aneis_pts, key=lambda a: abs(_area_shoelace(a)))
+    area = _area_shoelace(maior)
+    cx = cy = 0.0
+    for i in range(len(maior)):
+        x1, y1 = maior[i]
+        x2, y2 = maior[(i + 1) % len(maior)]
+        cruz = x1 * y2 - x2 * y1
+        cx += (x1 + x2) * cruz
+        cy += (y1 + y2) * cruz
+    return round(cx / (6 * area), 1), round(cy / (6 * area), 1)
+
+
+def _segmentos_cruzam(a, b, c, d):
+    def orient(p, q, r):
+        v = (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
+        return 0 if abs(v) < 1e-9 else (1 if v > 0 else -1)
+
+    return (
+        orient(a, b, c) != orient(a, b, d)
+        and orient(c, d, a) != orient(c, d, b)
+        and orient(a, b, c) != 0
+    )
+
+
+def _comprimento(a, b):
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+
+
+# cruzamento entre segmentos AMBOS menores que isto é subpixel: invisível no
+# render (fill nonzero) e irrelevante para o toque — não vale pagar bytes
+SEGMENTO_RELEVANTE = 1.5
+
+
+def _tem_autointersecao(pontos):
+    n = len(pontos)
+    for i in range(n):
+        a, b = pontos[i], pontos[(i + 1) % n]
+        for j in range(i + 2, n):
+            if i == 0 and j == n - 1:
+                continue
+            c, d = pontos[j], pontos[(j + 1) % n]
+            if _comprimento(a, b) < SEGMENTO_RELEVANTE and _comprimento(c, d) < SEGMENTO_RELEVANTE:
+                continue
+            if _segmentos_cruzam(a, b, c, d):
+                return True
+    return False
+
+
+AREA_MINIMA = 1.0  # anéis menores que isto (ilhotas/ruído do DP) são descartados
+
+
+def simplificar_sem_cruzar(pontos):
+    """DP com tolerância adaptativa: recua UM degrau por vez até o anel não se
+    auto-intersectar (despencar direto para 0 estourava o orçamento de bytes)."""
+    for tolerancia in (0.4, 0.35, 0.3, 0.25, 0.2, 0.15, 0.1, 0.05, 0.0):
+        s = simplificar(pontos, tolerancia) if tolerancia else pontos
+        if not _tem_autointersecao(s):
+            return s
+    return pontos
+
+
 def main():
     dados = json.load(open(sys.argv[1]))
 
@@ -114,15 +187,18 @@ def main():
         sigla, nome, capital, regiao = UFS[f["properties"]["codarea"]]
         partes = []
         xs, ys = [], []
+        aneis_validos = []
         for anel in aneis(f["geometry"]):
-            pontos = simplificar([projetar(p) for p in anel], TOLERANCIA_DP)
+            pontos = simplificar_sem_cruzar([projetar(p) for p in anel])
             # remove pontos consecutivos idênticos após o arredondamento
             limpos = [pontos[0]]
             for pt in pontos[1:]:
                 if pt != limpos[-1]:
                     limpos.append(pt)
-            if len(limpos) < 4:
+            # anel degenerado (colinear/área ~0, ex.: 3º anel do RJ) sai fora
+            if len(limpos) < 4 or abs(_area_shoelace(limpos)) < AREA_MINIMA:
                 continue
+            aneis_validos.append(limpos)
             xs.extend(x for x, _ in limpos)
             ys.extend(y for _, y in limpos)
             d = f"M {limpos[0][0]} {limpos[0][1]} " + " ".join(
@@ -130,8 +206,7 @@ def main():
             ) + " Z"
             partes.append(d)
         caminho = " ".join(partes)
-        cx = round(sum(xs) / len(xs), 1)
-        cy = round(sum(ys) / len(ys), 1)
+        cx, cy = _centroide_por_area(aneis_validos)
         menor_dim = min(max(xs) - min(xs), max(ys) - min(ys))
         pino = menor_dim < PISO_LOGICO_SEM_PINO
         linhas.append(

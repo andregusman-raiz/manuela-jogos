@@ -32,27 +32,47 @@ describe("mapa do IBGE", () => {
     }
   });
 
-  test("âncoras geográficas: trocar dois paths quebra aqui (anti-mapa-falso)", () => {
-    const c = (s: SiglaUF) => ESTADOS[s].centroide;
-    const norteMais = Object.keys(ESTADOS).reduce((a, b) =>
-      c(a as SiglaUF)[1] < c(b as SiglaUF)[1] ? a : b,
-    );
-    const sulMais = Object.keys(ESTADOS).reduce((a, b) =>
-      c(a as SiglaUF)[1] > c(b as SiglaUF)[1] ? a : b,
-    );
-    const oesteMais = Object.keys(ESTADOS).reduce((a, b) =>
-      c(a as SiglaUF)[0] < c(b as SiglaUF)[0] ? a : b,
-    );
+  test("âncoras geográficas SOBRE OS PATHS: trocar dois paths quebra aqui", () => {
+    // bbox derivado do PRÓPRIO path — validar só o metadado centroide deixava
+    // a mutação path-trocado passar (review do PR B)
+    const bbox = (s: SiglaUF) => {
+      const nums = ESTADOS[s].path.match(/[\d.]+/g)!.map(Number);
+      const xs = nums.filter((_, i) => i % 2 === 0);
+      const ys = nums.filter((_, i) => i % 2 === 1);
+      return {
+        minX: Math.min(...xs),
+        maxX: Math.max(...xs),
+        minY: Math.min(...ys),
+        maxY: Math.max(...ys),
+      };
+    };
+    const siglas = Object.keys(ESTADOS) as SiglaUF[];
+    const norteMais = siglas.reduce((a, b) => (bbox(a).minY < bbox(b).minY ? a : b));
+    const sulMais = siglas.reduce((a, b) => (bbox(a).maxY > bbox(b).maxY ? a : b));
+    const oesteMais = siglas.reduce((a, b) => (bbox(a).minX < bbox(b).minX ? a : b));
     expect(norteMais).toBe("RR");
     expect(sulMais).toBe("RS");
     expect(oesteMais).toBe("AC");
     // costa leste: PB e RN mais a leste que BA; AM a oeste de PA
-    expect(c("PB")[0]).toBeGreaterThan(c("BA")[0]);
-    expect(c("RN")[0]).toBeGreaterThan(c("BA")[0]);
-    expect(c("AM")[0]).toBeLessThan(c("PA")[0]);
-    // DF dentro do miolo de GO
-    expect(Math.abs(c("DF")[0] - c("GO")[0])).toBeLessThan(25);
-    expect(Math.abs(c("DF")[1] - c("GO")[1])).toBeLessThan(25);
+    expect(bbox("PB").maxX).toBeGreaterThan(bbox("BA").maxX);
+    expect(bbox("RN").maxX).toBeGreaterThan(bbox("BA").maxX);
+    expect(bbox("AM").minX).toBeLessThan(bbox("PA").minX);
+    // DF: bbox CONTIDO no bbox de GO (contenção, não proximidade)
+    const df = bbox("DF");
+    const go = bbox("GO");
+    expect(df.minX).toBeGreaterThan(go.minX);
+    expect(df.maxX).toBeLessThan(go.maxX);
+    expect(df.minY).toBeGreaterThan(go.minY);
+    expect(df.maxY).toBeLessThan(go.maxY);
+    // e o centroide publicado fica dentro do bbox do próprio path
+    for (const s of siglas) {
+      const b = bbox(s);
+      const [cx, cy] = ESTADOS[s].centroide;
+      expect(cx, s).toBeGreaterThanOrEqual(b.minX);
+      expect(cx, s).toBeLessThanOrEqual(b.maxX);
+      expect(cy, s).toBeGreaterThanOrEqual(b.minY);
+      expect(cy, s).toBeLessThanOrEqual(b.maxY);
+    }
   });
 
   test("os pinos previstos pela conta do juízo existem", () => {

@@ -52,6 +52,13 @@ export function Estados() {
 
   const acabou = fase ? faseCompleta(fase) : false;
 
+  // SPEC: o scaffold pisca ~2× e APAGA — sem isto ficava aceso para sempre
+  useEffect(() => {
+    if (!scaffold) return;
+    const t = setTimeout(() => setScaffold(null), 1600);
+    return () => clearTimeout(t);
+  }, [scaffold]);
+
   useEffect(() => {
     if (!acabou || nivel === null) return;
     tocar("vitoria");
@@ -180,7 +187,7 @@ export function Estados() {
                   data-scaffold={scaffold?.uf === sigla ? "true" : "false"}
                   cx={x}
                   cy={y}
-                  r="8"
+                  r="10"
                   fill={scaffold?.uf === sigla ? "#f8de7b" : "#fff9f3"}
                   stroke="#6b4630"
                   strokeWidth="1"

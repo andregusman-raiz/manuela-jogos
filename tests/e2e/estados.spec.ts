@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { ESTADOS } from "@/lib/estados/mapa";
+import { gerarFase, perguntaAtual } from "@/lib/estados/motor";
 import { tocarNoElemento } from "./_toque";
 
 /**
@@ -94,6 +96,29 @@ test("níveis 2 e 3 perguntam por capital e sigla (via progresso salvo)", async 
   }
 });
 
+test("o PINO é um alvo de verdade (seed determinístico com UF pinada)", async ({ page }) => {
+  // acha um seed cuja 1ª pergunta é uma UF com pino — sem sorte envolvida
+  let seed = 0;
+  for (let c = 1; c < 500; c++) {
+    const primeira = perguntaAtual(gerarFase(1, c))!;
+    if (ESTADOS[primeira].pino) {
+      seed = c;
+      break;
+    }
+  }
+  expect(seed).toBeGreaterThan(0);
+  await page.addInitScript((s) => {
+    Date.now = () => s;
+  }, seed);
+  await page.reload();
+
+  const pedida = (await page.locator("[data-uf-pedida]").getAttribute("data-uf-pedida"))!;
+  const pino = page.locator(`[data-pino][data-uf='${pedida}']`);
+  await expect(pino).toHaveCount(1);
+  await tocarNoElemento(pino);
+  await expect(page.locator("[data-acertos]")).toHaveAttribute("data-acertos", "1");
+});
+
 test("persistência: subir de nível sobrevive ao reload", async ({ page }) => {
   await expect(page.locator("main")).toHaveAttribute("data-nivel", "1");
   for (let i = 0; i < 8; i++) await acertarUma(page, i);
@@ -109,6 +134,7 @@ test("três formatos: toda UF tem alvo >= 24px (pino quando o path é pequeno)",
 }) => {
   const formatos = [
     { nome: "celular 390", viewport: { width: 390, height: 844 } },
+    { nome: "celular deitado 844", viewport: { width: 844, height: 390 } },
     { nome: "tablet 820", viewport: { width: 820, height: 1180 } },
     { nome: "desktop 1440", viewport: { width: 1440, height: 900 } },
   ];
