@@ -73,6 +73,9 @@ test("hub deitado: Manu some, nada vaza na horizontal e todo card é alcançáve
   await contexto.close();
 });
 
+// Limitação assumida: compara backgroundColor computado — pega a classe do bug
+// real (mesma cor sólida do fundo), não um card transparente/opacity:0. Teste
+// de contraste por pixel seria o upgrade se essa classe de bug voltar diferente.
 test("hub: nenhum card tem a cor do fundo (Palavra Mágica e Damas sumiam)", async ({ page }) => {
   await page.goto("/");
   const corDoFundo = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
@@ -146,10 +149,19 @@ for (const tela of [
 }
 
 test("tangram: bandeja inicial legível — peças dentro do tabuleiro e sem atropelo", async ({
-  page,
+  browser,
 }) => {
+  const { contexto, page } = await novaPagina(browser);
   await page.goto("/tangram");
   await expect(page.locator("[data-peca]")).toHaveCount(7);
+
+  // o tabuleiro precisa estar RENDERIZADO no deitado — pontos certos num SVG
+  // colapsado a 0px não contam como bandeja legível
+  const svg = await page.locator("svg[aria-label^='silhueta']").boundingBox();
+  expect(svg).not.toBeNull();
+  expect(svg!.width, "tabuleiro colapsado na horizontal").toBeGreaterThan(100);
+  expect(svg!.height, "tabuleiro colapsado na vertical").toBeGreaterThan(100);
+  await expect(page.locator("[data-peca='g1']")).toBeVisible();
 
   // coordenadas LÓGICAS direto do atributo points — independem de letterbox
   const pecas = await page.locator("[data-peca]").evaluateAll((els) =>
@@ -197,4 +209,5 @@ test("tangram: bandeja inicial legível — peças dentro do tabuleiro e sem atr
       ).toBeLessThan(0.2);
     }
   }
+  await contexto.close();
 });
