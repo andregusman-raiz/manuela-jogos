@@ -12,12 +12,26 @@ import type { NomePeca, Pose } from "@/lib/tangram/dados";
 import { PECAS, verificarEncaixe, verticesNoTabuleiro } from "@/lib/tangram/motor";
 import { assinarMudo, definirMudo, estaMudo, feedback, mudoNoServidor, tocar } from "@/lib/som";
 
-/** Bandeja inicial: peças enfileiradas embaixo, SEM vazar o viewBox 200
- *  (o triângulo grande tem 29.3 de meia-altura; o para, 23.2 de meia-largura). */
+/** Bandeja inicial em DUAS linhas — os bboxes somam 231 de largura, então uma
+ *  fila única sobrepunha as peças (QAT 2026-07-31). Poses conferidas contra os
+ *  VERTICES: peças não se tocam entre si nem vazam o viewBox 200. A borda de
+ *  baixo de algumas silhuetas passa POR TRÁS da fila de cima — limitação do
+ *  viewBox compartilhado que já existia na bandeja antiga; as peças são
+ *  móveis e o alvo aparece assim que saem do lugar. */
+const BANDEJA: Record<NomePeca, { x: number; y: number }> = {
+  g1: { x: 32, y: 150 },
+  g2: { x: 90, y: 150 },
+  m: { x: 145, y: 154 },
+  q: { x: 185, y: 152 },
+  p1: { x: 30, y: 184 },
+  p2: { x: 60, y: 184 },
+  para: { x: 130, y: 188 },
+};
+
 function posesIniciais(): Record<NomePeca, Pose> {
   const poses = {} as Record<NomePeca, Pose>;
-  PECAS.forEach((peca, i) => {
-    poses[peca] = { x: 20 + i * 25, y: 170, rotacao: 0, espelhado: false };
+  PECAS.forEach((peca) => {
+    poses[peca] = { ...BANDEJA[peca], rotacao: 0, espelhado: false };
   });
   return poses;
 }

@@ -139,13 +139,14 @@ export function Forca() {
             ))}
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-3">
-            <span aria-hidden className="text-7xl drop-shadow-sm">
+          <div className="flex min-h-0 flex-1 flex-col deitado:flex-row deitado:items-center deitado:justify-center deitado:gap-4">
+          <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-3 deitado:min-w-0 deitado:gap-1">
+            <span aria-hidden className="text-7xl drop-shadow-sm deitado:text-4xl">
               {atual.emoji}
             </span>
             <p
               data-palavra={atual.palavra}
-              className="flex flex-wrap items-end justify-center gap-1 px-2 font-titulo text-4xl tracking-wide text-manu-cacau"
+              className="flex flex-wrap items-end justify-center gap-1 px-2 font-titulo text-4xl tracking-wide text-manu-cacau deitado:text-2xl"
             >
               {[...atual.palavra].map((c, i) => {
                 const revelada = estado.usadas.includes(base(c)) || emIntersticio;
@@ -172,7 +173,7 @@ export function Forca() {
             ) : null}
           </div>
 
-          <div className="mx-auto grid w-full max-w-[340px] shrink-0 grid-cols-6 gap-1.5 px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="mx-auto grid w-full max-w-[340px] shrink-0 grid-cols-6 gap-1.5 px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] deitado:mx-0 deitado:max-w-[380px] deitado:grid-cols-7 deitado:pb-2">
             {TECLADO.map((letra) => {
               const usada = estado.usadas.includes(letra);
               const acertou = usada && [...atual.palavra].some((c) => base(c) === letra);
@@ -198,6 +199,7 @@ export function Forca() {
                 </button>
               );
             })}
+          </div>
           </div>
         </>
       ) : null}

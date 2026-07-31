@@ -77,7 +77,12 @@ export function Memoria() {
     setEstado(criarTabuleiro(proximoNivelMemoria(estado.nivel), rng.current));
   }
 
-  const colunas = estado?.nivel === 2 ? "grid-cols-4" : "grid-cols-3";
+  // deitado: mais colunas e menos linhas — 4 linhas de cartas quadradas não
+  // cabem em ~290px de altura e sobrepunham (QAT 2026-07-31)
+  const colunas =
+    estado?.nivel === 2
+      ? "grid-cols-4 deitado:grid-cols-8"
+      : "grid-cols-3 deitado:grid-cols-6";
 
   return (
     <main data-nivel={estado?.nivel ?? 0} className="flex h-[100dvh] flex-col overflow-hidden">

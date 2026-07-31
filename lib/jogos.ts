@@ -62,7 +62,7 @@ export const JOGOS: Jogo[] = [
     descricao: "Complete as palavras",
     rota: "/palavras",
     emoji: "🔤",
-    cor: "bg-manu-nuvem",
+    cor: "bg-manu-ceu/50",
     disponivel: true,
   },
   {
@@ -134,7 +134,7 @@ export const JOGOS: Jogo[] = [
     descricao: "Jogue com alguém",
     rota: "/damas",
     emoji: "⚪",
-    cor: "bg-manu-nuvem",
+    cor: "bg-manu-cacau/15",
     disponivel: true,
   },
   {

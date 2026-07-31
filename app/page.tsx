@@ -15,7 +15,7 @@ export default function Hub() {
           </h1>
         </div>
         {/* largura fluida: em tela de 360px a Manuela não pode ser cortada */}
-        <div className="relative w-[44%] max-w-[190px] shrink-0">
+        <div className="relative w-[44%] max-w-[190px] shrink-0 deitado:hidden">
           <span
             aria-hidden
             className="anima-brilho absolute -left-2 top-2 text-3xl text-manu-sol-forte"
