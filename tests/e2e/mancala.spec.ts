@@ -56,6 +56,23 @@ test("sequência 2P com captura e extra — placar final pelo oráculo hard-code
   await expect(page.locator("[data-vez]")).toHaveAttribute("data-vez", ORACULO.vezFinal);
 });
 
+test("partida 2P até o FIM: overlay de vencedor e confete (review PR #39)", async ({ page }) => {
+  test.setTimeout(120_000);
+  await entrar2P(page);
+  // partida completa computada offline (semente 2): 32 lances, Azul 29×19
+  const lances = [
+    0, 1, 3, 5, 0, 2, 0, 1, 2, 5, 4, 0, 3, 0, 0, 1, 2, 2, 5, 0, 4, 2, 1, 4, 4, 0, 0, 2, 5, 2, 5, 1,
+  ];
+  for (const cova of lances) {
+    const vez = await page.locator("[data-vez]").getAttribute("data-vez");
+    await tocarNoElemento(page.locator(`[data-cova="${vez}-${cova}"]`));
+    await page.waitForTimeout(120);
+  }
+  await expect(page.locator("[data-vez]")).toHaveAttribute("data-situacao", "fim");
+  await expect(page.getByText(/Azul venceu! 29 a 19/)).toBeVisible();
+  await expect(page.locator("canvas[data-ativo='true']")).toBeAttached();
+});
+
 test("vs Manu: 3 lances legais, resposta e conservação das 48 sementes", async ({ page }) => {
   await page.goto("/mancala");
   await tocarNoElemento(page.getByLabel("jogar com a Manu"));

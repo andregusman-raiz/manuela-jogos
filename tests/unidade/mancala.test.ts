@@ -84,9 +84,18 @@ describe("semeadura", () => {
     expect(depois.kalahs[0]).toBe(0);
   });
 
-  test("cova vazia é no-op; vez errada não semeia", () => {
+  test("cova vazia é no-op", () => {
     const estado = estadoCom([[0, 4, 4, 4, 4, 4], [4, 4, 4, 4, 4, 4]], [0, 0]);
     expect(semear(estado, 0)).toBe(estado);
+  });
+
+  test("13 sementes: volta completa termina na PRÓPRIA origem vazia e captura (review PR #39)", () => {
+    const estado = estadoCom([[1, 1, 13, 1, 1, 1], [1, 1, 1, 2, 1, 1]], [0, 0]);
+    const depois = semear(estado, 2);
+    expect(depois.covas[0]).toEqual([2, 2, 0, 2, 2, 2]); // origem capturada
+    expect(depois.covas[1]).toEqual([2, 2, 2, 0, 2, 2]); // oposta (B3) levada junto
+    expect(depois.kalahs[0]).toBe(5); // 1 do walk + captura (1 + 3)
+    expect(soma(depois)).toBe(soma(estado));
   });
 });
 
@@ -98,6 +107,16 @@ describe("fim de jogo", () => {
     expect(depois.kalahs[0]).toBe(21);
     expect(depois.kalahs[1]).toBe(27); // varreu as 6 de B
     expect(depois.vencedor).toBe(1);
+    expect(soma(depois)).toBe(48);
+  });
+
+  test("captura que esvazia o ADVERSÁRIO dispara o fim com varredura (review PR #39)", () => {
+    // a captura zera a última cova de B → fim; A varre as próprias restantes
+    const estado = estadoCom([[1, 0, 1, 1, 1, 1], [0, 0, 0, 0, 1, 0]], [21, 21]);
+    const depois = semear(estado, 0);
+    expect(depois.situacao).toBe("fim");
+    expect(depois.kalahs).toEqual([27, 21]); // 21 + captura 2 + varredura 4
+    expect(depois.vencedor).toBe(0);
     expect(soma(depois)).toBe(48);
   });
 
@@ -138,6 +157,12 @@ describe("Manu greedy", () => {
     // B2 com 4: termina exatamente no KB (ganho 1) COM extra → escolhe B2
     const estado = estadoCom([[4, 4, 4, 4, 4, 4], [0, 6, 4, 0, 0, 0]], [0, 0], 1);
     expect(iaEscolher(estado)).toBe(2);
+  });
+
+  test("empate EXATO de ganho e extra: fica a cova mais à direita (review PR #39)", () => {
+    // B0 (2 sementes) e B1 (1) capturam A[3]=4 cada: ganho 5, sem extra → 1
+    const estado = estadoCom([[4, 4, 4, 4, 4, 4], [2, 1, 0, 0, 0, 0]], [0, 0], 1);
+    expect(iaEscolher(estado)).toBe(1);
   });
 
   test("resposta sempre legal (fuzz)", () => {
