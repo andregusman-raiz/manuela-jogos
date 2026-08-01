@@ -49,7 +49,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
             (await cache.match("/ludo")) &&
             (await cache.match("/cobras")) &&
             (await cache.match("/lig4")) &&
-            (await cache.match("/mancala"))
+            (await cache.match("/mancala")) &&
+            (await cache.match("/rota"))
           )
             return { controlado, precache: true };
         }
