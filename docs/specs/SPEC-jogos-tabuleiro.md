@@ -22,10 +22,11 @@
 | D | `/mancala` | Mancala | 🫘 | `bg-manu-sol/60` |
 | E | `/rota` | Roda Romana | ⭕ | `bg-manu-rosa/30` |
 
-- **Orçamento do hub** (melhoria J-M1, fixado para evitar tentativa-e-erro):
-  retrato 390×844 com 19 cards = 5 linhas → card `min-h-26` (104px) + Manu
-  `max-h-[20dvh]`; desktop 1440×900 = 4 linhas → `sm:min-h-36`. Ajuste fino
-  guiado pelo fold-gate, mas dentro deste orçamento.
+- **Orçamento do hub** (melhoria J-M1; RETIFICADO no PR C após o fold-gate
+  pegar o estouro real): retrato = **5 colunas** → 19 cards em 4 linhas, card
+  `min-h-24` (96px) + Manu `max-h-[20dvh]`; desktop = `sm:min-h-36`. (A conta
+  original da v1.1 dizia "5 linhas com min-h-26" — errada, como o review do
+  PR C apontou; o gate empírico é a autoridade.)
 - **Fold-gate endurecido** (blocker J12, entra no PR A): `hub.spec.ts` passa a
   verificar, além da dobra, NÃO-SOBREPOSIÇÃO par a par dos cards (mesmo
   invariante do `deitado.spec`) e área > 0 de cada card.

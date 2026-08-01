@@ -64,9 +64,8 @@ describe("vitórias nas 4 direções (posições hard-coded)", () => {
     let jogo = criarPartida();
     for (const c of ordem) jogo = jogar(jogo, c);
     expect(jogo.situacao).toBe("fim");
-    if (jogo.vencedor === null) {
-      expect(empate(jogo)).toBe(true);
-    }
+    expect(jogo.vencedor).toBeNull(); // ordem construída SEM 4 em linha
+    expect(empate(jogo)).toBe(true);
     expect(jogo.grade.flat().filter((v) => v !== null)).toHaveLength(42);
   });
 });

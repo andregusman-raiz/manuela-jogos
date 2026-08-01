@@ -78,11 +78,7 @@ test("vencer a Manu no nível 1 libera o nível 2 (persistência)", async ({ pag
   // plano achado offline contra a IA determinística (semente 41, distração 0.3)
   const plano = [0, 0, 0, 1, 0, 0, 5, 3, 3, 2, 2, 1];
   for (const coluna of plano) {
-    const fim = await page
-      .getByText("Você venceu!")
-      .isVisible()
-      .catch(() => false);
-    if (fim) break;
+    if ((await page.getByText("Você venceu!").count()) > 0) break;
     await expect(page.locator("[data-vez]")).toHaveAttribute("data-vez", "0", {
       timeout: 4000,
     });
@@ -93,8 +89,12 @@ test("vencer a Manu no nível 1 libera o nível 2 (persistência)", async ({ pag
   await expect(page.getByText("Você venceu!")).toBeVisible({ timeout: 5000 });
   await expect(page.locator("canvas[data-ativo='true']")).toBeAttached();
 
-  await page.goto("/lig4?semente=42");
-  await expect(page.getByLabel("nível 2")).toBeVisible({ timeout: 5000 });
+  // a gravação no IndexedDB é assíncrona: re-tenta a navegação em vez de
+  // apostar em espera fixa (review PR #38)
+  await expect(async () => {
+    await page.goto("/lig4?semente=42");
+    await expect(page.getByLabel("nível 2")).toBeVisible({ timeout: 2000 });
+  }).toPass({ timeout: 15000 });
 });
 
 test("três formatos: colunas tocáveis ≥44px e tabuleiro inteiro na tela", async ({ browser }) => {
