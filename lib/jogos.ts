@@ -182,4 +182,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-sol/60",
     disponivel: true,
   },
+  {
+    id: "rota",
+    nome: "Roda Romana",
+    descricao: "Tres em linha na roda",
+    rota: "/rota",
+    emoji: "⭕",
+    cor: "bg-manu-rosa/30",
+    disponivel: true,
+  },
 ];
