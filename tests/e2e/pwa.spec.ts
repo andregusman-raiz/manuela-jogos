@@ -77,6 +77,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await expect(page.locator("[data-instrucao]")).toBeVisible();
   await page.goto("/cobras");
   await expect(page.getByLabel("2 jogadores")).toBeVisible();
+  await page.goto("/lig4");
+  await expect(page.getByLabel("jogar com alguém")).toBeVisible();
   await page.goto("/");
 
   await context.setOffline(true);
@@ -122,6 +124,12 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await page.goto("/cobras");
   await tocarNoElemento(page.getByLabel("2 jogadores"));
   await expect(page.locator("[data-dado-botao]")).toBeVisible();
+
+  // Lig-4 offline JOGANDO (SPEC da onda tabuleiros §6.4): engine 100% local
+  await page.goto("/lig4");
+  await tocarNoElemento(page.getByLabel("jogar com alguém"));
+  await tocarNoElemento(page.getByLabel("coluna 4"));
+  await expect(page.locator('[data-celula="3-0"]')).toHaveAttribute("data-dono", "0");
   await context.setOffline(false);
 });
 
