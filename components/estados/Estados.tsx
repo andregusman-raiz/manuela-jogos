@@ -25,8 +25,9 @@ const SIGLAS = Object.keys(ESTADOS) as SiglaUF[];
 
 /** Pinos do litoral leste em coluna à direita (estilo mapa escolar).
  *  O mapa preenche o viewBox 200 inteiro (x até 198), então a coluna vive numa
- *  BANDA PRÓPRIA (x=216, viewBox alargado para 228) — pino nunca cobre litoral
- *  (QAT 2026-07-31: PE/AL caíam sobre o mapa e SC vazava a borda de baixo). */
+ *  BANDA PRÓPRIA (x=216, viewBox alargado para 236) — pino nunca cobre litoral
+ *  (QAT 2026-07-31: PE/AL caíam sobre o mapa e SC vazava a borda de baixo).
+ *  A folga direita de 9.5 unidades absorve o tremido de ±7 do anima-nao. */
 const COLUNA_X = 216;
 const FOLGA_PINO = 22; // diâmetro 20 + respiro
 const PINO_Y_MIN = 14;
@@ -177,7 +178,7 @@ export function Estados() {
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {fase && !acabou ? (
-          <svg viewBox="0 0 228 200" role="img" aria-label="mapa do Brasil" className="h-full max-h-full w-auto max-w-full">
+          <svg viewBox="0 0 236 200" role="img" aria-label="mapa do Brasil" className="h-full max-h-full w-auto max-w-full">
             {SIGLAS.map((sigla) => (
               <g
                 key={`${sigla}-${tremida?.uf === sigla ? tremida.chave : 0}`}
