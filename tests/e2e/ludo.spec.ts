@@ -22,8 +22,10 @@ async function entrar2Jogadores(page: Page) {
   await expect(page.locator("[data-dado-botao]")).toBeVisible();
 }
 
-/** Toca o dado e espera a UI assentar (animação de 400ms + avisos de 900ms). */
+/** Espera o dado DESTRAVAR (aviso de passe segura 900ms), toca e deixa a
+ *  animação de 400ms assentar. */
 async function rolarNaTela(page: Page) {
+  await expect(page.locator("[data-dado-botao]")).toBeEnabled({ timeout: 3000 });
   await tocarNoElemento(page.locator("[data-dado-botao]"));
   await page.waitForTimeout(500);
 }
@@ -83,8 +85,21 @@ test("partida 2P completa dirigida pelo motor — DOM confere rolagem a rolagem"
       for (const p of estado.peoes) {
         const chave = `${p.cor}-${p.indice}`;
         expect(dom[chave]?.progresso, `rolagem ${rolagens}, peão ${chave}`).toBe(p.progresso);
+        const areaEsperada =
+          p.progresso === -1
+            ? "base"
+            : p.progresso === 56
+              ? "chegada"
+              : p.progresso > 50
+                ? "coluna"
+                : "volta";
+        expect(dom[chave]?.area, `rolagem ${rolagens}, área do peão ${chave}`).toBe(areaEsperada);
       }
       await expect(page.locator("[data-vez]")).toHaveAttribute("data-vez", String(estado.vez));
+      await expect(page.locator("[data-vez]")).toHaveAttribute(
+        "data-situacao",
+        estado.situacao,
+      );
     }
   }
 

@@ -165,6 +165,30 @@ describe("máquina de turno (J1)", () => {
     expect(rolar(nivel1, 6).situacao).toBe("mover");
   });
 
+  test("três 6 DE VERDADE: a sequência rolar/mover inteira alcança a penalidade", () => {
+    // mata o mutante que zera seisSeguidos no mover (review PR #36)
+    let e = estadoCom(
+      [
+        { cor: 0, indice: 0, progresso: 5 },
+        { cor: 1, indice: 0, progresso: 30 },
+      ],
+      { nivel: 2 },
+    );
+    e = rolar(e, 6);
+    expect(e.seisSeguidos).toBe(1);
+    e = mover(e, 0);
+    expect(e.vez).toBe(0);
+    expect(e.seisSeguidos).toBe(1); // mover com 6 NÃO zera
+    e = rolar(e, 6);
+    expect(e.seisSeguidos).toBe(2);
+    e = mover(e, 0);
+    const terceiro = rolar(e, 6);
+    expect(terceiro.situacao).toBe("rolar");
+    expect(terceiro.vez).toBe(1);
+    expect(terceiro.seisSeguidos).toBe(0);
+    expect(terceiro.peoes[0].progresso).toBe(17); // o 3º seis não moveu ninguém
+  });
+
   test("6 com jogada → mover e repetir; sem 6 → próxima vez", () => {
     const estado = estadoCom([
       { cor: 0, indice: 0, progresso: 10 },
@@ -201,6 +225,22 @@ describe("bloqueio (nível 2)", () => {
     // 8+6=14 passa por cima da 10 sem pousar
     const movido = mover(rolar(estado, 6), 0);
     expect(movido.peoes[0].progresso).toBe(14);
+  });
+
+  test("dupla adversária em casa SEGURA não bloqueia o pouso (nível 2)", () => {
+    // mata o mutante que remove casaSegura() do pousoProibido (review PR #36)
+    const estado = estadoCom(
+      [
+        { cor: 0, indice: 0, progresso: 2 }, // 2+6=8 → estrela global 8
+        { cor: 1, indice: 0, progresso: 47 }, // global (13+47)%52 = 8
+        { cor: 1, indice: 1, progresso: 47 },
+      ],
+      { nivel: 2 },
+    );
+    const movido = mover(rolar(estado, 6), 0);
+    expect(movido.peoes[0].progresso).toBe(8); // pousou na estrela
+    expect(movido.peoes[1].progresso).toBe(47); // e ninguém foi capturado
+    expect(movido.peoes[2].progresso).toBe(47);
   });
 
   test("pilha própria no nível 1 NÃO bloqueia adversário", () => {

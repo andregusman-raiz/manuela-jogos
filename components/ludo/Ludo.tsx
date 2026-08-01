@@ -35,36 +35,31 @@ function centroCelula([col, lin]: readonly [number, number] | readonly number[])
   return [col * CEL + CEL / 2, lin * CEL + CEL / 2];
 }
 
-/** Posição do peão no SVG, com leque quando há pilha na mesma casa. */
-function posicaoPeao(
-  estado: EstadoLudo,
-  indice: number,
-): [number, number] {
+/** Célula-chave onde o peão desenha (identifica colegas de casa de QUALQUER cor). */
+function celulaDoPeao(peao: EstadoLudo["peoes"][number]): readonly [number, number] | null {
+  if (peao.progresso === -1) return null; // base tem slot próprio, nunca divide
+  if (peao.progresso === CHEGADA) return CENTRO;
+  return peao.progresso <= 50
+    ? TRILHA[posicaoGlobal(peao)!]
+    : COLUNA_FINAL[peao.cor][peao.progresso - 51];
+}
+
+/** Posição do peão no SVG, com leque quando a MESMA célula tem 2+ peões
+ *  (inclusive cores diferentes coexistindo em casa segura — review PR #36). */
+function posicaoPeao(estado: EstadoLudo, indice: number): [number, number] {
   const peao = estado.peoes[indice];
   if (peao.progresso === -1) {
     return centroCelula(BASE_SLOTS[peao.cor][peao.indice]);
   }
-  if (peao.progresso === CHEGADA) {
-    const [cx, cy] = centroCelula(CENTRO);
-    return [cx + (peao.indice % 2) * 8 - 4, cy + Math.floor(peao.indice / 2) * 8 - 4];
-  }
-  const celula =
-    peao.progresso <= 50
-      ? TRILHA[posicaoGlobal(peao)!]
-      : COLUNA_FINAL[peao.cor][peao.progresso - 51];
+  const celula = celulaDoPeao(peao)!;
   const [cx, cy] = centroCelula(celula);
-  // leque: irmãos de casa se afastam um tiquinho para todos aparecerem
-  const irmaos = estado.peoes.filter(
-    (p, i) =>
-      i !== indice &&
-      p.progresso === peao.progresso &&
-      (p.progresso > 50 ? p.cor === peao.cor : posicaoGlobal(p) === posicaoGlobal(peao)),
-  ).length;
-  if (irmaos === 0) return [cx, cy];
-  const meu = estado.peoes.slice(0, indice).filter(
-    (p) => p.progresso === peao.progresso && posicaoGlobal(p) === posicaoGlobal(peao),
-  ).length;
-  return [cx + meu * 4 - (irmaos * 4) / 2, cy - meu * 2];
+  const colegas = estado.peoes.filter((p) => {
+    const c = celulaDoPeao(p);
+    return c !== null && c[0] === celula[0] && c[1] === celula[1];
+  });
+  if (colegas.length === 1) return [cx, cy];
+  const minhaOrdem = colegas.findIndex((p) => p === estado.peoes[indice]);
+  return [cx + minhaOrdem * 4 - ((colegas.length - 1) * 4) / 2, cy - minhaOrdem * 2];
 }
 
 export function Ludo() {
@@ -72,10 +67,16 @@ export function Ludo() {
   const [nivelMax, setNivelMax] = useState<NivelLudo>(1);
   const [nivelEscolhido, setNivelEscolhido] = useState<NivelLudo>(1);
   const [dadoGirando, setDadoGirando] = useState(false);
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<{ texto: string; chave: number } | null>(null);
   const [semente, setSemente] = useState(0);
   const dado = useRef<(() => DadoLudo) | null>(null);
+  const estadoRef = useRef<EstadoLudo | null>(null);
+  const avisoSeq = useRef(0);
   const mudo = useSyncExternalStore(assinarMudo, estaMudo, mudoNoServidor);
+
+  useEffect(() => {
+    estadoRef.current = estado;
+  }, [estado]);
 
   useEffect(() => {
     const s = sementeInicial(window.location.search);
@@ -120,26 +121,29 @@ export function Ludo() {
   }
 
   function aoRolar() {
-    if (!estado || estado.situacao !== "rolar" || dadoGirando || !dado.current) return;
+    if (!estado || estado.situacao !== "rolar" || dadoGirando || aviso || !dado.current) return;
     feedback("toque");
     tocar("passo");
     const d6 = dado.current();
     setDadoGirando(true);
     setTimeout(() => {
+      // fora de updater (review PR #36): efeito colateral não vive em setState
       setDadoGirando(false);
-      setEstado((atual) => {
-        if (!atual || atual.situacao !== "rolar") return atual;
-        const proximo = rolar(atual, d6);
-        if (proximo.situacao === "rolar") {
-          // rolou e não pôde jogar (ou 3º seis) — avisa e a vez já passou
-          setAviso(
+      const atual = estadoRef.current;
+      if (!atual || atual.situacao !== "rolar") return;
+      const proximo = rolar(atual, d6);
+      if (proximo.situacao === "rolar") {
+        // rolou e não pôde jogar (ou 3º seis) — o aviso TRAVA o dado por 900ms
+        avisoSeq.current++;
+        setAviso({
+          texto:
             atual.nivel === 2 && d6 === 6 && atual.seisSeguidos === 2
               ? "Três 6! Passou a vez"
               : "Sem jogada — passou a vez",
-          );
-        }
-        return proximo;
-      });
+          chave: avisoSeq.current,
+        });
+      }
+      setEstado(proximo);
     }, 400);
   }
 
@@ -348,6 +352,18 @@ export function Ludo() {
                     {legal ? (
                       <circle cx={px} cy={py} r={9} fill="none" stroke="#a8842a" strokeWidth={1.4} strokeDasharray="3 2" className="anima-brilho" />
                     ) : null}
+                    {/* halo invisível: engorda o alvo do toque direto (~37px);
+                        o alvo de 44px de verdade são os chips da barra */}
+                    <circle
+                      cx={px}
+                      cy={py}
+                      r={11}
+                      fill="transparent"
+                      onPointerDown={() => {
+                        if (legal) feedback("toque");
+                      }}
+                      onClick={() => aoTocarPeao(indice)}
+                    />
                     <circle
                       data-peao={`${peao.cor}-${peao.indice}`}
                       data-progresso={peao.progresso}
@@ -355,7 +371,7 @@ export function Ludo() {
                       data-legal={legal ? "true" : "false"}
                       cx={px}
                       cy={py}
-                      r={6.2}
+                      r={6.6}
                       fill={CORES_LUDO[peao.cor].pele}
                       stroke={CORES_LUDO[peao.cor].borda}
                       strokeWidth={1.4}
@@ -370,10 +386,11 @@ export function Ludo() {
             </svg>
             {aviso ? (
               <p
+                key={aviso.chave}
                 data-aviso="true"
                 className="anima-entrada absolute bottom-2 rounded-full bg-manu-cacau/80 px-4 py-1 font-titulo text-sm text-white"
               >
-                {aviso}
+                {aviso.texto}
               </p>
             ) : null}
           </div>
@@ -397,7 +414,7 @@ export function Ludo() {
               type="button"
               aria-label="rolar o dado"
               data-dado-botao="true"
-              disabled={estado.situacao !== "rolar" || dadoGirando}
+              disabled={estado.situacao !== "rolar" || dadoGirando || aviso !== null}
               onClick={aoRolar}
               className={`bolha min-h-16 min-w-16 font-titulo text-3xl ring-2 ${
                 estado.situacao === "rolar"
@@ -451,6 +468,16 @@ export function Ludo() {
             </BotaoBolha>
           </div>
         </div>
+      ) : null}
+
+      {/* anel da vez (padrão Damas): a borda da tela mostra de quem é a vez */}
+      {estado && estado.situacao !== "fim" ? (
+        <div
+          aria-hidden
+          data-anel-vez={estado.vez}
+          className="pointer-events-none absolute inset-0 border-4 transition-colors"
+          style={{ borderColor: CORES_LUDO[estado.vez].pele }}
+        />
       ) : null}
 
       <Confete gatilho={situacao === "fim" ? 1 : 0} duracao={1800} />
