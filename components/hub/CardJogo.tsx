@@ -14,10 +14,10 @@ import type { Jogo } from "@/lib/jogos";
 export function CardJogo({ jogo }: { jogo: Jogo }) {
   const conteudo = (
     <>
-      <span aria-hidden className="text-2xl drop-shadow-sm sm:text-5xl">
+      <span aria-hidden className="text-3xl drop-shadow-sm sm:text-5xl">
         {jogo.emoji}
       </span>
-      <span className="line-clamp-2 font-titulo text-[11px] leading-tight text-manu-cacau sm:text-sm">
+      <span className="line-clamp-3 font-titulo text-xs leading-tight text-manu-cacau sm:text-sm">
         {jogo.nome}
       </span>
     </>
@@ -25,7 +25,7 @@ export function CardJogo({ jogo }: { jogo: Jogo }) {
 
   // Compacto no celular: com 5 jogos, TODOS os cards precisam caber na dobra —
   // criança não procura conteúdo escondido atrás de scroll.
-  const classes = `flex min-h-24 flex-col items-center justify-center gap-0.5 rounded-[1.25rem] p-1.5 text-center shadow-[0_5px_0_0_rgba(0,0,0,0.12)] transition-transform active:translate-y-1 active:scale-[0.98] sm:min-h-36 sm:gap-2 sm:p-3 ${jogo.cor}`;
+  const classes = `flex h-full min-h-24 flex-col items-center justify-center gap-1 rounded-[1.25rem] p-1.5 text-center shadow-[0_5px_0_0_rgba(0,0,0,0.12)] transition-transform active:translate-y-1 active:scale-[0.98] sm:min-h-36 sm:gap-2 sm:p-3 ${jogo.cor}`;
 
   if (!jogo.disponivel) {
     return (
