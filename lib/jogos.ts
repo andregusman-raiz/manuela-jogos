@@ -173,4 +173,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-ceu",
     disponivel: true,
   },
+  {
+    id: "mancala",
+    nome: "Mancala",
+    descricao: "Semeie e colha",
+    rota: "/mancala",
+    emoji: "🫘",
+    cor: "bg-manu-sol/60",
+    disponivel: true,
+  },
 ];

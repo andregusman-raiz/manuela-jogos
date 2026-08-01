@@ -15,7 +15,7 @@
 
 // Subir esta versão APAGA os caches antigos no aparelho (ver "activate"). É o
 // que destrava um aparelho preso numa versão velha do app.
-const VERSAO = "v18";
+const VERSAO = "v19";
 const CACHE_APP = `manu-app-${VERSAO}`;
 const CACHE_ASSETS = `manu-assets-${VERSAO}`;
 
@@ -39,6 +39,7 @@ const CASCA = [
   "/ludo",
   "/cobras",
   "/lig4",
+  "/mancala",
   "/manifest.webmanifest",
   "/manu/manu-corpo.webp",
   "/manu/manu-avatar.webp",
