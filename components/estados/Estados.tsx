@@ -23,16 +23,37 @@ import { assinarMudo, definirMudo, estaMudo, feedback, mudoNoServidor, tocar } f
 
 const SIGLAS = Object.keys(ESTADOS) as SiglaUF[];
 
-/** Pinos do litoral leste em coluna à direita (estilo mapa escolar). */
-const PINOS = SIGLAS.filter((s) => ESTADOS[s].pino)
-  .sort((a, b) => ESTADOS[a].centroide[1] - ESTADOS[b].centroide[1])
-  .map((sigla, i, todos) => {
+/** Pinos do litoral leste em coluna à direita (estilo mapa escolar).
+ *  O mapa preenche o viewBox 200 inteiro (x até 198), então a coluna vive numa
+ *  BANDA PRÓPRIA (x=216, viewBox alargado para 236) — pino nunca cobre litoral
+ *  (QAT 2026-07-31: PE/AL caíam sobre o mapa e SC vazava a borda de baixo).
+ *  A folga direita de 9.5 unidades absorve o tremido de ±7 do anima-nao. */
+const COLUNA_X = 216;
+const FOLGA_PINO = 22; // diâmetro 20 + respiro
+const PINO_Y_MIN = 14;
+const PINO_Y_MAX = 186; // círculo r=10 + stroke fica dentro dos 200 de altura
+
+const PINOS = (() => {
+  const costeiros = SIGLAS.filter((s) => ESTADOS[s].pino && s !== "DF").sort(
+    (a, b) => ESTADOS[a].centroide[1] - ESTADOS[b].centroide[1],
+  );
+  // y acompanha a latitude do estado (linha-guia quase horizontal); o passe de
+  // ida abre folga entre vizinhos e o de volta traz o excesso para dentro
+  const ys: number[] = costeiros.map((s) => ESTADOS[s].centroide[1]);
+  for (let i = 0; i < ys.length; i++) {
+    ys[i] = Math.max(ys[i], i === 0 ? PINO_Y_MIN : ys[i - 1] + FOLGA_PINO);
+  }
+  for (let i = ys.length - 1; i >= 0; i--) {
+    ys[i] = Math.min(ys[i], i === ys.length - 1 ? PINO_Y_MAX : ys[i + 1] - FOLGA_PINO);
+  }
+  const coluna = costeiros.map((sigla, i) => {
     const [cx, cy] = ESTADOS[sigla].centroide;
-    // DF é interior: pino no lugar; litorâneos vão para a coluna x=190
-    if (sigla === "DF") return { sigla, x: cx, y: cy, cx, cy };
-    const passo = 180 / Math.max(todos.length - 1, 1);
-    return { sigla, x: 190, y: 12 + i * passo, cx, cy };
+    return { sigla, x: COLUNA_X, y: ys[i], cx, cy };
   });
+  // DF é interior: pino no próprio lugar
+  const [dfx, dfy] = ESTADOS.DF.centroide;
+  return [...coluna, { sigla: "DF" as SiglaUF, x: dfx, y: dfy, cx: dfx, cy: dfy }];
+})();
 
 export function Estados() {
   const [nivel, setNivel] = useState<NivelEstados | null>(null);
@@ -157,7 +178,7 @@ export function Estados() {
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {fase && !acabou ? (
-          <svg viewBox="0 0 200 200" role="img" aria-label="mapa do Brasil" className="h-full max-h-full w-auto max-w-full">
+          <svg viewBox="0 0 236 200" role="img" aria-label="mapa do Brasil" className="h-full max-h-full w-auto max-w-full">
             {SIGLAS.map((sigla) => (
               <g
                 key={`${sigla}-${tremida?.uf === sigla ? tremida.chave : 0}`}
