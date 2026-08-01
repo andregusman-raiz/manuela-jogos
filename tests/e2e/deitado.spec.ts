@@ -148,6 +148,46 @@ for (const tela of [
   });
 }
 
+// Onda tabuleiros: no deitado, os alvos de toque dos jogos de grade não podem
+// se sobrepor nem vazar (mesmos invariantes do resto do gate).
+const TABULEIROS_DEITADO: Array<{
+  rota: string;
+  entrada: string;
+  seletor: string;
+  quantidade: number;
+}> = [
+  { rota: "/lig4", entrada: "jogar com alguém", seletor: "[data-col]", quantidade: 7 },
+  { rota: "/mancala", entrada: "jogar com alguém", seletor: "[data-cova]", quantidade: 12 },
+  { rota: "/rota", entrada: "jogar com alguém", seletor: "circle[data-casa]", quantidade: 9 },
+];
+
+for (const jogo of TABULEIROS_DEITADO) {
+  test(`tabuleiro deitado ${jogo.rota}: alvos inteiros na tela e sem sobreposição`, async ({
+    browser,
+  }) => {
+    const { contexto, page } = await novaPagina(browser);
+    await page.goto(jogo.rota);
+    const entrada = page.getByLabel(jogo.entrada);
+    await entrada.click();
+    await expect(page.locator(jogo.seletor).first()).toBeVisible();
+
+    const alvos = await caixas(page, jogo.seletor);
+    expect(alvos).toHaveLength(jogo.quantidade);
+    alvos.forEach((caixa, i) => {
+      expect(dentroDaTela(caixa, DEITADO), `${jogo.rota}: alvo ${i + 1} cortado`).toBe(true);
+    });
+    for (let a = 0; a < alvos.length; a++) {
+      for (let b = a + 1; b < alvos.length; b++) {
+        expect(
+          sobrepoe(alvos[a], alvos[b]),
+          `${jogo.rota}: alvos ${a + 1} e ${b + 1} sobrepostos`,
+        ).toBe(false);
+      }
+    }
+    await contexto.close();
+  });
+}
+
 test("tangram: bandeja inicial legível — peças dentro do tabuleiro e sem atropelo", async ({
   browser,
 }) => {
