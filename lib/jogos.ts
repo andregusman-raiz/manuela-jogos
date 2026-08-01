@@ -164,4 +164,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-grama/70",
     disponivel: true,
   },
+  {
+    id: "lig4",
+    nome: "Lig-4",
+    descricao: "4 em linha, com a Manu",
+    rota: "/lig4",
+    emoji: "🔵",
+    cor: "bg-manu-ceu",
+    disponivel: true,
+  },
 ];

@@ -198,6 +198,21 @@
   animation: manu-brilho 1.8s ease-in-out infinite;
 }
 
+
+/* queda do Lig-4: a peça cai da boca da coluna até a célula (--queda em px) */
+@keyframes manu-queda {
+  from {
+    transform: translateY(var(--queda, -120px));
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.anima-queda {
+  animation: manu-queda 260ms cubic-bezier(0.3, 0, 0.7, 1.1) both;
+}
+
 .anima-entrada {
   animation: manu-entrada 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
