@@ -46,7 +46,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
             (await cache.match("/tangram")) &&
             (await cache.match("/damas")) &&
             (await cache.match("/caca")) &&
-            (await cache.match("/ludo"))
+            (await cache.match("/ludo")) &&
+            (await cache.match("/cobras"))
           )
             return { controlado, precache: true };
         }
@@ -71,6 +72,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
   await expect(page.locator("[data-conta]")).toBeVisible();
   await page.goto("/caca");
   await expect(page.locator("[data-instrucao]")).toBeVisible();
+  await page.goto("/cobras");
+  await expect(page.getByLabel("2 jogadores")).toBeVisible();
   await page.goto("/");
 
   await context.setOffline(true);
@@ -110,6 +113,12 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
     "data-restantes",
     String(restantesAntes - 1),
   );
+
+  // a rota mais nova (Cobras) também INTERAGE offline: entrar na partida
+  // prova o chunk hidratado, não só o HTML precacheado
+  await page.goto("/cobras");
+  await tocarNoElemento(page.getByLabel("2 jogadores"));
+  await expect(page.locator("[data-dado-botao]")).toBeVisible();
   await context.setOffline(false);
 });
 

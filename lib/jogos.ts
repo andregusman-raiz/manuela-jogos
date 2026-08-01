@@ -155,4 +155,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-rosa/60",
     disponivel: true,
   },
+  {
+    id: "cobras",
+    nome: "Cobras e Escadas",
+    descricao: "Corrida ate o 100",
+    rota: "/cobras",
+    emoji: "🐍",
+    cor: "bg-manu-grama/70",
+    disponivel: true,
+  },
 ];
