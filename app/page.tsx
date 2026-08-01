@@ -26,7 +26,7 @@ export default function Hub() {
             pose="corpo"
             tamanho={190}
             prioridade
-            className="anima-pulinho h-auto max-h-[24dvh] w-full object-contain drop-shadow-md"
+            className="anima-pulinho h-auto max-h-[20dvh] w-full object-contain drop-shadow-md"
           />
         </div>
       </header>

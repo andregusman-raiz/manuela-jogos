@@ -14,7 +14,7 @@ import type { Desenho } from "./desenho/tipos";
  */
 
 const NOME_BD = "manu-jogos";
-const VERSAO_BD = 4;
+const VERSAO_BD = 5;
 /** Uma gaveta por jogo: um jogo do hub não colide com o outro. */
 const LOJA_ATELIE = "atelie";
 const LOJAS_JOGOS = [
@@ -31,6 +31,11 @@ const LOJAS_JOGOS = [
   "tangram",
   "damas",
   "caca",
+  "ludo",
+  "cobras",
+  "lig4",
+  "mancala",
+  "rota",
 ] as const;
 export type LojaJogo = (typeof LOJAS_JOGOS)[number];
 const ID_RASCUNHO = "rascunho";
