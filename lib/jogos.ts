@@ -146,4 +146,13 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-sol",
     disponivel: true,
   },
+  {
+    id: "ludo",
+    nome: "Ludo da Manu",
+    descricao: "Corrida de dados",
+    rota: "/ludo",
+    emoji: "🎲",
+    cor: "bg-manu-rosa/60",
+    disponivel: true,
+  },
 ];
