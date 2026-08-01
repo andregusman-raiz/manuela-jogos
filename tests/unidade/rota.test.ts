@@ -60,8 +60,12 @@ describe("verificação EXAUSTIVA do espaço alcançável (SPEC §5.2)", () => {
       // (b) o vencedor do motor bate com as 12 linhas re-declaradas
       const doMotor = vencedorNaPosicao(e.casas);
       expect(doMotor).toBe(vencedorOraculo(e.casas));
-      // (c) nunca vitória dupla: o oráculo por dono já falharia acima se
-      // ambos completassem (retornaria o primeiro e o motor o outro)
+      // (c) nunca vitória dupla — CONTADA explicitamente (review PR #40:
+      // comparar retornos deixaria passar um estado com DOIS vencedores)
+      const donosComLinha = ([0, 1] as const).filter((dono) =>
+        LINHAS_ORACULO.some((l) => l.every((c) => e.casas[c] === dono)),
+      );
+      expect(donosComLinha.length, "vitória dupla alcançável").toBeLessThanOrEqual(1);
 
       if (doMotor !== null) {
         terminais++;
@@ -134,12 +138,17 @@ describe("empate por repetição (blocker J10)", () => {
       [8, 4],
       [6, 5],
     ];
-    for (let volta = 0; volta < 2; volta++) {
-      for (const [de, para] of ciclo) {
-        e = moverPeca(e, de, para);
-      }
+    // 1ª volta completa: a configuração repetiu pela 2ª vez — AINDA jogando
+    // (mata o mutante "empata na 2ª visita" — review PR #40)
+    for (const [de, para] of ciclo) {
+      e = moverPeca(e, de, para);
+      expect(e.situacao).toBe("jogando");
     }
-    expect(e.situacao).toBe("empate");
+    // 2ª volta: os 3 primeiros movimentos seguem jogando; o 8º fecha o empate
+    for (const [i, [de, para]] of ciclo.entries()) {
+      e = moverPeca(e, de, para);
+      expect(e.situacao).toBe(i === ciclo.length - 1 ? "empate" : "jogando");
+    }
     expect(e.vencedor).toBeNull();
   });
 });

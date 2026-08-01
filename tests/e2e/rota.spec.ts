@@ -90,7 +90,7 @@ test("três formatos: casas ≥44px e roda inteira na tela", async ({ browser })
     for (let casa = 0; casa < 9; casa++) {
       const caixa = await pagina.locator(`circle[data-casa="${casa}"]`).boundingBox();
       expect(caixa, `${formato.nome}: casa ${casa} sem caixa`).not.toBeNull();
-      expect(caixa!.width, `${formato.nome}: casa ${casa} pequena`).toBeGreaterThanOrEqual(40);
+      expect(caixa!.width, `${formato.nome}: casa ${casa} pequena`).toBeGreaterThanOrEqual(44);
       expect(caixa!.y, `${formato.nome}: casa acima da tela`).toBeGreaterThanOrEqual(0);
       expect(
         caixa!.y + caixa!.height,

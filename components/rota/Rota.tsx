@@ -9,7 +9,6 @@ import { Manu } from "@/components/ui-kids/Manu";
 import { salvarProgresso } from "@/lib/armazenamento";
 import { criarSorte, sementeInicial } from "@/lib/dado";
 import {
-  acoesLegais,
   adjacentes,
   aplicar,
   colocar,
@@ -195,8 +194,8 @@ export function Rota() {
               const legalColocar = colocando && dono === null && estado.situacao === "jogando";
               return (
                 <g key={casa}>
-                  {legalDestino || (legalColocar && estado.vez === 0 && modo === "manu") ? (
-                    <circle cx={cx} cy={cy} r={19} fill="none" stroke="#a8842a" strokeWidth={1.6} strokeDasharray="4 3" className="anima-brilho" />
+                  {legalDestino || (legalColocar && (modo === "2p" || estado.vez === 0)) ? (
+                    <circle cx={cx} cy={cy} r={20.5} fill="none" stroke="#a8842a" strokeWidth={1.6} strokeDasharray="4 3" className="anima-brilho" />
                   ) : null}
                   <circle
                     data-casa={casa}
@@ -204,7 +203,7 @@ export function Rota() {
                     data-selecionada={selecionada === casa ? "true" : "false"}
                     cx={cx}
                     cy={cy}
-                    r={15}
+                    r={16.5}
                     fill={dono === null ? "#fff9f3" : CORES[dono]}
                     stroke={
                       selecionada === casa ? "#a8842a" : dono === null ? "#c9b8a8" : BORDAS[dono]
