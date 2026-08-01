@@ -71,11 +71,23 @@ test("partida 2P espelhada com o motor até o 100 — com cobra, escada e anima�
     await tocarNoElemento(page.locator("[data-dado-botao]"));
     rolagens++;
 
-    // a animação casa-a-casa precisa APARECER (SPEC §2.3)
-    if (!vistoAnimacao && d6 >= 2) {
+    // a animação casa-a-casa precisa APARECER e passar por casa INTERMEDIÁRIA
+    // (review PR #37: só observar início/fim deixaria um teleporte passar)
+    if (!vistoAnimacao && d6 >= 3 && jogada.atalho === null) {
       await expect(page.locator("[data-vez]")).toHaveAttribute("data-animando", "true", {
         timeout: 2000,
       });
+      const peao = page.locator(`circle[data-peao="${estado.vez}"]`);
+      const vistos = new Set<string>();
+      for (let i = 0; i < 25; i++) {
+        vistos.add((await peao.getAttribute("data-pos")) ?? "");
+        await page.waitForTimeout(50);
+      }
+      const intermediarias = jogada.caminho.slice(0, -1).map(String);
+      expect(
+        intermediarias.some((casa) => vistos.has(casa)),
+        `nenhuma casa intermediária (${intermediarias.join(",")}) observada em ${[...vistos].join(",")}`,
+      ).toBe(true);
       vistoAnimacao = true;
     }
 

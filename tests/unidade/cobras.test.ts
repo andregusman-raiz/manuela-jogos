@@ -93,6 +93,16 @@ describe("partida", () => {
     expect(fim.vencedor).toBe(0);
     expect(jogar(fim, 5 as DadoCobras)).toBe(fim); // no-op após o fim
   });
+
+  test("PASSAR pelo 100 quicando NÃO vence (oráculo negativo do review)", () => {
+    // mata o mutante "vence se o caminho inclui 100"
+    const estado = { ...criarPartida(2), posicoes: [98, 20] };
+    const depois = jogar(estado, 5 as DadoCobras);
+    expect(depois.posicoes[0]).toBe(97);
+    expect(depois.situacao).toBe("jogando");
+    expect(depois.vencedor).toBeNull();
+    expect(depois.vez).toBe(1);
+  });
 });
 
 describe("geometria boustrophedon (oráculo literal)", () => {

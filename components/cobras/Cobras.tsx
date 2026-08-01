@@ -16,6 +16,7 @@ import { assinarMudo, definirMudo, estaMudo, feedback, mudoNoServidor, tocar } f
 
 interface Animacao {
   jogador: number;
+  d6: DadoCobras; // o dado desta jogada, exibido DURANTE a caminhada
   passos: number[]; // casas visitadas; o último pode ser o salto do atalho
   indice: number;
   atalho: "cobra" | "escada" | null;
@@ -89,6 +90,7 @@ export function Cobras() {
         jogada.atalho === null ? jogada.caminho : [...jogada.caminho, jogada.destino];
       setAnimacao({
         jogador: estado.vez,
+        d6,
         passos,
         indice: 0,
         atalho: jogada.atalho,
@@ -231,9 +233,15 @@ export function Cobras() {
               {estado.posicoes.map((_, jogador) => {
                 const pos = posicaoExibida(jogador);
                 const cor = CORES_LUDO[jogador as 0 | 1 | 2 | 3];
-                const naMesma = estado.posicoes.filter(
-                  (__, j) => posicaoExibida(j) === pos && j < jogador,
-                ).length;
+                // leque só entre peões ASSENTADOS: quem está andando passa por
+                // cima sem deslocar os parados (review PR #37 — flicker)
+                const animando = animacao?.jogador === jogador;
+                const naMesma = animando
+                  ? 0
+                  : estado.posicoes.filter(
+                      (p, j) =>
+                        j < jogador && j !== animacao?.jogador && p === estado.posicoes[jogador],
+                    ).length;
                 const [cx, cy] =
                   pos === 0
                     ? [8 + jogador * 12, 196]
@@ -259,7 +267,7 @@ export function Cobras() {
           <div
             data-vez={estado.vez}
             data-situacao={estado.situacao}
-            data-dado={estado.dado ?? ""}
+            data-dado={animacao?.d6 ?? estado.dado ?? ""}
             data-animando={animacao ? "true" : "false"}
             className="flex shrink-0 items-center justify-center gap-3 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1 deitado:h-full deitado:flex-col deitado:justify-center deitado:pb-2"
           >
@@ -283,7 +291,7 @@ export function Cobras() {
                   : "bg-manu-papel opacity-50 ring-manu-cacau/10"
               } ${dadoGirando ? "anima-brilho" : ""}`}
             >
-              {dadoGirando ? "🎲" : (estado.dado ?? "🎲")}
+              {dadoGirando ? "🎲" : (animacao?.d6 ?? estado.dado ?? "🎲")}
             </button>
           </div>
         </div>
