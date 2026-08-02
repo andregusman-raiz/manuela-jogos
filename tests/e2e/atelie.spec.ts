@@ -490,7 +490,7 @@ test("guardar de novo e trocar de página não duplicam na galeria", async ({ pa
           req.onsuccess = () => {
             const g = req.result.transaction("atelie", "readonly").objectStore("atelie").getAll();
             g.onsuccess = () =>
-              resolve((g.result as { id: string }[]).filter((d) => d.id !== "rascunho").length);
+              resolve((g.result as { id: string }[]).filter((d) => !d.id.startsWith("rascunho")).length);
           };
           req.onerror = () => resolve(-1);
         }),

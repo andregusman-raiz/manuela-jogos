@@ -1,4 +1,5 @@
 import type { Desenho } from "./desenho/tipos";
+import { perfilAtivo } from "./perfis";
 
 /**
  * Guarda tudo no aparelho (IndexedDB). Nenhum dado sai daqui: não há conta,
@@ -39,6 +40,20 @@ const LOJAS_JOGOS = [
 ] as const;
 export type LojaJogo = (typeof LOJAS_JOGOS)[number];
 const ID_RASCUNHO = "rascunho";
+const PERFIL_LEGADO = "manuela"; // dono histórico do dado sem perfil (SPEC memoria-por-perfil §2)
+
+function idProgresso(perfil: string): string {
+  return `progresso:${perfil}`;
+}
+
+function idRascunho(perfil: string): string {
+  return `${ID_RASCUNHO}:${perfil}`;
+}
+
+/** Todo id de rascunho, legado ("rascunho") ou por perfil ("rascunho:leo"). */
+export function ehRascunho(id: string): boolean {
+  return id === ID_RASCUNHO || id.startsWith(`${ID_RASCUNHO}:`);
+}
 
 function suportado(): boolean {
   return typeof indexedDB !== "undefined";
@@ -110,16 +125,30 @@ async function comLoja<T>(
 }
 
 export async function salvarRascunho(desenho: Desenho): Promise<void> {
-  await comLoja(LOJA_ATELIE, "readwrite", (loja) => loja.put({ ...desenho, id: ID_RASCUNHO }));
+  const perfil = perfilAtivo().id;
+  await comLoja(LOJA_ATELIE, "readwrite", (loja) => loja.put({ ...desenho, id: idRascunho(perfil) }));
 }
 
 export async function carregarRascunho(): Promise<Desenho | null> {
-  const r = await comLoja<Desenho>(LOJA_ATELIE, "readonly", (loja) => loja.get(ID_RASCUNHO));
-  return r ?? null;
+  const perfil = perfilAtivo().id;
+  const novo = await comLoja<Desenho>(LOJA_ATELIE, "readonly", (loja) => loja.get(idRascunho(perfil)));
+  if (novo) return novo;
+  // rascunho de antes dos perfis pertence à Manuela (decisão de produto)
+  if (perfil !== PERFIL_LEGADO) return null;
+  const legado = await comLoja<Desenho>(LOJA_ATELIE, "readonly", (loja) => loja.get(ID_RASCUNHO));
+  return legado ?? null;
 }
 
 export async function apagarRascunho(): Promise<void> {
-  await comLoja(LOJA_ATELIE, "readwrite", (loja) => loja.delete(ID_RASCUNHO));
+  const perfil = perfilAtivo().id;
+  await comLoja(LOJA_ATELIE, "readwrite", (loja) => {
+    // comLoja resolve pelo onsuccess do request RETORNADO: o delete do legado
+    // (Manuela) precisa ser o último da transação — sem ele o rascunho velho
+    // ressuscitaria no próximo carregar
+    if (perfil !== PERFIL_LEGADO) return loja.delete(idRascunho(perfil));
+    loja.delete(idRascunho(perfil));
+    return loja.delete(ID_RASCUNHO);
+  });
 }
 
 /**
@@ -135,20 +164,25 @@ export async function guardarNaGaleria(desenho: Desenho, idExistente?: string): 
   // galeriaId é metadado do rascunho; num item da galeria seria auto-referência
   const { galeriaId: _descartado, ...limpo } = desenho;
   void _descartado;
-  await comLoja(LOJA_ATELIE, "readwrite", (loja) => loja.put({ ...limpo, id }));
+  await comLoja(LOJA_ATELIE, "readwrite", (loja) =>
+    loja.put({ ...limpo, id, perfil: perfilAtivo().id }),
+  );
   return id;
 }
 
 export async function listarGaleria(): Promise<Desenho[]> {
   const todos = await comLoja<Desenho[]>(LOJA_ATELIE, "readonly", (loja) => loja.getAll());
   if (!todos) return [];
+  const perfil = perfilAtivo().id;
   return todos
-    .filter((d) => d.id !== ID_RASCUNHO)
+    .filter((d) => !ehRascunho(d.id))
+    // desenho sem carimbo é de antes dos perfis: pertence à Manuela
+    .filter((d) => d.perfil === perfil || (perfil === PERFIL_LEGADO && d.perfil == null))
     .sort((a, b) => b.atualizadoEm - a.atualizadoEm);
 }
 
 export async function apagarDaGaleria(id: string): Promise<void> {
-  if (id === ID_RASCUNHO) return;
+  if (ehRascunho(id)) return;
   await comLoja(LOJA_ATELIE, "readwrite", (loja) => loja.delete(id));
 }
 
@@ -163,15 +197,20 @@ export async function buscarDesenho(id: string): Promise<Desenho | null> {
  * propósito: min() com 0 congelaria o recorde para sempre.
  */
 export type Progresso = {
-  id: "progresso";
+  id: string;
   nivel: number;
   melhor: number | null;
   atualizadoEm: number;
 };
 
 export async function lerProgresso(jogo: LojaJogo): Promise<Progresso | null> {
-  const r = await comLoja<Progresso>(jogo, "readonly", (loja) => loja.get("progresso"));
-  return r ?? null;
+  const perfil = perfilAtivo().id;
+  const novo = await comLoja<Progresso>(jogo, "readonly", (loja) => loja.get(idProgresso(perfil)));
+  if (novo) return novo;
+  if (perfil !== PERFIL_LEGADO) return null;
+  // progresso de antes dos perfis pertence à Manuela (decisão de produto)
+  const legado = await comLoja<Progresso>(jogo, "readonly", (loja) => loja.get("progresso"));
+  return legado ?? null;
 }
 
 /** Leitura genérica de um registro (readonly — NUNCA grava; ler o placar das
@@ -230,16 +269,16 @@ export async function salvarProgresso(
   melhor: number | null = null,
 ): Promise<void> {
   if (!suportado()) return;
+  // capturado ANTES de qualquer await: troca de perfil no meio não mistura chaves
+  const perfil = perfilAtivo().id;
   try {
     const bd = await abrir();
     await new Promise<void>((resolve, reject) => {
       const tx = bd.transaction(jogo, "readwrite");
       const loja = tx.objectStore(jogo);
-      const leitura = loja.get("progresso");
-      leitura.onsuccess = () => {
-        const atual = (leitura.result ?? null) as Progresso | null;
+      const gravar = (atual: Progresso | null) => {
         loja.put({
-          id: "progresso",
+          id: idProgresso(perfil),
           nivel: Math.max(atual?.nivel ?? 1, nivel),
           melhor:
             atual?.melhor == null
@@ -249,6 +288,18 @@ export async function salvarProgresso(
                 : Math.min(atual.melhor, melhor),
           atualizadoEm: Date.now(),
         } satisfies Progresso);
+      };
+      // fallback do legado DENTRO da tx (juiz B2): senão o recorde antigo da
+      // Manuela seria sombreado pela primeira gravação na chave nova
+      const leitura = loja.get(idProgresso(perfil));
+      leitura.onsuccess = () => {
+        const atual = (leitura.result ?? null) as Progresso | null;
+        if (atual || perfil !== PERFIL_LEGADO) {
+          gravar(atual);
+          return;
+        }
+        const legado = loja.get("progresso");
+        legado.onsuccess = () => gravar((legado.result ?? null) as Progresso | null);
       };
       tx.oncomplete = () => {
         bd.close();
