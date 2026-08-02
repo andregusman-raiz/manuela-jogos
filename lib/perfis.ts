@@ -21,6 +21,8 @@ export interface Perfil {
   identidade: Identidade;
   corpo: FiguraPerfil;
   avatar: FiguraPerfil;
+  /** Cor do card na tela de escolha (classe ring-* completa, nunca montada). */
+  anel: string;
 }
 
 export const PERFIS: readonly Perfil[] = [
@@ -29,12 +31,21 @@ export const PERFIS: readonly Perfil[] = [
     identidade: IDENTIDADE,
     corpo: { src: "/manu/manu-corpo.webp", largura: 642, altura: 1244 },
     avatar: { src: "/manu/manu-avatar.webp", largura: 512, altura: 512 },
+    anel: "ring-manu-rosa",
   },
   {
     id: "leo",
     identidade: criarIdentidade({ nome: "Leo", apelido: "Leo", genero: "o" }),
     corpo: { src: "/leo/leo-corpo.webp", largura: 808, altura: 1147 },
     avatar: { src: "/leo/leo-avatar.webp", largura: 512, altura: 512 },
+    anel: "ring-manu-ceu",
+  },
+  {
+    id: "gustavo",
+    identidade: criarIdentidade({ nome: "Gustavo", apelido: "Gustavo", genero: "o" }),
+    corpo: { src: "/gustavo/gustavo-corpo.webp", largura: 541, altura: 1426 },
+    avatar: { src: "/gustavo/gustavo-avatar.webp", largura: 512, altura: 512 },
+    anel: "ring-manu-ceu",
   },
 ];
 

@@ -16,12 +16,12 @@ export function EscolhaJogador() {
       aria-modal="true"
       aria-label="escolher quem vai jogar"
       data-escolha-jogador="true"
-      className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-6 bg-manu-nuvem px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]"
+      className="fixed inset-0 z-30 flex flex-col items-center gap-4 bg-manu-nuvem px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1.5rem,env(safe-area-inset-top))]"
     >
-      <h1 className="text-center font-titulo text-3xl text-manu-cacau">Quem vai jogar?</h1>
-      <div className="flex flex-wrap items-stretch justify-center gap-4">
+      <h1 className="shrink-0 text-center font-titulo text-3xl text-manu-cacau">Quem vai jogar?</h1>
+      <div className="flex min-h-0 flex-1 flex-wrap content-center items-stretch justify-center gap-4 overflow-y-auto py-2">
         {PERFIS.map((perfil) => {
-          const escala = 180 / Math.max(perfil.corpo.largura, perfil.corpo.altura);
+          const escala = 150 / Math.max(perfil.corpo.largura, perfil.corpo.altura);
           return (
             <button
               key={perfil.id}
@@ -34,7 +34,7 @@ export function EscolhaJogador() {
                 tocar("vitoria");
                 salvarJogador(perfil.id);
               }}
-              className="bolha flex min-h-64 min-w-52 flex-col items-center justify-end gap-3 bg-manu-papel p-5 ring-4 ring-manu-rosa transition-transform active:scale-[0.97]"
+              className={`bolha flex min-h-56 min-w-44 shrink-0 flex-col items-center justify-end gap-2 bg-manu-papel p-4 ring-4 transition-transform active:scale-[0.97] sm:min-h-64 sm:min-w-52 ${perfil.anel}`}
             >
               <Image
                 src={perfil.corpo.src}
@@ -43,7 +43,7 @@ export function EscolhaJogador() {
                 height={Math.round(perfil.corpo.altura * escala)}
                 priority
                 draggable={false}
-                className="anima-pulinho h-44 w-auto select-none object-contain drop-shadow-md"
+                className="anima-pulinho h-36 w-auto select-none object-contain drop-shadow-md sm:h-44"
               />
               <span className="font-titulo text-2xl text-manu-cacau">
                 {perfil.identidade.nome}
@@ -52,7 +52,7 @@ export function EscolhaJogador() {
           );
         })}
       </div>
-      <p className="text-center text-xs text-manu-cacau-suave">
+      <p className="shrink-0 text-center text-xs text-manu-cacau-suave">
         Toque na figura para começar
       </p>
     </div>

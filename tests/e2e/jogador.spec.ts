@@ -14,10 +14,11 @@ test("primeira visita: escolher a Manuela revela o hub e persiste", async ({ pag
   const escolha = page.locator("[data-escolha-jogador]");
   await expect(escolha).toBeVisible();
   await expect(page.getByText("Quem vai jogar?")).toBeVisible();
-  // dois perfis: Manuela e Leo, cada card com figura + nome
-  await expect(page.locator("[data-perfil]")).toHaveCount(2);
+  // três perfis, cada card com figura + nome
+  await expect(page.locator("[data-perfil]")).toHaveCount(3);
   await expect(page.getByLabel("jogar como Manuela")).toBeVisible();
   await expect(page.getByLabel("jogar como Leo")).toBeVisible();
+  await expect(page.getByLabel("jogar como Gustavo")).toBeVisible();
 
   // o hub atrás não é alcançável: o card do Ateliê está coberto pela escolha
   await tocarNoElemento(page.getByLabel("jogar como Manuela"));
