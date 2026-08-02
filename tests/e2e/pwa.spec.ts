@@ -179,7 +179,7 @@ test("o PNG guardado é fiel: região pintada, papel e contorno", async ({ page 
       req.onsuccess = () => {
         const g = req.result.transaction("atelie", "readonly").objectStore("atelie").getAll();
         g.onsuccess = () =>
-          resolve((g.result as { id: string; miniatura?: string }[]).find((d) => d.id !== "rascunho"));
+          resolve((g.result as { id: string; miniatura?: string }[]).find((d) => !d.id.startsWith("rascunho")));
       };
     });
     if (!item?.miniatura) return null;

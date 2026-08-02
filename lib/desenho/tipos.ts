@@ -103,4 +103,6 @@ export type Desenho = {
    * depois de fechar e reabrir o app.
    */
   galeriaId?: string;
+  /** Dono do desenho; ausente = anterior aos perfis (Manuela). */
+  perfil?: string;
 };
