@@ -1,10 +1,21 @@
 import { GradeJogos } from "@/components/hub/GradeJogos";
 import { Mascote } from "@/components/ui-kids/Mascote";
 import { IDENTIDADE, saudacao } from "@/lib/identidade";
+import { CHAVE_JOGADOR } from "@/lib/perfis";
+
+// Anti-FOUC do gate de jogador (review PR #47): sem isto, o HTML SSR do hub
+// fica clicável ANTES de a hidratação montar a tela "Quem vai jogar?" numa
+// primeira visita. O script roda inline antes do primeiro paint; o atributo
+// esconde o hub via CSS e a GradeJogos o remove assim que assume o controle.
+const SCRIPT_GATE = `try{if(!localStorage.getItem(${JSON.stringify(CHAVE_JOGADOR)}))document.documentElement.setAttribute("data-sem-jogador","")}catch(e){}`;
 
 export default function Hub() {
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+    <main
+      data-hub="true"
+      className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
+    >
+      <script dangerouslySetInnerHTML={{ __html: SCRIPT_GATE }} />
       <header className="relative flex items-end justify-between gap-2">
         <div className="pb-2">
           <p className="font-titulo text-lg text-manu-rosa-texto">{saudacao()}</p>

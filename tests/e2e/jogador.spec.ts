@@ -52,6 +52,44 @@ test("lixo na chave do jogador cai na escolha (não trava o app)", async ({ page
   await expect(page.getByLabel("Ateliê da Manu", { exact: true })).toBeVisible();
 });
 
+test("pré-hidratação: o hub SSR fica ESCONDIDO para quem nunca escolheu", async ({
+  browser,
+}) => {
+  // bloqueia os chunks JS: o script inline do gate roda, a hidratação nunca
+  // chega — o hub não pode ficar clicável nesse limbo (review PR #47)
+  const contexto = await browser.newContext();
+  const page = await contexto.newPage();
+  // só o JS: o CSS do véu precisa carregar (é ele que esconde)
+  await page.route(
+    "**/_next/static/chunks/**",
+    (rota) => (rota.request().url().endsWith(".css") ? rota.continue() : rota.abort()),
+  );
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(500);
+
+  await expect(page.locator("html")).toHaveAttribute("data-sem-jogador", "");
+  // os cards existem no DOM mas estão invisíveis (véu CSS)
+  await expect(page.getByLabel("Ateliê da Manu", { exact: true })).toBeHidden();
+  await expect(page.locator("[data-config]")).toBeHidden();
+  await contexto.close();
+});
+
+test("pré-hidratação: quem JÁ escolheu vê o hub normalmente sem véu", async ({ browser }) => {
+  const contexto = await browser.newContext();
+  await contexto.addInitScript(() => localStorage.setItem("manu:jogador", "manuela"));
+  const page = await contexto.newPage();
+  await page.route(
+    "**/_next/static/chunks/**",
+    (rota) => (rota.request().url().endsWith(".css") ? rota.continue() : rota.abort()),
+  );
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(500);
+
+  await expect(page.locator("html")).not.toHaveAttribute("data-sem-jogador", "");
+  await expect(page.getByLabel("Ateliê da Manu", { exact: true })).toBeVisible();
+  await contexto.close();
+});
+
 test("três formatos: card de escolha inteiro e tocável", async ({ browser }) => {
   const formatos = [
     { nome: "celular", viewport: { width: 390, height: 844 } },

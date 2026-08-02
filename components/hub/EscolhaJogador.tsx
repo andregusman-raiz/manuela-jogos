@@ -26,6 +26,7 @@ export function EscolhaJogador() {
             <button
               key={perfil.id}
               type="button"
+              autoFocus={perfil.id === PERFIS[0].id}
               aria-label={`jogar como ${perfil.identidade.nome}`}
               data-perfil={perfil.id}
               onClick={() => {

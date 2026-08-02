@@ -21,7 +21,8 @@ export const PERFIS: readonly Perfil[] = [
   { id: "manuela", identidade: IDENTIDADE, figura: MASCOTE.corpo },
 ];
 
-const CHAVE = "manu:jogador";
+/** Exportada para o script anti-FOUC do hub (o literal vive só aqui). */
+export const CHAVE_JOGADOR = "manu:jogador";
 
 let cache: string | null | undefined; // undefined = ainda não lido
 const ouvintes = new Set<() => void>();
@@ -30,8 +31,13 @@ const ouvintes = new Set<() => void>();
 export function lerJogador(): string | null {
   if (typeof localStorage === "undefined") return null;
   if (cache === undefined) {
-    const bruto = localStorage.getItem(CHAVE);
-    cache = PERFIS.some((p) => p.id === bruto) ? bruto : null;
+    try {
+      const bruto = localStorage.getItem(CHAVE_JOGADOR);
+      cache = PERFIS.some((p) => p.id === bruto) ? bruto : null;
+    } catch {
+      // storage bloqueado (SecurityError): cai na escolha, não derruba o hub
+      cache = null;
+    }
   }
   return cache;
 }
@@ -41,7 +47,7 @@ export function salvarJogador(id: string): void {
   cache = id;
   for (const avisar of ouvintes) avisar();
   try {
-    localStorage.setItem(CHAVE, id);
+    localStorage.setItem(CHAVE_JOGADOR, id);
   } catch {
     // sem persistência a escolha vale só para a sessão
   }
@@ -52,7 +58,7 @@ export function limparJogador(): void {
   cache = null;
   for (const avisar of ouvintes) avisar();
   try {
-    localStorage.removeItem(CHAVE);
+    localStorage.removeItem(CHAVE_JOGADOR);
   } catch {
     // idem
   }

@@ -23,6 +23,11 @@ export function GradeJogos() {
   const [configurando, setConfigurando] = useState(false);
   const [negada, setNegada] = useState(0);
 
+  // hidratou: o React assume o gate — o véu anti-FOUC do SSR sai de cena
+  useEffect(() => {
+    document.documentElement.removeAttribute("data-sem-jogador");
+  }, []);
+
   useEffect(() => {
     if (!negada) return;
     const t = setTimeout(() => setNegada(0), 500);
