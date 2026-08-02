@@ -44,7 +44,11 @@ function Pizza({
       viewBox="0 0 200 200"
       role="img"
       aria-label={rotuloAcessivel}
-      className="h-full max-h-full w-auto max-w-full drop-shadow-md"
+      // SEM drop-shadow aqui: filter na raiz de SVG quebra o primeiro paint
+      // no iOS Safari (a pizza ficava invisível até a primeira interação);
+      // aspect-square dá largura computável no primeiro layout (w-auto de
+      // SVG também colapsa no iOS)
+      className="aspect-square h-full max-h-full w-auto max-w-full"
     >
       {Array.from({ length: fracao.d }, (_, k) => {
         const { inicio, fim } = anguloDaFatia(k, fracao.d);
