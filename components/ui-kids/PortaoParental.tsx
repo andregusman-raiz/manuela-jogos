@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Manu } from "./Manu";
+import { Mascote } from "./Mascote";
 import { feedback, tocar } from "@/lib/som";
 
 type Props = {
@@ -69,7 +69,7 @@ export function PortaoParental({ aberto, onLiberado, onCancelar }: Props) {
         className="anima-entrada w-full max-w-sm rounded-[2rem] bg-manu-papel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-center shadow-2xl"
       >
         <div className="mx-auto -mt-16 h-28 w-28 overflow-hidden">
-          <Manu pose="segredinho" tamanho={150} className="mx-auto -mt-4" />
+          <Mascote pose="segredinho" tamanho={150} className="mx-auto -mt-4" />
         </div>
 
         <h2 className="mt-1 text-2xl text-manu-cacau">Chame um adulto 🙋</h2>

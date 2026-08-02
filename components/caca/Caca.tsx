@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { flexionar } from "@/lib/identidade";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
 import { Icone } from "@/components/ui-kids/Icone";
-import { Manu } from "@/components/ui-kids/Manu";
+import { Mascote } from "@/components/ui-kids/Mascote";
 import { lerProgresso, salvarProgresso } from "@/lib/armazenamento";
 import {
   NIVEL_MAXIMO_CACA,
@@ -94,7 +95,7 @@ export function Caca() {
           onPointerDown={() => feedback("toque")}
           className="bolha h-14 min-h-14 w-14 min-w-14 overflow-hidden bg-manu-rosa/40 ring-2 ring-manu-rosa"
         >
-          <Manu pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
+          <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
         <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">Caça-Números</h1>
         {nivel !== null ? (
@@ -184,8 +185,8 @@ export function Caca() {
 
         {completa && nivel !== null ? (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-manu-nuvem/95 px-4">
-            <Manu pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
-            <p className="text-center font-titulo text-3xl text-manu-cacau">Caçador de números!</p>
+            <Mascote pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
+            <p className="text-center font-titulo text-3xl text-manu-cacau">{`${flexionar("Caçador", "Caçadora")} de números!`}</p>
             <div className="flex flex-wrap justify-center gap-4">
               <BotaoBolha rotulo="jogar de novo" tamanho="xl" onClick={() => novaFase(nivel)}>
                 <span className="px-3 font-titulo text-2xl">De novo</span>

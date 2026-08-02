@@ -6,6 +6,9 @@
  * barato de expandir.
  */
 
+import { aMascote, comAMascote, daMascote, type Identidade } from "./identidade";
+import { IDENTIDADE } from "./identidade";
+
 export type Jogo = {
   id: string;
   nome: string;
@@ -19,10 +22,12 @@ export type Jogo = {
   disponivel: boolean;
 };
 
-export const JOGOS: Jogo[] = [
+/** Catálogo puro: a fase 2 recalcula com outra identidade sem tocar nos consumers. */
+export function criarJogos(id: Identidade): Jogo[] {
+  return [
   {
     id: "atelie",
-    nome: "Ateliê da Manu",
+    nome: `Ateliê ${daMascote(id)}`,
     descricao: "Desenhar, pintar e colorir",
     rota: "/desenhar",
     emoji: "🎨",
@@ -49,8 +54,8 @@ export const JOGOS: Jogo[] = [
   },
   {
     id: "labirinto",
-    nome: "Labirinto da Manu",
-    descricao: "Guie a Manu até a estrela",
+    nome: `Labirinto ${daMascote(id)}`,
+    descricao: `Guie ${aMascote(id)} até a estrela`,
     rota: "/labirinto",
     emoji: "⭐",
     cor: "bg-manu-grama",
@@ -67,7 +72,7 @@ export const JOGOS: Jogo[] = [
   },
   {
     id: "forca",
-    nome: "Forca da Manu",
+    nome: `Forca ${daMascote(id)}`,
     descricao: "Adivinhe a palavra",
     rota: "/forca",
     emoji: "🎈",
@@ -85,7 +90,7 @@ export const JOGOS: Jogo[] = [
   },
   {
     id: "lojinha",
-    nome: "Lojinha da Manu",
+    nome: `Lojinha ${daMascote(id)}`,
     descricao: "Pague e receba o troco",
     rota: "/lojinha",
     emoji: "🛒",
@@ -121,7 +126,7 @@ export const JOGOS: Jogo[] = [
   },
   {
     id: "tangram",
-    nome: "Tangram da Manu",
+    nome: `Tangram ${daMascote(id)}`,
     descricao: "Monte as figuras",
     rota: "/tangram",
     emoji: "🔷",
@@ -148,7 +153,7 @@ export const JOGOS: Jogo[] = [
   },
   {
     id: "ludo",
-    nome: "Ludo da Manu",
+    nome: `Ludo ${daMascote(id)}`,
     descricao: "Corrida de dados",
     rota: "/ludo",
     emoji: "🎲",
@@ -167,7 +172,7 @@ export const JOGOS: Jogo[] = [
   {
     id: "lig4",
     nome: "Lig-4",
-    descricao: "4 em linha, com a Manu",
+    descricao: `4 em linha, ${comAMascote(id)}`,
     rota: "/lig4",
     emoji: "🔵",
     cor: "bg-manu-ceu",
@@ -191,4 +196,7 @@ export const JOGOS: Jogo[] = [
     cor: "bg-manu-rosa/30",
     disponivel: true,
   },
-];
+  ];
+}
+
+export const JOGOS: Jogo[] = criarJogos(IDENTIDADE);

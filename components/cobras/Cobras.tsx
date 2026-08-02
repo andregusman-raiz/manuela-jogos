@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
 import { Icone } from "@/components/ui-kids/Icone";
-import { Manu } from "@/components/ui-kids/Manu";
+import { Mascote } from "@/components/ui-kids/Mascote";
 import { salvarProgresso } from "@/lib/armazenamento";
 import { COBRAS, ESCADAS, aplicarDado, criarPartida, jogar } from "@/lib/cobras/motor";
 import type { DadoCobras, EstadoCobras } from "@/lib/cobras/motor";
@@ -116,7 +116,7 @@ export function Cobras() {
           onPointerDown={() => feedback("toque")}
           className="bolha h-14 min-h-14 w-14 min-w-14 overflow-hidden bg-manu-rosa/40 ring-2 ring-manu-rosa"
         >
-          <Manu pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
+          <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
         <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">Cobras e Escadas</h1>
         <div className="ml-auto">
@@ -136,7 +136,7 @@ export function Cobras() {
 
       {!estado ? (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-4">
-          <Manu pose="corpo" tamanho={140} className="h-32 w-auto drop-shadow-md" />
+          <Mascote pose="corpo" tamanho={140} className="h-32 w-auto drop-shadow-md" />
           <p className="text-center font-titulo text-2xl text-manu-cacau">Quem vai jogar?</p>
           <div className="flex gap-4">
             {([2, 3, 4] as const).map((n) => (
@@ -299,7 +299,7 @@ export function Cobras() {
 
       {estado?.situacao === "fim" && estado.vencedor !== null ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-manu-nuvem/95 px-4">
-          <Manu pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
+          <Mascote pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
           <p className="text-center font-titulo text-3xl text-manu-cacau">
             {CORES_LUDO[estado.vencedor as 0 | 1 | 2 | 3].nome} chegou no 100!
           </p>

@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
+import { IDENTIDADE } from "@/lib/identidade";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Manuela Jogos",
-    short_name: "Manu Jogos",
-    description: "Jogos para brincar, desenhar e pintar. Feito para a Manuela.",
+    name: IDENTIDADE.tituloApp,
+    short_name: IDENTIDADE.tituloCurto,
+    description: IDENTIDADE.descricaoApp,
     lang: "pt-BR",
     start_url: "/",
     // standalone: abre sem barra de URL, como aplicativo de verdade.

@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { daMascote } from "@/lib/identidade";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
 import { Icone } from "@/components/ui-kids/Icone";
-import { Manu } from "@/components/ui-kids/Manu";
+import { Mascote } from "@/components/ui-kids/Mascote";
 import { lerProgresso, salvarProgresso } from "@/lib/armazenamento";
 import { CORES_PECAS, QUIRAL, SILHUETAS } from "@/lib/tangram/dados";
 import type { NomePeca, Pose } from "@/lib/tangram/dados";
@@ -173,9 +174,9 @@ export function Tangram() {
           onPointerDown={() => feedback("toque")}
           className="bolha h-14 min-h-14 w-14 min-w-14 overflow-hidden bg-manu-rosa/40 ring-2 ring-manu-rosa"
         >
-          <Manu pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
+          <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
-        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">Tangram da Manu</h1>
+        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Tangram ${daMascote()}`}</h1>
         {indice !== null ? (
           <span className="rounded-full bg-manu-ceu-claro px-3 py-1 font-titulo text-sm text-manu-cacau">
             {indice + 1} de {SILHUETAS.length}
@@ -255,7 +256,7 @@ export function Tangram() {
 
         {completa && indice !== null ? (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-manu-nuvem/95 px-4">
-            <Manu pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
+            <Mascote pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
             <p className="text-center font-titulo text-3xl text-manu-cacau">
               Você montou: {SILHUETAS[indice].nome}!
             </p>

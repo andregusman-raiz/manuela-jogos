@@ -4,7 +4,7 @@ import Image from "next/image";
 import { apagarDaGaleria } from "@/lib/armazenamento";
 import type { Desenho } from "@/lib/desenho/tipos";
 import { BotaoSegurar } from "@/components/ui-kids/BotaoSegurar";
-import { Manu } from "@/components/ui-kids/Manu";
+import { Mascote } from "@/components/ui-kids/Mascote";
 import { feedback, tocar } from "@/lib/som";
 import { Icone } from "@/components/ui-kids/Icone";
 
@@ -55,7 +55,7 @@ export function Galeria({
 
       {desenhos.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-          <Manu pose="apontando" tamanho={180} />
+          <Mascote pose="apontando" tamanho={180} />
           <p className="font-titulo text-xl text-manu-cacau">Ainda não tem nada aqui!</p>
           <p className="text-sm text-manu-cacau-suave">
             Desenhe e toque na estrelinha ⭐ para guardar.

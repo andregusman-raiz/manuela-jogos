@@ -1,18 +1,18 @@
 import Image from "next/image";
+import { MASCOTE } from "@/lib/identidade";
 
 /**
- * A Manuela na interface.
+ * A mascote na interface (a Manuela, por default — lib/identidade.ts).
  *
  * Ela não é decoração: cumpre um papel em cada lugar onde aparece — recebe no
  * hub, guia quando a galeria está vazia, comemora quando salva e pede um adulto
  * no portão parental.
  *
- * Poses `corpo` e `rosto` são os dois assets reais (recortados da arte de
- * referência). As outras poses são variações de enquadramento/movimento sobre
- * esses assets — quando houver arte nova para cada pose, basta apontar o mapa
- * abaixo para os novos arquivos, sem mexer em quem usa o componente.
+ * Poses `corpo` e `rosto` são os dois assets reais; as outras são variações de
+ * enquadramento/movimento sobre eles. A fase 2 da identidade troca a FONTE dos
+ * assets dentro de MASCOTE, sem mexer em quem usa o componente.
  */
-export type PoseManu =
+export type PoseMascote =
   | "corpo" // hero do hub, corpo inteiro
   | "rosto" // avatar do cabeçalho
   | "comemorando" // salvou o desenho
@@ -20,7 +20,7 @@ export type PoseManu =
   | "segredinho"; // portão parental ("chame um adulto")
 
 type Props = {
-  pose?: PoseManu;
+  pose?: PoseMascote;
   /** Largura em px do lado maior; a altura acompanha a proporção. */
   tamanho?: number;
   className?: string;
@@ -28,11 +28,11 @@ type Props = {
 };
 
 const ASSETS = {
-  corpo: { src: "/manu/manu-corpo.webp", largura: 642, altura: 1244 },
-  rosto: { src: "/manu/manu-avatar.webp", largura: 512, altura: 512 },
+  corpo: MASCOTE.corpo,
+  rosto: MASCOTE.avatar,
 } as const;
 
-const POSES: Record<PoseManu, { asset: keyof typeof ASSETS; classe: string }> = {
+const POSES: Record<PoseMascote, { asset: keyof typeof ASSETS; classe: string }> = {
   corpo: { asset: "corpo", classe: "" },
   rosto: { asset: "rosto", classe: "rounded-full" },
   comemorando: { asset: "corpo", classe: "anima-pulinho" },
@@ -40,7 +40,12 @@ const POSES: Record<PoseManu, { asset: keyof typeof ASSETS; classe: string }> = 
   segredinho: { asset: "corpo", classe: "" },
 };
 
-export function Manu({ pose = "corpo", tamanho = 200, className = "", prioridade = false }: Props) {
+export function Mascote({
+  pose = "corpo",
+  tamanho = 200,
+  className = "",
+  prioridade = false,
+}: Props) {
   const { asset, classe } = POSES[pose];
   const { src, largura, altura } = ASSETS[asset];
   const escala = tamanho / Math.max(largura, altura);
@@ -48,7 +53,7 @@ export function Manu({ pose = "corpo", tamanho = 200, className = "", prioridade
   return (
     <Image
       src={src}
-      alt="Manuela"
+      alt={MASCOTE.alt}
       width={Math.round(largura * escala)}
       height={Math.round(altura * escala)}
       priority={prioridade}

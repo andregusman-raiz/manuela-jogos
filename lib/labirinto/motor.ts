@@ -37,7 +37,7 @@ export function posicaoInicial(fase: Fase): Posicao {
     const x = fase.grade[y].indexOf("M");
     if (x >= 0) return { x, y, direcao: fase.direcaoInicial };
   }
-  throw new Error("fase sem Manu");
+  throw new Error("fase sem personagem");
 }
 
 export function posicaoEstrela(fase: Fase): { x: number; y: number } {

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { IDENTIDADE } from "@/lib/identidade";
 import { Baloo_2, Nunito } from "next/font/google";
 import "./globals.css";
 import { RegistrarServiceWorker } from "@/components/RegistrarServiceWorker";
@@ -18,12 +19,12 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Manuela Jogos",
-  description: "Jogos para brincar, desenhar e pintar. Feito para a Manuela.",
-  applicationName: "Manuela Jogos",
+  title: IDENTIDADE.tituloApp,
+  description: IDENTIDADE.descricaoApp,
+  applicationName: IDENTIDADE.tituloApp,
   appleWebApp: {
     capable: true,
-    title: "Manuela Jogos",
+    title: IDENTIDADE.tituloApp,
     statusBarStyle: "default",
   },
   icons: {

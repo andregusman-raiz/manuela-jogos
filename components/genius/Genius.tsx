@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
 import { Icone } from "@/components/ui-kids/Icone";
-import { Manu } from "@/components/ui-kids/Manu";
+import { Mascote } from "@/components/ui-kids/Mascote";
 import { lerProgresso, salvarProgresso } from "@/lib/armazenamento";
 import { SEQUENCIA_ALVO, avancarReplay, criarPartida, ouvir } from "@/lib/genius/motor";
 import type { EstadoGenius } from "@/lib/genius/motor";
@@ -116,7 +116,7 @@ export function Genius() {
           onPointerDown={() => feedback("toque")}
           className="bolha h-14 min-h-14 w-14 min-w-14 overflow-hidden bg-manu-rosa/40 ring-2 ring-manu-rosa"
         >
-          <Manu pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
+          <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
         <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">Genius dos Sons</h1>
         {estado ? (
@@ -164,7 +164,7 @@ export function Genius() {
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-3 pb-[max(1rem,env(safe-area-inset-bottom))]">
         {!estado && carregou ? (
           <div className="flex flex-col items-center gap-4">
-            <Manu pose="corpo" tamanho={140} className="h-40 w-auto drop-shadow-md" />
+            <Mascote pose="corpo" tamanho={140} className="h-40 w-auto drop-shadow-md" />
             <BotaoBolha rotulo="começar a jogar" tamanho="xl" efeito="abrir" onClick={comecar}>
               <span className="px-4 font-titulo text-2xl">Começar ▶</span>
             </BotaoBolha>
@@ -195,7 +195,7 @@ export function Genius() {
 
         {estado?.fase === "fase-completa" ? (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-manu-nuvem/95 px-4">
-            <Manu pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
+            <Mascote pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
             <p className="text-center font-titulo text-3xl text-manu-cacau">
               Que memória! {SEQUENCIA_ALVO} sons seguidos!
             </p>

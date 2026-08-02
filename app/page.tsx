@@ -1,14 +1,15 @@
 import { GradeJogos } from "@/components/hub/GradeJogos";
-import { Manu } from "@/components/ui-kids/Manu";
+import { Mascote } from "@/components/ui-kids/Mascote";
+import { IDENTIDADE, saudacao } from "@/lib/identidade";
 
 export default function Hub() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
       <header className="relative flex items-end justify-between gap-2">
         <div className="pb-2">
-          <p className="font-titulo text-lg text-manu-rosa-texto">Bem-vinda!</p>
+          <p className="font-titulo text-lg text-manu-rosa-texto">{saudacao()}</p>
           <h1 className="font-titulo text-4xl leading-none text-manu-cacau">
-            Manuela
+            {IDENTIDADE.nome}
             <br />
             Jogos
           </h1>
@@ -21,7 +22,7 @@ export default function Hub() {
           >
             ✨
           </span>
-          <Manu
+          <Mascote
             pose="corpo"
             tamanho={190}
             prioridade
