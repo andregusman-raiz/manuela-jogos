@@ -31,14 +31,36 @@ describe("default Manuela — byte a byte com os textos publicados", () => {
     expect(flexionar("Mestre", "Mestra")).toBe("Mestra");
   });
 
-  test("catálogo default: nomes EXATOS de antes da refatoração", () => {
-    const nomes = criarJogos(IDENTIDADE).map((j) => j.nome);
-    expect(nomes).toContain("Ateliê da Manu");
-    expect(nomes).toContain("Ludo da Manu");
-    expect(nomes).toContain("Forca da Manu");
-    expect(nomes).toContain("Cobras e Escadas"); // sem apelido: literal
-    const lig4 = criarJogos(IDENTIDADE).find((j) => j.id === "lig4")!;
-    expect(lig4.descricao).toBe("4 em linha, com a Manu");
+  test("catálogo default COMPLETO: todos os 19 pares nome/descrição byte a byte", () => {
+    // snapshot integral (review PR #46): QUALQUER texto do catálogo que mudar
+    // quebra aqui — não só os que citam a mascote
+    const pares = criarJogos(IDENTIDADE).map((j) => [j.id, j.nome, j.descricao]);
+    expect(pares).toEqual([
+      ["atelie", "Ateliê da Manu", "Desenhar, pintar e colorir"],
+      ["contas", "Foguete das Contas", "Contas de somar e tabuada"],
+      ["memoria", "Jogo da Memória", "Encontre os pares"],
+      ["labirinto", "Labirinto da Manu", "Guie a Manu até a estrela"],
+      ["palavras", "Palavra Mágica", "Complete as palavras"],
+      ["forca", "Forca da Manu", "Adivinhe a palavra"],
+      ["relogio", "Relógio Mágico", "Que horas são?"],
+      ["lojinha", "Lojinha da Manu", "Pague e receba o troco"],
+      ["genius", "Genius dos Sons", "Escute e repita"],
+      ["fracoes", "Pizza das Frações", "Leia, pinte e compare"],
+      ["estados", "Estados do Brasil", "Ache no mapa"],
+      ["tangram", "Tangram da Manu", "Monte as figuras"],
+      ["damas", "Damas", "Jogue com alguém"],
+      ["caca", "Caça-Números", "Pares, múltiplos e fatores"],
+      ["ludo", "Ludo da Manu", "Corrida de dados"],
+      ["cobras", "Cobras e Escadas", "Corrida ate o 100"],
+      ["lig4", "Lig-4", "4 em linha, com a Manu"],
+      ["mancala", "Mancala", "Semeie e colha"],
+      ["rota", "Roda Romana", "Tres em linha na roda"],
+    ]);
+  });
+
+  test("compartilhar deriva byte a byte no default", () => {
+    expect(`desenho-${flexionar("do", "da")}-${IDENTIDADE.slug}.png`).toBe("desenho-da-manu.png");
+    expect(`Desenho ${daMascote()}`).toBe("Desenho da Manu");
   });
 });
 
@@ -58,19 +80,26 @@ describe("outras identidades (contrato da fase 2)", () => {
     expect(nomes).toContain("Ateliê do Theo");
   });
 
-  test("Maria Clara (nome composto + apelido com acento)", () => {
+  test("Maria Clara (nome composto + apelido com acento) — catálogo inteiro flexiona", () => {
     expect(maria.tituloApp).toBe("Maria Clara Jogos");
     expect(maria.slug).toBe("cacau");
     expect(
       criarIdentidade({ nome: "José", apelido: "Zé", genero: "o" }).slug,
     ).toBe("ze");
+    const nomes = criarJogos(maria).map((j) => j.nome);
+    expect(nomes).toContain("Ateliê da Cacau");
+    expect(nomes).toContain("Ludo da Cacau");
+    const labirinto = criarJogos(maria).find((j) => j.id === "labirinto")!;
+    expect(labirinto.descricao).toBe("Guie a Cacau até a estrela");
   });
 
-  test("validação: vazio e gigante são rejeitados", () => {
+  test("validação: vazio, gigante e apelido sem letra são rejeitados", () => {
     expect(() => criarIdentidade({ nome: "", apelido: "x", genero: "a" })).toThrow();
     expect(() => criarIdentidade({ nome: "  ", apelido: "x", genero: "a" })).toThrow();
     expect(() =>
       criarIdentidade({ nome: "a".repeat(21), apelido: "x", genero: "a" }),
     ).toThrow();
+    // apelido só de emoji viraria "desenho-da-.png" (review PR #46)
+    expect(() => criarIdentidade({ nome: "Ana", apelido: "👧", genero: "a" })).toThrow();
   });
 });

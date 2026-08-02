@@ -23,10 +23,14 @@ const TECNICOS = [
 ];
 
 function tecnico(texto: string): boolean {
-  if (TECNICOS.some((re) => re.test(texto))) return true;
-  // strings compostas só de classes CSS (todo token contém `-manu-` ou é utilitário)
+  // integralmente técnico = TODO token com match do PROIBIDO é, ele mesmo,
+  // um identificador técnico (exceção exata ou classe CSS `*-manu-*`).
+  // Prefixo técnico + nome solto ("manu-app-v20 Manu") NÃO passa.
   const tokens = texto.split(/\s+/).filter(Boolean);
-  return tokens.length > 0 && tokens.every((t) => t.includes("-manu-") || !PROIBIDO.test(t));
+  if (tokens.length === 0) return false;
+  return tokens.every(
+    (t) => !PROIBIDO.test(t) || TECNICOS.some((re) => re.test(t)) || t.includes("-manu-"),
+  );
 }
 
 /** Retorna as strings de UI proibidas encontradas num fonte (exportada para o próprio teste). */
@@ -73,6 +77,12 @@ describe("scanner (função testada com fixtures — aceite §5.2)", () => {
     expect(varrerIdentidadeVazada("const j = <p>A Manu venceu!</p>;", "f.tsx")).toHaveLength(1);
     expect(varrerIdentidadeVazada('const s = "Bem-vinda!";', "f.tsx")).toHaveLength(1);
     expect(varrerIdentidadeVazada('const s = "Manuela";', "f.tsx")).toHaveLength(1);
+  });
+
+  test("mistura de técnico com nome solto É acusada (review PR #46)", () => {
+    expect(varrerIdentidadeVazada('const x = "/manu/icon.png Manuela";', "f.tsx")).toHaveLength(1);
+    expect(varrerIdentidadeVazada('const x = "manu-app-v20 Manu";', "f.tsx")).toHaveLength(1);
+    expect(varrerIdentidadeVazada('const x = "a-manu-b venceu Manu";', "f.tsx")).toHaveLength(1);
   });
 
   test("libera identificadores técnicos", () => {

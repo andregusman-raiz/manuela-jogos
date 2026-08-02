@@ -44,6 +44,10 @@ export function criarIdentidade(dados: DadosIdentidade): Identidade {
   if (nome.length > TAMANHO_MAXIMO || apelido.length > TAMANHO_MAXIMO) {
     throw new Error(`nome/apelido passam de ${TAMANHO_MAXIMO} caracteres`);
   }
+  if (!slugDe(apelido)) {
+    // apelido só de emoji/símbolos geraria "desenho-da-.png"
+    throw new Error("apelido precisa de ao menos uma letra ou número");
+  }
   const artigo = dados.genero;
   return {
     nome,
