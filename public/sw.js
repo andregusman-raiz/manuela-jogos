@@ -15,7 +15,7 @@
 
 // Subir esta versão APAGA os caches antigos no aparelho (ver "activate"). É o
 // que destrava um aparelho preso numa versão velha do app.
-const VERSAO = "v21";
+const VERSAO = "v22";
 const CACHE_APP = `manu-app-${VERSAO}`;
 const CACHE_ASSETS = `manu-assets-${VERSAO}`;
 
@@ -41,6 +41,12 @@ const CASCA = [
   "/lig4",
   "/mancala",
   "/rota",
+];
+
+// Figuras e ícones instalam DIRETO no cache de assets — é dele que a rota de
+// fetch os serve (review PR #48: no cache errado, o primeiro uso offline de
+// um perfil ainda não visitado quebrava a figura).
+const FIGURAS = [
   "/manifest.webmanifest",
   "/manu/manu-corpo.webp",
   "/manu/manu-avatar.webp",
@@ -54,8 +60,12 @@ self.addEventListener("install", (evento) => {
   evento.waitUntil(
     (async () => {
       const cache = await caches.open(CACHE_APP);
+      const assets = await caches.open(CACHE_ASSETS);
       // addAll falha inteiro se um item falhar; adicionamos um a um para que
       // um asset ausente não impeça a instalação do service worker.
+      await Promise.all(
+        FIGURAS.map((url) => assets.add(new Request(url, { cache: "reload" })).catch(() => {})),
+      );
       await Promise.all(
         CASCA.map((url) => cache.add(new Request(url, { cache: "reload" })).catch(() => {})),
       );

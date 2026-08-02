@@ -26,9 +26,17 @@ describe("registro de perfis", () => {
     for (const perfil of PERFIS) {
       for (const figura of [perfil.corpo, perfil.avatar]) {
         expect(existsSync(join(raiz, figura.src)), `${perfil.id}: ${figura.src}`).toBe(true);
-        expect(figura.largura).toBeGreaterThan(0);
-        expect(figura.altura).toBeGreaterThan(0);
       }
     }
+    // oráculo exato (review PR #48: >0 deixava dimensão errada passar)
+    expect(PERFIS[0].corpo).toMatchObject({ largura: 642, altura: 1244 });
+    expect(PERFIS[0].avatar).toMatchObject({ largura: 512, altura: 512 });
+    expect(PERFIS[1].corpo).toMatchObject({ largura: 808, altura: 1147 });
+    expect(PERFIS[1].avatar).toMatchObject({ largura: 512, altura: 512 });
+  });
+
+  test("compartilhar deriva do perfil ativo (Leo)", () => {
+    const leo = PERFIS[1].identidade;
+    expect(`desenho-${leo.genero === "a" ? "da" : "do"}-${leo.slug}.png`).toBe("desenho-do-leo.png");
   });
 });

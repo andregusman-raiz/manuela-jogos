@@ -51,8 +51,19 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
             (await cache.match("/lig4")) &&
             (await cache.match("/mancala")) &&
             (await cache.match("/rota"))
-          )
-            return { controlado, precache: true };
+          ) {
+            // figuras dos perfis vivem no cache de ASSETS (review PR #48)
+            const nomesAssets = (await caches.keys()).filter((n) => n.startsWith("manu-assets-"));
+            if (nomesAssets.length) {
+              const assets = await caches.open(nomesAssets[0]);
+              if (
+                (await assets.match("/manu/manu-corpo.webp")) &&
+                (await assets.match("/leo/leo-corpo.webp")) &&
+                (await assets.match("/leo/leo-avatar.webp"))
+              )
+                return { controlado, precache: true };
+            }
+          }
         }
         await new Promise((r) => setTimeout(r, 100));
       }
