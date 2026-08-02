@@ -20,6 +20,7 @@ const TECNICOS = [
   /^manu$/, // discriminante de modo de jogo (valor interno)
   /^manu:/, // chaves localStorage do app ("manu:mudo", "manu:descobriu-mais")
   /^manu-$/, // prefixo de key React em template (`manu-${…}`)
+  /^manuela$/, // id do perfil default em lib/perfis.ts (valor de storage, não UI)
 ];
 
 function tecnico(texto: string): boolean {
