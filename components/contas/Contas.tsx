@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
 import { Icone } from "@/components/ui-kids/Icone";
-import { Manu } from "@/components/ui-kids/Manu";
+import { Mascote } from "@/components/ui-kids/Mascote";
 import { lerProgresso, salvarProgresso } from "@/lib/armazenamento";
 import {
   ACERTOS_POR_FASE,
@@ -127,7 +127,7 @@ export function Contas() {
           onPointerDown={() => feedback("toque")}
           className="bolha h-14 min-h-14 w-14 min-w-14 overflow-hidden bg-manu-rosa/40 ring-2 ring-manu-rosa"
         >
-          <Manu pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
+          <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
         <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">Foguete das Contas</h1>
         {estado ? (
@@ -190,7 +190,7 @@ export function Contas() {
 
         {estado?.fase === "fase-completa" ? (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-manu-nuvem/95 px-4">
-            <Manu pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
+            <Mascote pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
             <p className="text-center font-titulo text-3xl text-manu-cacau">Você acertou tudo!</p>
             <div className="flex flex-wrap justify-center gap-4">
               <BotaoBolha rotulo="jogar de novo" tamanho="xl" onClick={jogarDeNovo}>

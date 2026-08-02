@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { IDENTIDADE, aMascote, comAMascote } from "@/lib/identidade";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
 import { Icone } from "@/components/ui-kids/Icone";
-import { Manu } from "@/components/ui-kids/Manu";
+import { Mascote } from "@/components/ui-kids/Mascote";
 import { lerProgresso, salvarProgresso } from "@/lib/armazenamento";
 import { criarSorte, sementeInicial } from "@/lib/dado";
 import {
@@ -100,7 +101,7 @@ export function Lig4() {
           onPointerDown={() => feedback("toque")}
           className="bolha h-14 min-h-14 w-14 min-w-14 overflow-hidden bg-manu-rosa/40 ring-2 ring-manu-rosa"
         >
-          <Manu pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
+          <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
         <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">Lig-4</h1>
         {modo === "manu" ? (
@@ -125,20 +126,20 @@ export function Lig4() {
 
       {!estado ? (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-4">
-          <Manu pose="corpo" tamanho={140} className="h-32 w-auto drop-shadow-md" />
+          <Mascote pose="corpo" tamanho={140} className="h-32 w-auto drop-shadow-md" />
           <p className="text-center font-titulo text-2xl text-manu-cacau">Jogar com quem?</p>
           <div className="flex flex-wrap justify-center gap-4">
             <BotaoBolha rotulo="jogar com alguém" tamanho="xl" onClick={() => comecar("2p")}>
               <span className="px-3 font-titulo text-xl">Com alguém</span>
             </BotaoBolha>
             <BotaoBolha
-              rotulo="jogar com a Manu"
+              rotulo={`jogar ${comAMascote()}`}
               tamanho="xl"
               efeito="abrir"
               onClick={() => comecar("manu")}
               className="bg-manu-sol"
             >
-              <span className="px-3 font-titulo text-xl">Com a Manu</span>
+              <span className="px-3 font-titulo text-xl">{`Com ${aMascote()}`}</span>
             </BotaoBolha>
           </div>
           {nivelMax === 2 ? (
@@ -181,7 +182,7 @@ export function Lig4() {
                 ? modo === "manu"
                   ? estado.vez === 0
                     ? "Sua vez!"
-                    : "Manu pensando…"
+                    : `${IDENTIDADE.apelido} pensando…`
                   : `Vez: ${NOMES[estado.vez]}`
                 : "Fim!"}
             </span>
@@ -231,7 +232,7 @@ export function Lig4() {
 
       {estado?.situacao === "fim" ? (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-manu-nuvem/95 px-4">
-          <Manu
+          <Mascote
             pose={modo === "manu" && estado.vencedor === 1 ? "rosto" : "comemorando"}
             tamanho={150}
             className="h-36 w-auto drop-shadow-md"
@@ -242,7 +243,7 @@ export function Lig4() {
               : modo === "manu"
                 ? estado.vencedor === 0
                   ? "Você venceu!"
-                  : "A Manu venceu! Tente de novo"
+                  : `${aMascote().charAt(0).toUpperCase() + aMascote().slice(1)} venceu! Tente de novo`
                 : `${NOMES[estado.vencedor]} venceu!`}
           </p>
           <div className="flex flex-wrap justify-center gap-4">

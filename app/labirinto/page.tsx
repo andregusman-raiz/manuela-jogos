@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { daMascote } from "@/lib/identidade";
 import { Labirinto } from "@/components/labirinto/Labirinto";
 
 export const metadata: Metadata = {
-  title: "Labirinto da Manu",
+  title: `Labirinto ${daMascote()}`,
 };
 
 export default function PaginaLabirinto() {

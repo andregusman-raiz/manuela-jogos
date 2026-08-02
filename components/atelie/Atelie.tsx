@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { daMascote } from "@/lib/identidade";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { TelaDesenho } from "./TelaDesenho";
 import { BarraCores, GradeCoresExtras } from "./BarraCores";
@@ -11,7 +12,7 @@ import { Galeria } from "./Galeria";
 import { Bandeja } from "@/components/ui-kids/Bandeja";
 import { BotaoSegurar } from "@/components/ui-kids/BotaoSegurar";
 import { Confete } from "@/components/ui-kids/Confete";
-import { Manu } from "@/components/ui-kids/Manu";
+import { Mascote } from "@/components/ui-kids/Mascote";
 import { PortaoParental } from "@/components/ui-kids/PortaoParental";
 import { Icone } from "@/components/ui-kids/Icone";
 import { Motor, carregarImagem, renderizarDesenhoPNG } from "@/lib/desenho/motor";
@@ -392,10 +393,10 @@ export function Atelie() {
           onPointerDown={() => feedback("toque")}
           className="bolha h-14 min-h-14 w-14 min-w-14 overflow-hidden bg-manu-rosa/40 ring-2 ring-manu-rosa"
         >
-          <Manu pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
+          <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
 
-        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">Ateliê da Manu</h1>
+        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Ateliê ${daMascote()}`}</h1>
 
         <div className="ml-auto flex items-center gap-2">
           <button

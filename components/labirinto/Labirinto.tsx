@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { IDENTIDADE, daMascote } from "@/lib/identidade";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
 import { Icone } from "@/components/ui-kids/Icone";
-import { Manu } from "@/components/ui-kids/Manu";
+import { Mascote } from "@/components/ui-kids/Mascote";
 import { lerProgresso, salvarProgresso } from "@/lib/armazenamento";
 import { FASES } from "@/lib/labirinto/dados";
 import { FILA_MAXIMA, executar, posicaoInicial } from "@/lib/labirinto/motor";
@@ -128,9 +129,9 @@ export function Labirinto() {
           onPointerDown={() => feedback("toque")}
           className="bolha h-14 min-h-14 w-14 min-w-14 overflow-hidden bg-manu-rosa/40 ring-2 ring-manu-rosa"
         >
-          <Manu pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
+          <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
-        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">Labirinto da Manu</h1>
+        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Labirinto ${daMascote()}`}</h1>
         {faseIndice !== null ? (
           <span className="rounded-full bg-manu-grama px-3 py-1 font-titulo text-sm text-manu-cacau">
             Fase {faseIndice + 1}
@@ -182,12 +183,12 @@ export function Labirinto() {
                           key={`manu-${negacao}`}
                           data-pos={`${x},${y}`}
                           data-direcao={posicao.direcao}
-                          aria-label={`Manu olhando para ${posicao.direcao}`}
+                          aria-label={`${IDENTIDADE.apelido} olhando para ${posicao.direcao}`}
                           className={`relative flex h-full w-full items-center justify-center ${
                             negacao > 0 ? "anima-nao" : ""
                           }`}
                         >
-                          <Manu pose="rosto" tamanho={48} className="h-3/4 w-3/4 object-contain" />
+                          <Mascote pose="rosto" tamanho={48} className="h-3/4 w-3/4 object-contain" />
                           <span
                             aria-hidden
                             className={`absolute font-titulo text-lg leading-none text-manu-rosa-forte drop-shadow-sm ${SETA_DIRECAO[posicao.direcao]}`}

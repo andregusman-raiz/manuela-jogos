@@ -55,7 +55,7 @@ test("fluxo feliz: do card do hub às 6 rodadas caçadas, confete", async ({ pag
 
   for (let i = 0; i < 6; i++) await cacarRodada(page, i);
 
-  await expect(page.getByText("Caçador de números!")).toBeVisible();
+  await expect(page.getByText("Caçadora de números!")).toBeVisible();
   await expect(page.locator("canvas[data-ativo='true']")).toBeAttached();
 
   await tocarNoElemento(page.getByLabel("voltar para os jogos"));

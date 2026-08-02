@@ -1,3 +1,5 @@
+import { IDENTIDADE, daMascote, flexionar } from "./identidade";
+
 /**
  * Sair do aparelho é a ÚNICA coisa que passa pelo portão parental. Aqui só
  * acontece a mecânica: PNG -> arquivo -> menu de compartilhar do sistema
@@ -7,7 +9,7 @@ export type ResultadoCompartilhar = "compartilhado" | "baixado" | "cancelado" | 
 
 export async function compartilharPng(
   dataUrl: string,
-  nomeArquivo = "desenho-da-manu.png",
+  nomeArquivo = `desenho-${flexionar("do", "da")}-${IDENTIDADE.slug}.png`,
 ): Promise<ResultadoCompartilhar> {
   try {
     const blob = await (await fetch(dataUrl)).blob();
@@ -15,7 +17,7 @@ export async function compartilharPng(
 
     if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [arquivo] })) {
       try {
-        await navigator.share({ files: [arquivo], title: "Desenho da Manu" });
+        await navigator.share({ files: [arquivo], title: `Desenho ${daMascote()}` });
         return "compartilhado";
       } catch (erro) {
         // usuário fechou a folha de compartilhamento: não é erro

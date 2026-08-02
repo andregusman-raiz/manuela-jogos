@@ -66,7 +66,7 @@ test("fluxo feliz: do card do hub aos 8 acertos de leitura, confete", async ({ p
 
   for (let i = 0; i < 8; i++) await acertarLer(page, i);
 
-  await expect(page.getByText("Mestre das pizzas!")).toBeVisible();
+  await expect(page.getByText("Mestra das pizzas!")).toBeVisible();
   await expect(page.locator("canvas[data-ativo='true']")).toBeAttached();
 
   await tocarNoElemento(page.getByLabel("voltar para os jogos"));
