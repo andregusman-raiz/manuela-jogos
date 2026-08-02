@@ -12,6 +12,17 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     baseURL: "http://localhost:3006",
+    // jogador pré-escolhido: os specs testam o app JOGANDO; a tela de escolha
+    // tem spec próprio (jogador.spec.ts) que limpa esta chave
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: "http://localhost:3006",
+          localStorage: [{ name: "manu:jogador", value: "manuela" }],
+        },
+      ],
+    },
   },
   projects: [
     {

@@ -234,3 +234,9 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* gate de jogador: primeira visita esconde o hub SSR até a hidratação montar
+   a tela de escolha (GradeJogos remove o atributo ao assumir) */
+html[data-sem-jogador] main[data-hub] > *:not(script) {
+  visibility: hidden;
+}

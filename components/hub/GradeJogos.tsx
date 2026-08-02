@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { CardJogo } from "@/components/hub/CardJogo";
+import { EscolhaJogador } from "@/components/hub/EscolhaJogador";
 import { JOGOS } from "@/lib/jogos";
+import { assinarJogador, jogadorNoServidor, lerJogador, limparJogador } from "@/lib/perfis";
 import { assinarOcultos, lerOcultos, ocultosNoServidor, salvarOcultos } from "@/lib/preferencias";
 import { feedback, tocar } from "@/lib/som";
 
@@ -15,8 +17,16 @@ export function GradeJogos() {
   // SSR renderiza a grade completa (snapshot do servidor = nada oculto);
   // o filtro real entra na hidratação — padrão do mudo em lib/som.ts
   const escondidos = useSyncExternalStore(assinarOcultos, lerOcultos, ocultosNoServidor);
+  // SSR assume jogador escolhido (o caso comum); primeira visita mostra a
+  // tela "Quem vai jogar?" na hidratação
+  const jogador = useSyncExternalStore(assinarJogador, lerJogador, jogadorNoServidor);
   const [configurando, setConfigurando] = useState(false);
   const [negada, setNegada] = useState(0);
+
+  // hidratou: o React assume o gate — o véu anti-FOUC do SSR sai de cena
+  useEffect(() => {
+    document.documentElement.removeAttribute("data-sem-jogador");
+  }, []);
 
   useEffect(() => {
     if (!negada) return;
@@ -37,6 +47,8 @@ export function GradeJogos() {
     feedback("toque");
     salvarOcultos(escondendo ? [...escondidos, id] : escondidos.filter((o) => o !== id));
   }
+
+  if (jogador === null) return <EscolhaJogador />;
 
   return (
     <>
@@ -109,18 +121,33 @@ export function GradeJogos() {
               );
             })}
           </div>
-          <button
-            type="button"
-            autoFocus
-            aria-label="pronto, fechar as configurações"
-            onClick={() => {
-              feedback("abrir");
-              setConfigurando(false);
-            }}
-            className="bolha mx-auto mt-3 min-h-14 shrink-0 bg-manu-sol px-8 font-titulo text-xl ring-2 ring-manu-sol-forte"
-          >
-            Pronto
-          </button>
+          <div className="mx-auto mt-3 flex shrink-0 items-center gap-3">
+            <button
+              type="button"
+              aria-label="trocar quem está jogando"
+              data-trocar-jogador="true"
+              onClick={() => {
+                feedback("toque");
+                setConfigurando(false);
+                limparJogador();
+              }}
+              className="bolha min-h-14 bg-manu-papel px-5 font-titulo text-lg ring-2 ring-manu-cacau/10"
+            >
+              Trocar jogador
+            </button>
+            <button
+              type="button"
+              autoFocus
+              aria-label="pronto, fechar as configurações"
+              onClick={() => {
+                feedback("abrir");
+                setConfigurando(false);
+              }}
+              className="bolha min-h-14 bg-manu-sol px-8 font-titulo text-xl ring-2 ring-manu-sol-forte"
+            >
+              Pronto
+            </button>
+          </div>
         </div>
       ) : null}
     </>

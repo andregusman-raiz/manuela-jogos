@@ -49,6 +49,7 @@ test("três formatos: a dobra segura os 5 cards em tablet e desktop também", as
   ];
   for (const formato of formatos) {
     const contexto = await browser.newContext({ viewport: formato.viewport });
+    await contexto.addInitScript(() => localStorage.setItem("manu:jogador", "manuela"));
     const pagina = await contexto.newPage();
     await pagina.goto("/");
     for (const jogo of JOGOS) {

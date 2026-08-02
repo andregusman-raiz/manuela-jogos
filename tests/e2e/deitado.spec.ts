@@ -45,6 +45,8 @@ async function caixas(page: Page, seletor: string): Promise<Caixa[]> {
 
 async function novaPagina(browser: import("@playwright/test").Browser, largura = 844, altura = 390) {
   const contexto = await browser.newContext({ viewport: { width: largura, height: altura } });
+  // jogador pré-escolhido: a tela "Quem vai jogar?" tem spec próprio
+  await contexto.addInitScript(() => localStorage.setItem("manu:jogador", "manuela"));
   return { contexto, page: await contexto.newPage() };
 }
 
