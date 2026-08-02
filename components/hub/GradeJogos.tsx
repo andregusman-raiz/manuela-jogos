@@ -65,7 +65,12 @@ export function GradeJogos() {
       </div>
 
       {configurando ? (
-        <div className="fixed inset-0 z-20 flex flex-col bg-manu-nuvem px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="escolher os jogos da tela inicial"
+          className="fixed inset-0 z-20 flex flex-col bg-manu-nuvem px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
+        >
           <h2 className="shrink-0 py-2 text-center font-titulo text-2xl text-manu-cacau">
             Quais jogos aparecem?
           </h2>
@@ -106,6 +111,7 @@ export function GradeJogos() {
           </div>
           <button
             type="button"
+            autoFocus
             aria-label="pronto, fechar as configurações"
             onClick={() => {
               feedback("abrir");

@@ -23,9 +23,12 @@ export function lerOcultos(): string[] {
   try {
     const bruto: unknown = JSON.parse(localStorage.getItem(CHAVE) ?? "[]");
     const validos = new Set(JOGOS.map((j) => j.id));
-    cache = Array.isArray(bruto)
+    const filtrados = Array.isArray(bruto)
       ? bruto.filter((id): id is string => typeof id === "string" && validos.has(id))
       : [];
+    // storage adulterado com TODOS ocultos não deixa o hub vazio: libera o 1º
+    cache =
+      filtrados.length >= JOGOS.length ? filtrados.filter((id) => id !== JOGOS[0].id) : filtrados;
   } catch {
     cache = [];
   }
@@ -33,10 +36,15 @@ export function lerOcultos(): string[] {
 }
 
 export function salvarOcultos(ids: string[]): void {
-  if (typeof localStorage === "undefined") return;
-  localStorage.setItem(CHAVE, JSON.stringify(ids));
+  // memória e assinantes atualizam SEMPRE (padrão do lib/som.ts): uma falha
+  // de persistência (quota, modo privado) não pode congelar o seletor
   cache = ids;
   for (const avisar of ouvintes) avisar();
+  try {
+    localStorage.setItem(CHAVE, JSON.stringify(ids));
+  } catch {
+    // sem persistência a escolha vale só para a sessão — melhor que travar
+  }
 }
 
 export function assinarOcultos(avisar: () => void): () => void {

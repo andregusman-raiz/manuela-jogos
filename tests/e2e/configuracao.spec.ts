@@ -34,9 +34,12 @@ test("esconder um jogo tira do hub, persiste no reload e volta ao mostrar", asyn
   await expect(page.getByLabel("Ludo da Manu", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Damas", { exact: true })).toHaveCount(0);
 
-  // nada foi apagado: a rota segue acessível por link direto
+  // nada foi apagado: a rota segue acessível E é o jogo de verdade
+  // (review PR #44: `main` genérico passaria num redirect errado) — o Damas
+  // abre no gate de regras; entrar prova o chunk vivo até o tabuleiro
   await page.goto("/damas");
-  await expect(page.getByLabel("2 jogadores").or(page.locator("main"))).toBeVisible();
+  await tocarNoElemento(page.getByLabel("começar a partida"));
+  await expect(page.locator("[data-casa='0-0']")).toBeAttached();
 
   // e volta
   await page.goto("/");
@@ -94,6 +97,12 @@ test("com poucos jogos visíveis os cards continuam na dobra e sem sobreposiçã
       expect(sobrepoe, `${p.nome} sobrepõe ${q.nome}`).toBe(false);
     }
   }
+  // proporção sadia (review PR #44: sem teto, os cards viravam torres de
+  // centenas de px quando poucos jogos ficam visíveis)
+  for (const caixa of caixas) {
+    expect(caixa.height, `${caixa.nome} virou torre`).toBeLessThanOrEqual(240);
+    expect(caixa.height, `${caixa.nome} esmagado`).toBeGreaterThanOrEqual(96);
+  }
 });
 
 test("lixo no localStorage não quebra o hub (ids inválidos são descartados)", async ({ page }) => {
@@ -106,5 +115,19 @@ test("lixo no localStorage não quebra o hub (ids inválidos são descartados)",
   await page.reload();
   // só o id válido é aplicado; o resto é ignorado sem crash
   await expect(page.getByLabel("Damas", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Ateliê da Manu", { exact: true })).toBeVisible();
+
+  // raiz não-array também não derruba nada
+  await page.evaluate(() => {
+    localStorage.setItem("manu-jogos-ocultos", JSON.stringify({ damas: true }));
+  });
+  await page.reload();
+  await expect(page.getByLabel("Damas", { exact: true })).toBeVisible();
+
+  // TODOS ocultos por adulteração → o hub libera o primeiro jogo sozinho
+  await page.evaluate((ids) => {
+    localStorage.setItem("manu-jogos-ocultos", JSON.stringify(ids));
+  }, JOGOS.map((j) => j.id));
+  await page.reload();
   await expect(page.getByLabel("Ateliê da Manu", { exact: true })).toBeVisible();
 });

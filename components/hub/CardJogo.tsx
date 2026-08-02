@@ -25,7 +25,9 @@ export function CardJogo({ jogo }: { jogo: Jogo }) {
 
   // Compacto no celular: com 5 jogos, TODOS os cards precisam caber na dobra —
   // criança não procura conteúdo escondido atrás de scroll.
-  const classes = `flex h-full min-h-24 flex-col items-center justify-center gap-1 rounded-[1.25rem] p-1.5 text-center shadow-[0_5px_0_0_rgba(0,0,0,0.12)] transition-transform active:translate-y-1 active:scale-[0.98] sm:min-h-36 sm:gap-2 sm:p-3 ${jogo.cor}`;
+  // max-h-56 + self-center: com POUCOS jogos visíveis (config), as linhas fr
+  // ficam gigantes — o card trava em 224px centrado em vez de virar uma torre
+  const classes = `flex h-full max-h-56 min-h-24 flex-col items-center justify-center gap-1 self-center rounded-[1.25rem] p-1.5 text-center shadow-[0_5px_0_0_rgba(0,0,0,0.12)] transition-transform active:translate-y-1 active:scale-[0.98] sm:min-h-36 sm:gap-2 sm:p-3 ${jogo.cor}`;
 
   if (!jogo.disponivel) {
     return (
