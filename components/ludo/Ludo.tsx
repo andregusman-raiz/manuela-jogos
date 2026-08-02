@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { daMascote } from "@/lib/identidade";
+import { useIdentidade } from "@/lib/usePerfil";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
@@ -64,6 +65,7 @@ function posicaoPeao(estado: EstadoLudo, indice: number): [number, number] {
 }
 
 export function Ludo() {
+  const identidade = useIdentidade();
   const [estado, setEstado] = useState<EstadoLudo | null>(null);
   const [nivelMax, setNivelMax] = useState<NivelLudo>(1);
   const [nivelEscolhido, setNivelEscolhido] = useState<NivelLudo>(1);
@@ -184,7 +186,7 @@ export function Ludo() {
         >
           <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
-        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Ludo ${daMascote()}`}</h1>
+        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Ludo ${daMascote(identidade)}`}</h1>
         {estado ? (
           <span className="rounded-full bg-manu-rosa/40 px-3 py-1 font-titulo text-sm text-manu-cacau">
             Nível {estado.nivel}

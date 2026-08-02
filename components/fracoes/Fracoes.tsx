@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { flexionar } from "@/lib/identidade";
+import { useIdentidade } from "@/lib/usePerfil";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
@@ -75,6 +76,7 @@ function Pizza({
 }
 
 export function Fracoes() {
+  const identidade = useIdentidade();
   const [nivel, setNivel] = useState<NivelFracoes | null>(null);
   const [rodada, setRodada] = useState<RodadaFracoes | null>(null);
   const [acertos, setAcertos] = useState(0);
@@ -259,7 +261,7 @@ export function Fracoes() {
         {completa && nivel !== null ? (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-manu-nuvem/95 px-4">
             <Mascote pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
-            <p className="text-center font-titulo text-3xl text-manu-cacau">{`${flexionar("Mestre", "Mestra")} das pizzas!`}</p>
+            <p className="text-center font-titulo text-3xl text-manu-cacau">{`${flexionar("Mestre", "Mestra", identidade)} das pizzas!`}</p>
             <div className="flex flex-wrap justify-center gap-4">
               <BotaoBolha rotulo="jogar de novo" tamanho="xl" onClick={() => novaFase(nivel)}>
                 <span className="px-3 font-titulo text-2xl">De novo</span>

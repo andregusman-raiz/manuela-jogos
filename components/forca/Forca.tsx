@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { daMascote } from "@/lib/identidade";
+import { useIdentidade } from "@/lib/usePerfil";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
@@ -29,6 +30,7 @@ const TECLADO = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
  * (casamento por letra-base NFD). Fase fecha em 6 palavras, ganhas ou não.
  */
 export function Forca() {
+  const identidade = useIdentidade();
   const [estado, setEstado] = useState<EstadoForca | null>(null);
   const seed = useRef(1);
   const mudo = useSyncExternalStore(assinarMudo, estaMudo, mudoNoServidor);
@@ -90,7 +92,7 @@ export function Forca() {
         >
           <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
-        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Forca ${daMascote()}`}</h1>
+        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Forca ${daMascote(identidade)}`}</h1>
         {estado ? (
           <span className="rounded-full bg-manu-ceu-claro px-3 py-1 font-titulo text-sm text-manu-cacau">
             Nível {estado.nivel}

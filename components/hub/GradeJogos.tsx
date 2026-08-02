@@ -3,8 +3,9 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { CardJogo } from "@/components/hub/CardJogo";
 import { EscolhaJogador } from "@/components/hub/EscolhaJogador";
-import { JOGOS } from "@/lib/jogos";
+import { criarJogos } from "@/lib/jogos";
 import { assinarJogador, jogadorNoServidor, lerJogador, limparJogador } from "@/lib/perfis";
+import { useIdentidade } from "@/lib/usePerfil";
 import { assinarOcultos, lerOcultos, ocultosNoServidor, salvarOcultos } from "@/lib/preferencias";
 import { feedback, tocar } from "@/lib/som";
 
@@ -20,6 +21,8 @@ export function GradeJogos() {
   // SSR assume jogador escolhido (o caso comum); primeira visita mostra a
   // tela "Quem vai jogar?" na hidratação
   const jogador = useSyncExternalStore(assinarJogador, lerJogador, jogadorNoServidor);
+  const identidade = useIdentidade();
+  const jogos = criarJogos(identidade);
   const [configurando, setConfigurando] = useState(false);
   const [negada, setNegada] = useState(0);
 
@@ -34,7 +37,7 @@ export function GradeJogos() {
     return () => clearTimeout(t);
   }, [negada]);
 
-  const visiveis = JOGOS.filter((jogo) => !escondidos.includes(jogo.id));
+  const visiveis = jogos.filter((jogo) => !escondidos.includes(jogo.id));
 
   function alternar(id: string) {
     const escondendo = !escondidos.includes(id);
@@ -95,7 +98,7 @@ export function GradeJogos() {
               negada ? "anima-nao" : ""
             }`}
           >
-            {JOGOS.map((jogo) => {
+            {jogos.map((jogo) => {
               const visivel = !escondidos.includes(jogo.id);
               return (
                 <button

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { IDENTIDADE, aMascote, comAMascote } from "@/lib/identidade";
+import { aMascote, comAMascote } from "@/lib/identidade";
+import { useIdentidade } from "@/lib/usePerfil";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
@@ -27,6 +28,7 @@ const DISTRACAO: Record<NivelLig4, number> = { 1: 0.3, 2: 0.1 };
 const NOMES = ["Rosa", "Azul"] as const;
 
 export function Lig4() {
+  const identidade = useIdentidade();
   const [modo, setModo] = useState<Modo | null>(null);
   const [estado, setEstado] = useState<EstadoLig4 | null>(null);
   const [nivelMax, setNivelMax] = useState<NivelLig4>(1);
@@ -133,13 +135,13 @@ export function Lig4() {
               <span className="px-3 font-titulo text-xl">Com alguém</span>
             </BotaoBolha>
             <BotaoBolha
-              rotulo={`jogar ${comAMascote()}`}
+              rotulo={`jogar ${comAMascote(identidade)}`}
               tamanho="xl"
               efeito="abrir"
               onClick={() => comecar("manu")}
               className="bg-manu-sol"
             >
-              <span className="px-3 font-titulo text-xl">{`Com ${aMascote()}`}</span>
+              <span className="px-3 font-titulo text-xl">{`Com ${aMascote(identidade)}`}</span>
             </BotaoBolha>
           </div>
           {nivelMax === 2 ? (
@@ -182,7 +184,7 @@ export function Lig4() {
                 ? modo === "manu"
                   ? estado.vez === 0
                     ? "Sua vez!"
-                    : `${IDENTIDADE.apelido} pensando…`
+                    : `${identidade.apelido} pensando…`
                   : `Vez: ${NOMES[estado.vez]}`
                 : "Fim!"}
             </span>
@@ -243,7 +245,7 @@ export function Lig4() {
               : modo === "manu"
                 ? estado.vencedor === 0
                   ? "Você venceu!"
-                  : `${aMascote().charAt(0).toUpperCase() + aMascote().slice(1)} venceu! Tente de novo`
+                  : `${aMascote(identidade).charAt(0).toUpperCase() + aMascote(identidade).slice(1)} venceu! Tente de novo`
                 : `${NOMES[estado.vencedor]} venceu!`}
           </p>
           <div className="flex flex-wrap justify-center gap-4">

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { IDENTIDADE, aMascote, comAMascote } from "@/lib/identidade";
+import { aMascote, comAMascote } from "@/lib/identidade";
+import { useIdentidade } from "@/lib/usePerfil";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
@@ -35,6 +36,7 @@ function centroDaCasa(casa: number): [number, number] {
 }
 
 export function Rota() {
+  const identidade = useIdentidade();
   const [modo, setModo] = useState<ModoRota | null>(null);
   const [estado, setEstado] = useState<EstadoRota | null>(null);
   const [selecionada, setSelecionada] = useState<number | null>(null);
@@ -143,13 +145,13 @@ export function Rota() {
               <span className="px-3 font-titulo text-xl">Com alguém</span>
             </BotaoBolha>
             <BotaoBolha
-              rotulo={`jogar ${comAMascote()}`}
+              rotulo={`jogar ${comAMascote(identidade)}`}
               tamanho="xl"
               efeito="abrir"
               onClick={() => comecar("manu")}
               className="bg-manu-sol"
             >
-              <span className="px-3 font-titulo text-xl">{`Com ${aMascote()}`}</span>
+              <span className="px-3 font-titulo text-xl">{`Com ${aMascote(identidade)}`}</span>
             </BotaoBolha>
           </div>
         </div>
@@ -170,7 +172,7 @@ export function Rota() {
                   ? colocando
                     ? "Coloque uma peça rosa"
                     : "Mova uma peça rosa"
-                  : `${IDENTIDADE.apelido} pensando…`
+                  : `${identidade.apelido} pensando…`
                 : `Vez: ${NOMES[estado.vez]} — ${colocando ? "colocar" : "mover"}`}
           </div>
 
@@ -233,7 +235,7 @@ export function Rota() {
               : modo === "manu"
                 ? estado.vencedor === 0
                   ? "Você venceu!"
-                  : `${aMascote().charAt(0).toUpperCase() + aMascote().slice(1)} venceu! Tente de novo`
+                  : `${aMascote(identidade).charAt(0).toUpperCase() + aMascote(identidade).slice(1)} venceu! Tente de novo`
                 : `${NOMES[estado.vencedor!]} venceu!`}
           </p>
           <div className="flex flex-wrap justify-center gap-4">

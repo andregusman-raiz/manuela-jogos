@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { daMascote } from "@/lib/identidade";
+import { useIdentidade } from "@/lib/usePerfil";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
@@ -49,6 +50,7 @@ function pontos(peca: NomePeca, pose: Pose): string {
  * letterbox; o snap (16px lógicos + rotação modular) vive no motor.
  */
 export function Tangram() {
+  const identidade = useIdentidade();
   const [indice, setIndice] = useState<number | null>(null);
   const [poses, setPoses] = useState<Record<NomePeca, Pose>>(posesIniciais);
   const [encaixadas, setEncaixadas] = useState<NomePeca[]>([]);
@@ -176,7 +178,7 @@ export function Tangram() {
         >
           <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
-        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Tangram ${daMascote()}`}</h1>
+        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Tangram ${daMascote(identidade)}`}</h1>
         {indice !== null ? (
           <span className="rounded-full bg-manu-ceu-claro px-3 py-1 font-titulo text-sm text-manu-cacau">
             {indice + 1} de {SILHUETAS.length}

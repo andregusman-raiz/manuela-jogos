@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { flexionar } from "@/lib/identidade";
+import { useIdentidade } from "@/lib/usePerfil";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
@@ -24,6 +25,7 @@ import { assinarMudo, definirMudo, estaMudo, feedback, mudoNoServidor, tocar } f
  * os certos foram achados.
  */
 export function Caca() {
+  const identidade = useIdentidade();
   const [nivel, setNivel] = useState<NivelCaca | null>(null);
   const [rodada, setRodada] = useState<RodadaCaca | null>(null);
   const [achados, setAchados] = useState<number[]>([]);
@@ -186,7 +188,7 @@ export function Caca() {
         {completa && nivel !== null ? (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-manu-nuvem/95 px-4">
             <Mascote pose="comemorando" tamanho={150} className="h-36 w-auto drop-shadow-md" />
-            <p className="text-center font-titulo text-3xl text-manu-cacau">{`${flexionar("Caçador", "Caçadora")} de números!`}</p>
+            <p className="text-center font-titulo text-3xl text-manu-cacau">{`${flexionar("Caçador", "Caçadora", identidade)} de números!`}</p>
             <div className="flex flex-wrap justify-center gap-4">
               <BotaoBolha rotulo="jogar de novo" tamanho="xl" onClick={() => novaFase(nivel)}>
                 <span className="px-3 font-titulo text-2xl">De novo</span>

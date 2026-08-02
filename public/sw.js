@@ -15,7 +15,7 @@
 
 // Subir esta versão APAGA os caches antigos no aparelho (ver "activate"). É o
 // que destrava um aparelho preso numa versão velha do app.
-const VERSAO = "v20";
+const VERSAO = "v21";
 const CACHE_APP = `manu-app-${VERSAO}`;
 const CACHE_ASSETS = `manu-assets-${VERSAO}`;
 
@@ -44,6 +44,8 @@ const CASCA = [
   "/manifest.webmanifest",
   "/manu/manu-corpo.webp",
   "/manu/manu-avatar.webp",
+  "/leo/leo-corpo.webp",
+  "/leo/leo-avatar.webp",
   "/manu/icon-192.png",
   "/manu/icon-512.png",
 ];
@@ -138,6 +140,7 @@ self.addEventListener("fetch", (evento) => {
 
   if (
     url.pathname.startsWith("/manu/") ||
+    url.pathname.startsWith("/leo/") ||
     url.pathname.startsWith("/colorir/") ||
     url.pathname.startsWith("/colorir-img/") ||
     url.pathname === "/manifest.webmanifest"

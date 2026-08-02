@@ -1,4 +1,5 @@
-import { IDENTIDADE, daMascote, flexionar } from "./identidade";
+import { daMascote, flexionar } from "./identidade";
+import { perfilAtivo } from "./perfis";
 
 /**
  * Sair do aparelho é a ÚNICA coisa que passa pelo portão parental. Aqui só
@@ -9,15 +10,17 @@ export type ResultadoCompartilhar = "compartilhado" | "baixado" | "cancelado" | 
 
 export async function compartilharPng(
   dataUrl: string,
-  nomeArquivo = `desenho-${flexionar("do", "da")}-${IDENTIDADE.slug}.png`,
+  nomeArquivo?: string,
 ): Promise<ResultadoCompartilhar> {
+  const identidade = perfilAtivo().identidade;
+  nomeArquivo ??= `desenho-${flexionar("do", "da", identidade)}-${identidade.slug}.png`;
   try {
     const blob = await (await fetch(dataUrl)).blob();
     const arquivo = new File([blob], nomeArquivo, { type: "image/png" });
 
     if (typeof navigator !== "undefined" && navigator.canShare?.({ files: [arquivo] })) {
       try {
-        await navigator.share({ files: [arquivo], title: `Desenho ${daMascote()}` });
+        await navigator.share({ files: [arquivo], title: `Desenho ${daMascote(identidade)}` });
         return "compartilhado";
       } catch (erro) {
         // usuário fechou a folha de compartilhamento: não é erro
