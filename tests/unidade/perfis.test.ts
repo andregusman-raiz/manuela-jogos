@@ -5,12 +5,20 @@ import { criarJogos } from "@/lib/jogos";
 import { PERFIS } from "@/lib/perfis";
 
 describe("registro de perfis", () => {
-  test("2 perfis com ids únicos e identidades derivadas", () => {
-    expect(PERFIS.map((p) => p.id)).toEqual(["manuela", "leo"]);
+  test("3 perfis com ids únicos e identidades derivadas", () => {
+    expect(PERFIS.map((p) => p.id)).toEqual(["manuela", "leo", "gustavo"]);
     const leo = PERFIS[1];
     expect(leo.identidade.tituloApp).toBe("Leo Jogos");
     expect(leo.identidade.genero).toBe("o");
     expect(leo.identidade.slug).toBe("leo");
+  });
+
+  test("Gustavo: identidade derivada e catálogo flexionado", () => {
+    const gustavo = PERFIS[2];
+    expect(gustavo.identidade.tituloApp).toBe("Gustavo Jogos");
+    expect(gustavo.identidade.slug).toBe("gustavo");
+    const nomes = criarJogos(gustavo.identidade).map((j) => j.nome);
+    expect(nomes).toContain("Ateliê do Gustavo");
   });
 
   test("catálogo flexiona para o Leo", () => {
@@ -33,6 +41,16 @@ describe("registro de perfis", () => {
     expect(PERFIS[0].avatar).toMatchObject({ largura: 512, altura: 512 });
     expect(PERFIS[1].corpo).toMatchObject({ largura: 808, altura: 1147 });
     expect(PERFIS[1].avatar).toMatchObject({ largura: 512, altura: 512 });
+    expect(PERFIS[2].corpo).toMatchObject({ largura: 541, altura: 1426 });
+    expect(PERFIS[2].avatar).toMatchObject({ largura: 512, altura: 512 });
+  });
+
+  test("cada perfil tem cor de anel (rosa para a Manuela, azul para os meninos)", () => {
+    expect(PERFIS.map((p) => p.anel)).toEqual([
+      "ring-manu-rosa",
+      "ring-manu-ceu",
+      "ring-manu-ceu",
+    ]);
   });
 
   test("compartilhar deriva do perfil ativo (Leo)", () => {

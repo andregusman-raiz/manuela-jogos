@@ -10,7 +10,7 @@ import { describe, expect, test } from "vitest";
  * CSS `*-manu-*` e afins seriam falsos positivos).
  */
 
-const PROIBIDO = /(?<![\p{L}\p{N}_])(manuela|manu|leo|bem-vind[ao])(?![\p{L}\p{N}_])/iu;
+const PROIBIDO = /(?<![\p{L}\p{N}_])(manuela|manu|leo|gustavo|bem-vind[ao])(?![\p{L}\p{N}_])/iu;
 
 /** Literais integralmente técnicos: contrato de armazenamento/asset, não UI. */
 const TECNICOS = [
@@ -23,6 +23,8 @@ const TECNICOS = [
   /^manuela$/, // id do perfil default em lib/perfis.ts (valor de storage, não UI)
   /^leo$/, // id do perfil Leo (idem)
   /^\/leo\//, // paths de asset do Leo
+  /^gustavo$/, // id do perfil Gustavo (idem)
+  /^\/gustavo\//, // paths de asset do Gustavo
 ];
 
 function tecnico(texto: string): boolean {

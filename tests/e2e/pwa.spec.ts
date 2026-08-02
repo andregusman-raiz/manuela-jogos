@@ -59,7 +59,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
               if (
                 (await assets.match("/manu/manu-corpo.webp")) &&
                 (await assets.match("/leo/leo-corpo.webp")) &&
-                (await assets.match("/leo/leo-avatar.webp"))
+                (await assets.match("/leo/leo-avatar.webp")) &&
+                (await assets.match("/gustavo/gustavo-corpo.webp"))
               )
                 return { controlado, precache: true };
             }
