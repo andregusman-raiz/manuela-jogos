@@ -1,16 +1,18 @@
+"use client";
+
 import Image from "next/image";
-import { MASCOTE } from "@/lib/identidade";
+import { usePerfil } from "@/lib/usePerfil";
 
 /**
- * A mascote na interface (a Manuela, por default — lib/identidade.ts).
+ * A mascote na interface — a figura do PERFIL ESCOLHIDO (Manuela, Leo…).
  *
  * Ela não é decoração: cumpre um papel em cada lugar onde aparece — recebe no
  * hub, guia quando a galeria está vazia, comemora quando salva e pede um adulto
  * no portão parental.
  *
- * Poses `corpo` e `rosto` são os dois assets reais; as outras são variações de
- * enquadramento/movimento sobre eles. A fase 2 da identidade troca a FONTE dos
- * assets dentro de MASCOTE, sem mexer em quem usa o componente.
+ * Poses `corpo` e `rosto` são os dois assets do perfil; as outras são
+ * variações de enquadramento/movimento sobre eles. Trocar de jogador troca a
+ * figura em TODOS os usos, sem mexer em quem usa o componente.
  */
 export type PoseMascote =
   | "corpo" // hero do hub, corpo inteiro
@@ -27,14 +29,9 @@ type Props = {
   prioridade?: boolean;
 };
 
-const ASSETS = {
-  corpo: MASCOTE.corpo,
-  rosto: MASCOTE.avatar,
-} as const;
-
-const POSES: Record<PoseMascote, { asset: keyof typeof ASSETS; classe: string }> = {
+const POSES: Record<PoseMascote, { asset: "corpo" | "avatar"; classe: string }> = {
   corpo: { asset: "corpo", classe: "" },
-  rosto: { asset: "rosto", classe: "rounded-full" },
+  rosto: { asset: "avatar", classe: "rounded-full" },
   comemorando: { asset: "corpo", classe: "anima-pulinho" },
   apontando: { asset: "corpo", classe: "-scale-x-100" },
   segredinho: { asset: "corpo", classe: "" },
@@ -46,14 +43,15 @@ export function Mascote({
   className = "",
   prioridade = false,
 }: Props) {
+  const perfil = usePerfil();
   const { asset, classe } = POSES[pose];
-  const { src, largura, altura } = ASSETS[asset];
+  const { src, largura, altura } = perfil[asset];
   const escala = tamanho / Math.max(largura, altura);
 
   return (
     <Image
       src={src}
-      alt={MASCOTE.alt}
+      alt={perfil.identidade.altMascote}
       width={Math.round(largura * escala)}
       height={Math.round(altura * escala)}
       priority={prioridade}

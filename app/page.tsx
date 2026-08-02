@@ -1,6 +1,6 @@
 import { GradeJogos } from "@/components/hub/GradeJogos";
+import { SaudacaoHub } from "@/components/hub/SaudacaoHub";
 import { Mascote } from "@/components/ui-kids/Mascote";
-import { IDENTIDADE, saudacao } from "@/lib/identidade";
 import { CHAVE_JOGADOR } from "@/lib/perfis";
 
 // Anti-FOUC do gate de jogador (review PR #47): sem isto, o HTML SSR do hub
@@ -17,15 +17,8 @@ export default function Hub() {
     >
       <script dangerouslySetInnerHTML={{ __html: SCRIPT_GATE }} />
       <header className="relative flex items-end justify-between gap-2">
-        <div className="pb-2">
-          <p className="font-titulo text-lg text-manu-rosa-texto">{saudacao()}</p>
-          <h1 className="font-titulo text-4xl leading-none text-manu-cacau">
-            {IDENTIDADE.nome}
-            <br />
-            Jogos
-          </h1>
-        </div>
-        {/* largura fluida: em tela de 360px a Manuela não pode ser cortada */}
+        <SaudacaoHub />
+        {/* largura fluida: em tela de 360px a figura não pode ser cortada */}
         <div className="relative w-[44%] max-w-[190px] shrink-0 deitado:hidden">
           <span
             aria-hidden

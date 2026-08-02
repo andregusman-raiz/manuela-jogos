@@ -21,7 +21,7 @@ export function EscolhaJogador() {
       <h1 className="text-center font-titulo text-3xl text-manu-cacau">Quem vai jogar?</h1>
       <div className="flex flex-wrap items-stretch justify-center gap-4">
         {PERFIS.map((perfil) => {
-          const escala = 180 / Math.max(perfil.figura.largura, perfil.figura.altura);
+          const escala = 180 / Math.max(perfil.corpo.largura, perfil.corpo.altura);
           return (
             <button
               key={perfil.id}
@@ -37,10 +37,10 @@ export function EscolhaJogador() {
               className="bolha flex min-h-64 min-w-52 flex-col items-center justify-end gap-3 bg-manu-papel p-5 ring-4 ring-manu-rosa transition-transform active:scale-[0.97]"
             >
               <Image
-                src={perfil.figura.src}
+                src={perfil.corpo.src}
                 alt=""
-                width={Math.round(perfil.figura.largura * escala)}
-                height={Math.round(perfil.figura.altura * escala)}
+                width={Math.round(perfil.corpo.largura * escala)}
+                height={Math.round(perfil.corpo.altura * escala)}
                 priority
                 draggable={false}
                 className="anima-pulinho h-44 w-auto select-none object-contain drop-shadow-md"

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { daMascote } from "@/lib/identidade";
+import { useIdentidade } from "@/lib/usePerfil";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
@@ -64,6 +65,7 @@ function rotuloPeca(valor: number): string {
 }
 
 export function Lojinha() {
+  const identidade = useIdentidade();
   const [nivel, setNivel] = useState<NivelLojinha | null>(null);
   const [rodada, setRodada] = useState<RodadaLojinha | null>(null);
   const [pilha, setPilha] = useState<number[]>([]);
@@ -172,7 +174,7 @@ export function Lojinha() {
         >
           <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
-        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Lojinha ${daMascote()}`}</h1>
+        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Lojinha ${daMascote(identidade)}`}</h1>
         {nivel !== null ? (
           <span className="rounded-full bg-manu-pele px-3 py-1 font-titulo text-sm text-manu-cacau">
             Nível {nivel}

@@ -1,24 +1,41 @@
 /**
- * Perfis de jogador (fase 2 da identidade, primeiro passo): o registro de
- * quem pode jogar e a escolha ativa. Por enquanto há UM perfil (a Manuela) —
- * a tela "Quem vai jogar?" já existe e novos perfis entram SÓ aqui.
+ * Perfis de jogador (fase 2 da identidade): o registro de quem pode jogar e a
+ * escolha ativa. Escolher um perfil troca nome, gênero E figura no app
+ * inteiro — os componentes assinam via `usePerfil()`/`useIdentidade()`
+ * (lib/usePerfil.ts) e os textos flexionam pelos helpers de lib/identidade.
  *
- * A escolha vive em localStorage ("manu:jogador") no mesmo padrão
- * useSyncExternalStore de lib/preferencias.ts. Escolher perfil NÃO muda a
- * identidade em runtime ainda (IDENTIDADE segue constante — o único perfil É
- * a Manuela); quando houver 2+, o passo seguinte liga o perfil ao override.
+ * Perfil novo = 1 entrada em PERFIS (+ assets em /public/<slug>/).
+ * A escolha vive em localStorage ("manu:jogador"), padrão useSyncExternalStore.
  */
 
-import { IDENTIDADE, MASCOTE, type Identidade } from "./identidade";
+import { IDENTIDADE, criarIdentidade, type Identidade } from "./identidade";
+
+export interface FiguraPerfil {
+  src: string;
+  largura: number;
+  altura: number;
+}
 
 export interface Perfil {
   id: string;
   identidade: Identidade;
-  figura: { src: string; largura: number; altura: number };
+  corpo: FiguraPerfil;
+  avatar: FiguraPerfil;
 }
 
 export const PERFIS: readonly Perfil[] = [
-  { id: "manuela", identidade: IDENTIDADE, figura: MASCOTE.corpo },
+  {
+    id: "manuela",
+    identidade: IDENTIDADE,
+    corpo: { src: "/manu/manu-corpo.webp", largura: 642, altura: 1244 },
+    avatar: { src: "/manu/manu-avatar.webp", largura: 512, altura: 512 },
+  },
+  {
+    id: "leo",
+    identidade: criarIdentidade({ nome: "Leo", apelido: "Leo", genero: "o" }),
+    corpo: { src: "/leo/leo-corpo.webp", largura: 808, altura: 1147 },
+    avatar: { src: "/leo/leo-avatar.webp", largura: 512, altura: 512 },
+  },
 ];
 
 /** Exportada para o script anti-FOUC do hub (o literal vive só aqui). */
@@ -72,4 +89,14 @@ export function assinarJogador(avisar: () => void): () => void {
 /** No servidor sempre há jogador (o hub SSR é o caso comum pós-escolha). */
 export function jogadorNoServidor(): string | null {
   return PERFIS[0].id;
+}
+
+/** Perfil ativo: o escolhido, ou o primeiro (default) enquanto não há escolha. */
+export function perfilAtivo(): Perfil {
+  const id = lerJogador();
+  return PERFIS.find((p) => p.id === id) ?? PERFIS[0];
+}
+
+export function perfilNoServidor(): Perfil {
+  return PERFIS[0];
 }

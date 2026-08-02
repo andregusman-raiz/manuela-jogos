@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { IDENTIDADE, daMascote } from "@/lib/identidade";
+import { daMascote } from "@/lib/identidade";
+import { useIdentidade } from "@/lib/usePerfil";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { BotaoBolha } from "@/components/ui-kids/BotaoBolha";
 import { Confete } from "@/components/ui-kids/Confete";
@@ -37,6 +38,7 @@ const SETA_DIRECAO: Record<string, string> = {
  * Bater na parede nunca apaga a fila: volta ao início para editar.
  */
 export function Labirinto() {
+  const identidade = useIdentidade();
   const [faseIndice, setFaseIndice] = useState<number | null>(null);
   const [fila, setFila] = useState<Comando[]>([]);
   const [passos, setPassos] = useState<Posicao[] | null>(null); // executando quando != null
@@ -131,7 +133,7 @@ export function Labirinto() {
         >
           <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
-        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Labirinto ${daMascote()}`}</h1>
+        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Labirinto ${daMascote(identidade)}`}</h1>
         {faseIndice !== null ? (
           <span className="rounded-full bg-manu-grama px-3 py-1 font-titulo text-sm text-manu-cacau">
             Fase {faseIndice + 1}
@@ -183,7 +185,7 @@ export function Labirinto() {
                           key={`manu-${negacao}`}
                           data-pos={`${x},${y}`}
                           data-direcao={posicao.direcao}
-                          aria-label={`${IDENTIDADE.apelido} olhando para ${posicao.direcao}`}
+                          aria-label={`${identidade.apelido} olhando para ${posicao.direcao}`}
                           className={`relative flex h-full w-full items-center justify-center ${
                             negacao > 0 ? "anima-nao" : ""
                           }`}

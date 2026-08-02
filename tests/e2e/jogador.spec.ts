@@ -14,9 +14,10 @@ test("primeira visita: escolher a Manuela revela o hub e persiste", async ({ pag
   const escolha = page.locator("[data-escolha-jogador]");
   await expect(escolha).toBeVisible();
   await expect(page.getByText("Quem vai jogar?")).toBeVisible();
-  // por enquanto só há a Manu — e o card mostra figura + nome
-  await expect(page.locator("[data-perfil]")).toHaveCount(1);
+  // dois perfis: Manuela e Leo, cada card com figura + nome
+  await expect(page.locator("[data-perfil]")).toHaveCount(2);
   await expect(page.getByLabel("jogar como Manuela")).toBeVisible();
+  await expect(page.getByLabel("jogar como Leo")).toBeVisible();
 
   // o hub atrás não é alcançável: o card do Ateliê está coberto pela escolha
   await tocarNoElemento(page.getByLabel("jogar como Manuela"));
@@ -27,6 +28,31 @@ test("primeira visita: escolher a Manuela revela o hub e persiste", async ({ pag
   await page.reload();
   await expect(page.getByLabel("Ateliê da Manu", { exact: true })).toBeVisible();
   await expect(page.locator("[data-escolha-jogador]")).toHaveCount(0);
+});
+
+test("escolher o LEO troca nome, gênero e figura no app inteiro", async ({ page }) => {
+  await page.goto("/");
+  await tocarNoElemento(page.getByLabel("jogar como Leo"));
+
+  // hub fala com o Leo: título, saudação no masculino e catálogo flexionado
+  await expect(page.getByRole("heading", { name: /Leo\s*Jogos/ })).toBeVisible();
+  await expect(page.getByText("Bem-vindo!")).toBeVisible();
+  await expect(page.getByLabel("Ateliê do Leo", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Ludo do Leo", { exact: true })).toBeVisible();
+  // a figura é a do Leo (alt do perfil)
+  await expect(page.getByAltText("Leo").first()).toBeVisible();
+
+  // dentro de um jogo com IA: o modo vs-mascote fala "Com o Leo"
+  await page.goto("/lig4");
+  await expect(page.getByLabel("jogar com o Leo")).toBeVisible();
+
+  // trocar de volta para a Manuela restaura tudo
+  await page.goto("/");
+  await tocarNoElemento(page.locator("[data-config]"));
+  await tocarNoElemento(page.locator("[data-trocar-jogador]"));
+  await tocarNoElemento(page.getByLabel("jogar como Manuela"));
+  await expect(page.getByText("Bem-vinda!")).toBeVisible();
+  await expect(page.getByLabel("Ateliê da Manu", { exact: true })).toBeVisible();
 });
 
 test("trocar jogador nas configurações volta para a escolha", async ({ page }) => {

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { daMascote } from "@/lib/identidade";
+import { useIdentidade } from "@/lib/usePerfil";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { TelaDesenho } from "./TelaDesenho";
 import { BarraCores, GradeCoresExtras } from "./BarraCores";
@@ -90,6 +91,7 @@ function BotaoGaveta({
  * baixo, no alcance do polegar de quem segura o celular com as duas mãos.
  */
 export function Atelie() {
+  const identidade = useIdentidade();
   const [ferramenta, setFerramenta] = useState<Ferramenta>(FERRAMENTA_INICIAL);
   const [gaveta, setGaveta] = useState<Gaveta>(null);
   const [pagina, setPagina] = useState<Pagina | undefined>(undefined);
@@ -396,7 +398,7 @@ export function Atelie() {
           <Mascote pose="rosto" tamanho={56} className="h-14 w-14 object-cover" />
         </Link>
 
-        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Ateliê ${daMascote()}`}</h1>
+        <h1 className="hidden font-titulo text-xl text-manu-cacau sm:block">{`Ateliê ${daMascote(identidade)}`}</h1>
 
         <div className="ml-auto flex items-center gap-2">
           <button

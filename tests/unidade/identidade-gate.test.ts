@@ -6,11 +6,11 @@ import { describe, expect, test } from "vitest";
 /**
  * Gate anti-regressão da identidade (SPEC-identidade-mascote §4.2): NENHUM
  * texto de UI com o nome da mascote pode voltar a ser hard-coded fora de
- * lib/identidade.ts. Varre por AST (não por regex em texto cru — 289 tokens
+ * lib/identidade.ts e do registro lib/perfis.ts. Varre por AST (não por regex em texto cru — 289 tokens
  * CSS `*-manu-*` e afins seriam falsos positivos).
  */
 
-const PROIBIDO = /(?<![\p{L}\p{N}_])(manuela|manu|bem-vind[ao])(?![\p{L}\p{N}_])/iu;
+const PROIBIDO = /(?<![\p{L}\p{N}_])(manuela|manu|leo|bem-vind[ao])(?![\p{L}\p{N}_])/iu;
 
 /** Literais integralmente técnicos: contrato de armazenamento/asset, não UI. */
 const TECNICOS = [
@@ -21,6 +21,8 @@ const TECNICOS = [
   /^manu:/, // chaves localStorage do app ("manu:mudo", "manu:descobriu-mais")
   /^manu-$/, // prefixo de key React em template (`manu-${…}`)
   /^manuela$/, // id do perfil default em lib/perfis.ts (valor de storage, não UI)
+  /^leo$/, // id do perfil Leo (idem)
+  /^\/leo\//, // paths de asset do Leo
 ];
 
 function tecnico(texto: string): boolean {
@@ -86,6 +88,12 @@ describe("scanner (função testada com fixtures — aceite §5.2)", () => {
     expect(varrerIdentidadeVazada('const x = "a-manu-b venceu Manu";', "f.tsx")).toHaveLength(1);
   });
 
+  test("Leo hard-coded fora do módulo também é pego (review PR #48)", () => {
+    expect(varrerIdentidadeVazada('const x = "Ludo do Leo";', "f.tsx")).toHaveLength(1);
+    expect(varrerIdentidadeVazada('const s = "/leo/leo-corpo.webp";', "f.tsx")).toHaveLength(0);
+    expect(varrerIdentidadeVazada('const id = "leo";', "f.tsx")).toHaveLength(0);
+  });
+
   test("libera identificadores técnicos", () => {
     for (const ok of [
       'const c = "bg-manu-rosa/40 ring-manu-sol";',
@@ -107,7 +115,7 @@ describe("árvore real limpa", () => {
     const raiz = join(__dirname, "..", "..");
     const arquivos = ["components", "app", "lib"]
       .flatMap((d) => arquivosFonte(join(raiz, d)))
-      .filter((f) => !f.endsWith("lib/identidade.ts"));
+      .filter((f) => !f.endsWith("lib/identidade.ts") && !f.endsWith("lib/perfis.ts"));
     const problemas: string[] = [];
     for (const arquivo of arquivos) {
       for (const vazado of varrerIdentidadeVazada(readFileSync(arquivo, "utf8"), arquivo)) {
