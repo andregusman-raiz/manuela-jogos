@@ -157,16 +157,43 @@ export async function apagarRascunho(): Promise<void> {
  * duas vezes ou continua um desenho já guardado.
  */
 export async function guardarNaGaleria(desenho: Desenho, idExistente?: string): Promise<string> {
+  // dono capturado NA ENTRADA (review PR #50): trocar de perfil com um guardar
+  // em voo não pode transferir nem sobrescrever desenho de outra criança
+  const perfilDaAcao = perfilAtivo().id;
   const id =
-    idExistente && idExistente !== ID_RASCUNHO
+    idExistente && !ehRascunho(idExistente)
       ? idExistente
       : `d-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   // galeriaId é metadado do rascunho; num item da galeria seria auto-referência
   const { galeriaId: _descartado, ...limpo } = desenho;
   void _descartado;
-  await comLoja(LOJA_ATELIE, "readwrite", (loja) =>
-    loja.put({ ...limpo, id, perfil: perfilAtivo().id }),
-  );
+  if (!suportado()) return id;
+  try {
+    const bd = await abrir();
+    await new Promise<void>((resolve, reject) => {
+      const tx = bd.transaction(LOJA_ATELIE, "readwrite");
+      const loja = tx.objectStore(LOJA_ATELIE);
+      const leitura = loja.get(id);
+      leitura.onsuccess = () => {
+        const existente = (leitura.result ?? null) as (Desenho & { perfil?: string }) | null;
+        // atualização preserva o DONO REAL do registro (legado = Manuela);
+        // desenho novo pertence a quem iniciou a ação
+        const dono = existente ? (existente.perfil ?? PERFIL_LEGADO) : perfilDaAcao;
+        loja.put({ ...limpo, id, perfil: dono });
+      };
+      tx.oncomplete = () => {
+        bd.close();
+        resolve();
+      };
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => {
+        bd.close();
+        reject(tx.error);
+      };
+    });
+  } catch {
+    // sem persistência: o desenho segue na tela
+  }
   return id;
 }
 

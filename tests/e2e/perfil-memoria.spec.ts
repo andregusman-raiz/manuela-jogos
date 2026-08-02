@@ -149,16 +149,16 @@ test("config de jogos visíveis é por perfil (troca na MESMA aba)", async ({ pa
 });
 
 test("galeria: desenho legado só da Manuela; desenho do Leo só do Leo", async ({ page }) => {
-  const desenho = {
-    largura: 10,
-    altura: 10,
-    operacoes: [],
-    atualizadoEm: 10,
-    miniatura: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-  };
+  // miniaturas DISTINTAS: o assert de identidade mata o mutante que inverte
+  // os predicados de posse (review PR #50)
+  const PNG_VERMELHO =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+  const PNG_AZUL =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNgYPj/HwADAgH/p0Z1bwAAAABJRU5ErkJggg==";
+  const desenho = { largura: 10, altura: 10, operacoes: [], atualizadoEm: 10 };
   await garantirBanco(page);
-  await semear(page, "atelie", { ...desenho, id: "d-legado-1" }); // sem perfil = legado
-  await semear(page, "atelie", { ...desenho, id: "d-leo-1", perfil: "leo", atualizadoEm: 20 });
+  await semear(page, "atelie", { ...desenho, id: "d-legado-1", miniatura: PNG_VERMELHO });
+  await semear(page, "atelie", { ...desenho, id: "d-leo-1", perfil: "leo", miniatura: PNG_AZUL, atualizadoEm: 20 });
 
   const abrirGaleria = async () => {
     await page.goto("/desenhar");
@@ -167,9 +167,101 @@ test("galeria: desenho legado só da Manuela; desenho do Leo só do Leo", async 
     await expect(page.getByRole("heading", { name: "Meus desenhos" })).toBeVisible();
   };
   await abrirGaleria();
-  await expect(page.locator('img[alt="desenho guardado"]')).toHaveCount(1); // só o legado
+  const daManuela = page.locator('img[alt="desenho guardado"]');
+  await expect(daManuela).toHaveCount(1);
+  await expect(daManuela).toHaveAttribute("src", PNG_VERMELHO); // o LEGADO, não qualquer um
 
   await trocarPara(page, "Leo");
   await abrirGaleria();
-  await expect(page.locator('img[alt="desenho guardado"]')).toHaveCount(1); // só o dele
+  const doLeo = page.locator('img[alt="desenho guardado"]');
+  await expect(doLeo).toHaveCount(1);
+  await expect(doLeo).toHaveAttribute("src", PNG_AZUL); // o DELE, não o legado
+});
+
+test("Leo JOGA de verdade: memória grava nível e recorde na chave dele e persiste", async ({
+  page,
+}) => {
+  await garantirBanco(page);
+  await trocarPara(page, "Leo");
+  await page.goto("/memoria");
+  await expect(page.locator("main")).toHaveAttribute("data-nivel", "1");
+  for (let par = 0; par < 10; par++) {
+    const cartas = page.locator(`[data-par="${par}"]`);
+    if ((await cartas.count()) === 0) continue;
+    await tocarNoElemento(cartas.first());
+    await tocarNoElemento(cartas.last());
+    await expect(cartas).toHaveCount(0, { timeout: 4000 });
+  }
+  await expect(page.getByText("Você achou todos!")).toBeVisible({ timeout: 5000 });
+
+  const registros = await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const req = indexedDB.open("manu-jogos");
+        req.onsuccess = () => {
+          const tx = req.result.transaction(["memoria"], "readonly");
+          const loja = tx.objectStore("memoria");
+          const leo = loja.get("progresso:leo");
+          const legado = loja.get("progresso");
+          const manuela = loja.get("progresso:manuela");
+          tx.oncomplete = () => {
+            req.result.close();
+            resolve({ leo: leo.result, legado: legado.result, manuela: manuela.result });
+          };
+        };
+      }),
+  );
+  const r = registros as {
+    leo?: { nivel: number; melhor: number };
+    legado?: unknown;
+    manuela?: unknown;
+  };
+  expect(r.leo?.nivel, "vitória do Leo não gravou na chave dele").toBeGreaterThanOrEqual(2);
+  expect(r.leo?.melhor, "recorde do Leo ausente").toBeGreaterThan(0);
+  expect(r.legado, "jogar como Leo NÃO pode criar/tocar o legado").toBeUndefined();
+  expect(r.manuela, "jogar como Leo NÃO pode tocar a chave da Manuela").toBeUndefined();
+
+  await page.reload();
+  await expect(page.locator("main")).toHaveAttribute("data-nivel", "2"); // persistiu
+});
+
+test("rascunho: o da Manuela sombreia o legado sem apagá-lo; o do Leo é isolado", async ({
+  page,
+}) => {
+  await garantirBanco(page);
+  // rascunho de antes dos perfis
+  await semear(page, "atelie", {
+    id: "rascunho",
+    largura: 10,
+    altura: 10,
+    operacoes: [{ tipo: "traço-antigo" }],
+    atualizadoEm: 1,
+  });
+  // Manuela desenha algo novo: autosave grava rascunho:manuela
+  await page.goto("/desenhar");
+  const tela = page.locator("canvas").first();
+  const caixa = (await tela.boundingBox())!;
+  await page.mouse.move(caixa.x + 50, caixa.y + 50);
+  await page.mouse.down();
+  await page.mouse.move(caixa.x + 150, caixa.y + 150, { steps: 5 });
+  await page.mouse.up();
+  await page.waitForTimeout(1200); // autosave
+
+  const ids = await page.evaluate(
+    () =>
+      new Promise<string[]>((resolve) => {
+        const req = indexedDB.open("manu-jogos");
+        req.onsuccess = () => {
+          const tx = req.result.transaction(["atelie"], "readonly");
+          const g = tx.objectStore("atelie").getAllKeys();
+          tx.oncomplete = () => {
+            req.result.close();
+            resolve(g.result as string[]);
+          };
+        };
+      }),
+  );
+  expect(ids, "autosave da Manuela deveria ir para a chave nova").toContain("rascunho:manuela");
+  expect(ids, "o legado não pode ser apagado pelo autosave").toContain("rascunho");
+  expect(ids, "Leo não desenhou nada").not.toContain("rascunho:leo");
 });
