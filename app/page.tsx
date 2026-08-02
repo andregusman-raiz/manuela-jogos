@@ -1,5 +1,4 @@
-import { JOGOS } from "@/lib/jogos";
-import { CardJogo } from "@/components/hub/CardJogo";
+import { GradeJogos } from "@/components/hub/GradeJogos";
 import { Manu } from "@/components/ui-kids/Manu";
 
 export default function Hub() {
@@ -31,18 +30,10 @@ export default function Hub() {
         </div>
       </header>
 
-      {/* 19 jogos em 5 colunas; auto-rows-fr faz os cards CRESCEREM até
-          ocupar toda a altura livre (sem faixa branca no celular) — o piso
-          min-h-24 do card preserva o scroll no deitado; hub.spec é o gate */}
-      <div className="mt-1 grid flex-1 auto-rows-fr grid-cols-5 gap-1.5 sm:gap-4">
-        {JOGOS.map((jogo) => (
-          <CardJogo key={jogo.id} jogo={jogo} />
-        ))}
-      </div>
-
-      <p className="mt-auto pt-2 text-center text-xs text-manu-cacau-suave">
-        Sem anúncios, sem cadastro. Tudo fica só neste aparelho.
-      </p>
+      {/* grade + rodapé + engrenagem viraram client component: o filtro de
+          jogos visíveis (localStorage) e o modal de configuração vivem lá;
+          hub.spec continua sendo o gate da dobra */}
+      <GradeJogos />
     </main>
   );
 }
