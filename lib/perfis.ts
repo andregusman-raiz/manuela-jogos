@@ -40,10 +40,13 @@ export interface PerfilDinamicoRegistro {
   apelido: string;
   genero: "a" | "o";
   anel: string;
-  corpo: Blob;
+  /** Bytes PNG — ArrayBuffer, não Blob: o WebKit do Playwright (e Safáris
+   *  antigos) falha ao clonar Blob para o IDB ("Error preparing Blob/File
+   *  data") — provado por probe no review do PR B. */
+  corpo: ArrayBuffer;
   corpoLargura: number;
   corpoAltura: number;
-  avatar: Blob;
+  avatar: ArrayBuffer;
   criadoEm: number;
   atualizadoEm: number;
 }
@@ -164,8 +167,8 @@ function urlsDoRegistro(r: PerfilDinamicoRegistro): { corpo: string; avatar: str
   if (atual && atual.atualizadoEm === r.atualizadoEm) return atual;
   const novo = {
     atualizadoEm: r.atualizadoEm,
-    corpo: URL.createObjectURL(r.corpo),
-    avatar: URL.createObjectURL(r.avatar),
+    corpo: URL.createObjectURL(new Blob([r.corpo], { type: "image/png" })),
+    avatar: URL.createObjectURL(new Blob([r.avatar], { type: "image/png" })),
   };
   urls.set(r.id, novo);
   if (atual) revogarDepois.push(atual.corpo, atual.avatar);
@@ -210,8 +213,8 @@ function registroValido(r: unknown): r is PerfilDinamicoRegistro {
     typeof x.apelido === "string" &&
     (x.genero === "a" || x.genero === "o") &&
     typeof x.anel === "string" &&
-    x.corpo instanceof Blob &&
-    x.avatar instanceof Blob &&
+    x.corpo instanceof ArrayBuffer &&
+    x.avatar instanceof ArrayBuffer &&
     typeof x.corpoLargura === "number" &&
     typeof x.corpoAltura === "number"
   );
@@ -332,6 +335,9 @@ export async function criarPerfilDinamico(dados: DadosNovoPerfil): Promise<strin
   // valida ANTES de abrir transação (criarIdentidade lança se inválido)
   criarIdentidade({ nome: dados.nome, apelido, genero: dados.genero });
   const base = slugDe(apelido);
+  // Blob→bytes ANTES da tx (conversão é async; a tx não pode esperar)
+  const corpoBytes = await dados.corpo.arrayBuffer();
+  const avatarBytes = await dados.avatar.arrayBuffer();
   const bd = await abrirBd();
   const id = await new Promise<string>((resolve, reject) => {
     let escolhido = "";
@@ -354,10 +360,10 @@ export async function criarPerfilDinamico(dados: DadosNovoPerfil): Promise<strin
           apelido,
           genero: dados.genero,
           anel: anelPorGenero(dados.genero),
-          corpo: dados.corpo,
+          corpo: corpoBytes,
           corpoLargura: dados.corpoLargura,
           corpoAltura: dados.corpoAltura,
-          avatar: dados.avatar,
+          avatar: avatarBytes,
           criadoEm: agora,
           atualizadoEm: agora,
         } satisfies PerfilDinamicoRegistro); // add, não put: colisão aborta
@@ -385,6 +391,8 @@ export async function editarPerfilDinamico(
   id: string,
   mudancas: Partial<DadosNovoPerfil>,
 ): Promise<void> {
+  const corpoBytes = mudancas.corpo ? await mudancas.corpo.arrayBuffer() : null;
+  const avatarBytes = mudancas.avatar ? await mudancas.avatar.arrayBuffer() : null;
   const bd = await abrirBd();
   await new Promise<void>((resolve, reject) => {
     const tx = bd.transaction(LOJA_PERFIS, "readwrite");
@@ -415,10 +423,10 @@ export async function editarPerfilDinamico(
         apelido: mudancas.apelido?.trim() || atual.apelido,
         genero,
         anel: anelPorGenero(genero),
-        corpo: mudancas.corpo ?? atual.corpo,
+        corpo: corpoBytes ?? atual.corpo,
         corpoLargura: mudancas.corpoLargura ?? atual.corpoLargura,
         corpoAltura: mudancas.corpoAltura ?? atual.corpoAltura,
-        avatar: mudancas.avatar ?? atual.avatar,
+        avatar: avatarBytes ?? atual.avatar,
         atualizadoEm: Date.now(),
       } satisfies PerfilDinamicoRegistro);
     };
