@@ -29,7 +29,10 @@ describe("validação estendida (juiz B9 da SPEC de perfis)", () => {
     expect(() => criarIdentidade({ nome: "👧", apelido: "Sofi", genero: "a" })).toThrow();
   });
 
-  test("não-latino passa", () => {
+  test("não-latino passa DE VERDADE (review PR #52: régua é \\p{L}, não slug ascii)", () => {
+    const sofia = criarIdentidade({ nome: "София", apelido: "София", genero: "a" });
+    expect(sofia.tituloApp).toBe("София Jogos");
+    expect(sofia.slug).toBe("jogador"); // slug ascii vazio cai no neutro
     expect(criarIdentidade({ nome: "José", apelido: "Zé", genero: "o" }).slug).toBe("ze");
   });
 });

@@ -168,24 +168,28 @@ function urlsDoRegistro(r: PerfilDinamicoRegistro): { corpo: string; avatar: str
     avatar: URL.createObjectURL(r.avatar),
   };
   urls.set(r.id, novo);
-  if (atual) {
-    // replace: revogar as ANTIGAS só depois do novo snapshot assentar
-    setTimeout(() => {
-      URL.revokeObjectURL(atual.corpo);
-      URL.revokeObjectURL(atual.avatar);
-    }, 1000);
-  }
+  if (atual) revogarDepois.push(atual.corpo, atual.avatar);
   return novo;
+}
+
+// URLs antigas aguardam o snapshot novo assentar; um <img> JÁ carregado não
+// perde o conteúdo no revoke — o prazo protege carregamentos em andamento
+const revogarDepois: string[] = [];
+
+function drenarRevogacoes(): void {
+  const pendentes = revogarDepois.splice(0);
+  if (pendentes.length === 0) return;
+  setTimeout(() => {
+    for (const url of pendentes) URL.revokeObjectURL(url);
+  }, 3000);
 }
 
 function revogarUrls(id: string): void {
   const atual = urls.get(id);
   if (!atual) return;
   urls.delete(id);
-  setTimeout(() => {
-    URL.revokeObjectURL(atual.corpo);
-    URL.revokeObjectURL(atual.avatar);
-  }, 1000);
+  revogarDepois.push(atual.corpo, atual.avatar);
+  drenarRevogacoes();
 }
 
 if (typeof window !== "undefined") {
@@ -215,17 +219,20 @@ function registroValido(r: unknown): r is PerfilDinamicoRegistro {
 
 function paraPerfil(r: PerfilDinamicoRegistro): Perfil | null {
   try {
+    // identidade primeiro: registro inválido não deve nem criar blob URLs
+    const identidade = criarIdentidade({ nome: r.nome, apelido: r.apelido, genero: r.genero });
     const u = urlsDoRegistro(r);
     return {
       id: r.id,
-      identidade: criarIdentidade({ nome: r.nome, apelido: r.apelido, genero: r.genero }),
+      identidade,
       corpo: { src: u.corpo, largura: r.corpoLargura, altura: r.corpoAltura },
       avatar: { src: u.avatar, largura: 512, altura: 512 },
       anel: r.anel,
       dinamico: true,
     };
-  } catch {
-    return null; // registro corrompido: pular, nunca derrubar o catálogo
+  } catch (erro) {
+    console.warn(`perfil dinâmico corrompido ignorado: ${r.id}`, erro);
+    return null; // pular, nunca derrubar o catálogo
   }
 }
 
@@ -260,6 +267,7 @@ export async function carregarPerfis(): Promise<void> {
   estadoRegistro = "pronto";
   listaMesclada = [...PERFIS, ...dinamicos];
   avisar();
+  drenarRevogacoes(); // replaces desta carga: revogar só APÓS o snapshot novo
 }
 
 export function registroPronto(): boolean {
@@ -389,6 +397,18 @@ export async function editarPerfilDinamico(
         return;
       }
       const genero = mudancas.genero ?? atual.genero;
+      try {
+        // review PR #52: edição sem validar gravava registro que o catálogo
+        // depois descartava — o perfil "sumia" com o dado corrompido no banco
+        criarIdentidade({
+          nome: mudancas.nome?.trim() || atual.nome,
+          apelido: mudancas.apelido?.trim() || atual.apelido,
+          genero,
+        });
+      } catch {
+        tx.abort();
+        return;
+      }
       loja.put({
         ...atual,
         nome: mudancas.nome?.trim() || atual.nome,
@@ -428,7 +448,19 @@ export async function apagarPerfilDinamico(id: string): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const lojas = [LOJA_PERFIS, LOJA_ATELIE, ...LOJAS_JOGOS];
     const tx = bd.transaction(lojas, "readwrite");
-    tx.objectStore(LOJA_PERFIS).delete(id);
+    const perfis = tx.objectStore(LOJA_PERFIS);
+    const confirmacao = perfis.get(id);
+    confirmacao.onsuccess = () => {
+      if (!confirmacao.result) {
+        // id de fábrica ou inexistente: NUNCA varrer (review PR #52 — apagar
+        // "manuela" aqui destruía os dados dela sem existir na loja)
+        tx.abort();
+        return;
+      }
+      executarVarredura();
+    };
+    const executarVarredura = () => {
+    perfis.delete(id);
     for (const jogo of LOJAS_JOGOS) {
       tx.objectStore(jogo).delete(`progresso:${id}`);
     }
@@ -440,6 +472,7 @@ export async function apagarPerfilDinamico(id: string): Promise<void> {
         if (registro.perfil === id) atelie.delete(registro.id);
       }
     };
+    };
     tx.oncomplete = () => {
       bd.close();
       resolve();
@@ -450,7 +483,7 @@ export async function apagarPerfilDinamico(id: string): Promise<void> {
     };
     tx.onabort = () => {
       bd.close();
-      reject(tx.error);
+      reject(new Error("só perfis criados na interface podem ser apagados"));
     };
   });
   try {
@@ -458,7 +491,13 @@ export async function apagarPerfilDinamico(id: string): Promise<void> {
   } catch {
     // sem storage: nada a limpar
   }
-  revogarUrls(id);
+  for (const cb of aoApagarPerfil) cb(id);
   if (idJogadorSalvo() === id) limparJogador();
   await carregarPerfis();
+  // revogar SÓ depois do snapshot sem o perfil assentar (review PR #52);
+  // <img> já carregado não quebra com revoke — o prazo cobre os pendentes
+  revogarUrls(id);
 }
+
+/** Callbacks de limpeza pós-apagar (preferencias registra o dela — sem ciclo). */
+export const aoApagarPerfil = new Set<(id: string) => void>();

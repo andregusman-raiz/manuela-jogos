@@ -1,13 +1,14 @@
 import { GradeJogos } from "@/components/hub/GradeJogos";
 import { SaudacaoHub } from "@/components/hub/SaudacaoHub";
 import { Mascote } from "@/components/ui-kids/Mascote";
-import { CHAVE_JOGADOR } from "@/lib/perfis";
+import { CHAVE_JOGADOR, PERFIS } from "@/lib/perfis";
 
 // Anti-FOUC do gate de jogador (review PR #47): sem isto, o HTML SSR do hub
 // fica clicável ANTES de a hidratação montar a tela "Quem vai jogar?" numa
 // primeira visita. O script roda inline antes do primeiro paint; o atributo
 // esconde o hub via CSS e a GradeJogos o remove assim que assume o controle.
-const SCRIPT_GATE = `try{if(!localStorage.getItem(${JSON.stringify(CHAVE_JOGADOR)}))document.documentElement.setAttribute("data-sem-jogador","")}catch(e){}`;
+const IDS_FABRICA = JSON.stringify(PERFIS.map((p) => p.id));
+const SCRIPT_GATE = `try{var j=localStorage.getItem(${JSON.stringify(CHAVE_JOGADOR)});if(!j||${IDS_FABRICA}.indexOf(j)<0)document.documentElement.setAttribute("data-sem-jogador","")}catch(e){}`;
 
 export default function Hub() {
   return (

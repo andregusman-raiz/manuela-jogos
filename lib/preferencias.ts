@@ -9,7 +9,7 @@
  */
 
 import { JOGOS } from "./jogos";
-import { assinarJogador, idJogadorSalvo } from "./perfis";
+import { aoApagarPerfil, assinarJogador, idJogadorSalvo } from "./perfis";
 
 const CHAVE_LEGADA = "manu-jogos-ocultos";
 const PERFIL_LEGADO = "manuela";
@@ -17,6 +17,8 @@ const NO_SERVIDOR: string[] = [];
 
 // snapshot estável POR PERFIL (useSyncExternalStore exige identidade estável)
 const cache = new Map<string, string[]>();
+// apagar+recriar o mesmo slug não pode herdar a config antiga (review PR #52)
+aoApagarPerfil.add((id) => cache.delete(id));
 const ouvintes = new Set<() => void>();
 
 function chaveDe(perfil: string): string {

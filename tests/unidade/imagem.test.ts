@@ -63,6 +63,28 @@ describe("removerFundo (flood-fill dos cantos)", () => {
   });
 });
 
+describe("mutation-killers do review PR #52", () => {
+  test("pixel 240 NÃO é fundo (limiar é 245 — mutante 200 morre aqui)", () => {
+    const p = pixelsDe(["...", ".#.", "..."]);
+    // pinta um pixel de borda com cinza 240 (quase branco, mas abaixo do limiar)
+    p.dados[0] = 240;
+    p.dados[1] = 240;
+    p.dados[2] = 240;
+    removerFundo(p);
+    // não virou fundo (o antisserrilhado legítimo pode dar 140 — nunca 0)
+    expect(alphaEm(p, 0, 0)).toBeGreaterThan(0);
+  });
+
+  test("borda 60% clara NÃO é fundo claro (limiar 70% — mutantes 50%/90% morrem)", () => {
+    // contorno de 10 px: 6 brancos (60%) → NÃO é fundo claro
+    const p = pixelsDe(["####", "....", "...."]);
+    expect(fundoClaro(p)).toBe(false);
+    // contorno de 10 px: 9 brancos (90%) → é
+    const q = pixelsDe(["....", "#...", "...."]);
+    expect(fundoClaro(q)).toBe(true);
+  });
+});
+
 describe("fundoClaro / temAlpha / caixaUtil", () => {
   test("borda majoritariamente branca → true; borda colorida → false", () => {
     expect(fundoClaro(pixelsDe(["....", ".##.", "...."]))).toBe(true);

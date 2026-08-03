@@ -204,3 +204,13 @@ dinâmicos + validação alinhada/estendida (nome só-emoji reprovava só no
 apelido); B10 aceite reescrito com os cenários de corrida, concorrência e
 acessibilidade. Melhorias acatadas: ordenação por criadoEm, registro
 corrompido pulado, limiar único 245, produção com cleanup em finally.
+
+## Adendo pós-review do PR A (registro honesto)
+
+- O véu do hub cobre TAMBÉM ids dinâmicos (script inline conhece os ids de
+  fábrica). Rotas de JOGO com id dinâmico aceitam um flash da identidade
+  default limitado ao carregamento do catálogo (getAll numa loja minúscula,
+  tipicamente <100ms com JS ativo) — as CHAVES de memória nunca erram (vêm
+  do id salvo). Falha do catálogo degrada para: picker no hub; identidade
+  default visual nas rotas de jogo, com chaves corretas. Revisão futura se
+  a telemetria de uso real mostrar flash perceptível.
