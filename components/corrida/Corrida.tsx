@@ -10,7 +10,6 @@ import { lerProgresso, salvarProgresso } from "@/lib/armazenamento";
 import { criarSorte, sementeInicial } from "@/lib/dado";
 import {
   SEGMENTO,
-  VMAX,
   criarCorrida,
   criarOponentes,
   naGrama,
@@ -95,14 +94,16 @@ function desenharQuadro(
   const base = segmentoEm(estado.segmentos, estado.posicao);
   const fracao = (estado.posicao % SEGMENTO) / SEGMENTO;
 
-  // linhas do fundo para a frente; curvatura acumula deslocamento horizontal
+  // fronteiras do plano próximo (z≈0, SOB o carro — sem ela a estrada
+  // pulsava um vão de grama no rodapé a cada segmento, review PR #57 B2)
+  // até LINHAS à frente; curvatura acumula deslocamento horizontal
   const linhas: { y: number; meia: number; centro: number; indice: number }[] = [];
   let curvaAcumulada = 0;
   let derivaCurva = 0;
   for (let n = 0; n <= LINHAS; n++) {
     const indice = Math.min(base + n, estado.segmentos.length - 1);
     const seg = estado.segmentos[indice];
-    const z = (n + 1 - fracao) * SEGMENTO;
+    const z = n === 0 ? 1 : (n - fracao) * SEGMENTO;
     const escala = CAM / (CAM + z);
     const y = horizonte + (cssA - horizonte) * escala - seg.elevacao * escala * 1.4;
     const meia = escala * cssL * 0.52;
@@ -133,19 +134,21 @@ function desenharQuadro(
     if (par) trapezio(0.03, 0.03, CORES.faixa); // faixa central tracejada
   }
 
-  // oponentes visíveis (fantasmas à frente)
+  // oponentes visíveis: projeção CONTÍNUA interpolando entre fronteiras —
+  // arredondar para a linha 1 desenhava um carro ENCOSTADO a 400 u de
+  // distância (review PR #57 B3)
   for (const o of estado.oponentes) {
     const delta = o.posicao - estado.posicao;
-    if (delta <= 0 || delta > LINHAS * SEGMENTO) continue;
-    const n = Math.min(LINHAS, Math.max(1, Math.round(delta / SEGMENTO)));
-    const linha = linhas[n];
-    desenharCarro(
-      ctx,
-      linha.centro + o.lateral * linha.meia,
-      linha.y,
-      Math.max(10, linha.meia * 0.24),
-      CORES.oponente,
-    );
+    if (delta <= 0 || delta > (LINHAS - 1) * SEGMENTO) continue;
+    const continua = Math.min(LINHAS - 0.001, delta / SEGMENTO + fracao);
+    const k = Math.max(0, Math.min(LINHAS - 1, Math.floor(continua)));
+    const t = Math.max(0, continua - k);
+    const perto = linhas[k];
+    const longe = linhas[k + 1];
+    const centro = perto.centro + (longe.centro - perto.centro) * t;
+    const meia = perto.meia + (longe.meia - perto.meia) * t;
+    const y = perto.y + (longe.y - perto.y) * t;
+    desenharCarro(ctx, centro + o.lateral * meia, y, Math.max(10, meia * 0.24), CORES.oponente);
   }
 
   // carro da criança: fixo no centro-baixo; a PISTA é quem desliza
@@ -181,6 +184,7 @@ export function Corrida() {
     const s = sementeInicial(window.location.search);
     sementeRef.current = s; // síncrono: comecar() nunca depende do setState (lição do Autorama)
     reduzirMotion.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    mainRef.current?.setAttribute("data-ticks", "0"); // §0.2: presente desde o menu
     void lerProgresso("corrida").then((p) => {
       setSemente(s);
       if (p && p.nivel >= 2) setNivelMax(2);

@@ -132,17 +132,16 @@ export function tick(estado: EstadoCorrida, direcao: -1 | 0 | 1): EstadoCorrida 
     estado.lateral + curva * (velocidade / VMAX) * FORCA_CURVA * DT + direcao * FORCA_DIRECAO * DT;
   lateral = Math.min(LATERAL_MAXIMO, Math.max(-LATERAL_MAXIMO, lateral));
 
-  // 3. oponentes primeiro calculam o fator de rubber-band do TICK, depois
-  //    andam (jogador atualiza antes, oponentes em ordem de índice — §2.1)
-  const posicao = estado.posicao + velocidade * DT;
+  // 3. oponentes: rubber-band do tick (medido contra a posição ATUAL do
+  //    jogador) e avanço em ordem de índice
   const ultimo = Math.min(...estado.oponentes.map((o) => o.posicao), Infinity);
   const primeiro = Math.max(...estado.oponentes.map((o) => o.posicao), -Infinity);
   const fator =
     estado.oponentes.length === 0
       ? 1
-      : posicao < ultimo
+      : estado.posicao < ultimo
         ? 0.95 // jogador atrás de todos: esperam
-        : posicao > primeiro + 3000
+        : estado.posicao > primeiro + 3000
           ? 1.05 // jogador disparou: reagem
           : 1;
   const oponentes = estado.oponentes.map((o) => {
@@ -150,31 +149,35 @@ export function tick(estado: EstadoCorrida, direcao: -1 | 0 | 1): EstadoCorrida 
     return { ...o, velocidade: velocidadeOponente, posicao: o.posicao + velocidadeOponente * DT };
   });
 
-  // 4. colisão fantasma-suave: oponente À FRENTE encostado limita a
-  //    velocidade do jogador neste tick (0 < Δpos ≤ carro; |Δlat| < 0.3)
-  let velocidadeFinal = velocidade;
+  // 4. colisão fantasma-suave ANTES do deslocamento: limitar só o estado
+  //    deixava o carro atravessar o oponente tick a tick (review PR #57 B1)
   for (const o of oponentes) {
-    const distancia = o.posicao - posicao;
+    const distancia = o.posicao - estado.posicao;
     if (
       distancia > 0 &&
       distancia <= COMPRIMENTO_CARRO &&
       Math.abs(o.lateral - lateral) < LATERAL_CARRO
     ) {
-      velocidadeFinal = Math.min(velocidadeFinal, o.velocidade);
+      velocidade = Math.min(velocidade, o.velocidade);
     }
   }
+
+  // 5. deslocamento com a velocidade JÁ limitada — encostado, o vão até o
+  //    oponente fica constante (fecha no máx. (VMAX-vOponente)·dt por tick)
+  const posicao = estado.posicao + velocidade * DT;
 
   const tempoTicks = estado.tempoTicks + 1;
   const novo: EstadoCorrida = {
     ...estado,
     posicao,
     lateral,
-    velocidade: velocidadeFinal,
+    velocidade,
     tempoTicks,
     oponentes,
   };
 
-  // 5. chegada
+  // 6. chegada — cruzamentos no MESMO tick contam para a criança (regra
+  //    assumida a favor dela, registrada no review do PR #57)
   if (posicao >= comprimento) {
     novo.situacao = "fim";
     novo.estrelas =

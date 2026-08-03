@@ -57,7 +57,9 @@ export function GradeJogos() {
 
   return (
     <>
-      <div className="mt-1 grid flex-1 auto-rows-fr grid-cols-5 gap-1.5 sm:gap-4">
+      {/* lg vai a 6 colunas: o 21º jogo estourava a dobra em 1440×900 (5
+          linhas não cabem — fold-gate do hub.spec) */}
+      <div className="mt-1 grid flex-1 auto-rows-fr grid-cols-5 gap-1.5 sm:gap-4 lg:grid-cols-6">
         {visiveis.map((jogo) => (
           <CardJogo key={jogo.id} jogo={jogo} />
         ))}

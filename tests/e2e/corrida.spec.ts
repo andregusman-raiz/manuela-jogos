@@ -94,7 +94,30 @@ test("nível 1 completo: controlador bang-bang termina com estrelas e persiste; 
   await expect(page.locator("[data-fim]")).toContainText("Chegou!");
   await expect(page.locator('canvas[data-ativo="true"]')).toHaveCount(1); // confete
 
-  // persistência: melhor tempo salvo e nível 2 aberto após reload
+  // persistência: espera a GRAVAÇÃO assentar antes do reload (flake apontado
+  // no review — o reload podia vencer o commit do IDB)
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            new Promise<number>((resolve) => {
+              const req = indexedDB.open("manu-jogos");
+              req.onsuccess = () => {
+                const tx = req.result.transaction(["corrida"], "readonly");
+                // a chave é SEMPRE por perfil (progresso:<id>); a plana é só
+                // fallback de leitura do legado
+                const g = tx.objectStore("corrida").get("progresso:manuela");
+                tx.oncomplete = () => {
+                  req.result.close();
+                  resolve((g.result as { nivel?: number } | undefined)?.nivel ?? 0);
+                };
+              };
+            }),
+        ),
+      { timeout: 5000 },
+    )
+    .toBe(2);
   await page.reload();
   await expect(page.locator('[data-nivel-opcao="2"]')).toBeVisible({ timeout: 10000 });
 });

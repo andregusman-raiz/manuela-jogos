@@ -240,9 +240,14 @@ describe("helpers", () => {
     expect(oponentesNaFrente({ ...estado, posicao: 500 })).toBe(1);
   });
 
-  test("colisão usa a constante do carro (fronteira exata)", () => {
-    const faz = (distancia: number) => {
-      const oponentes = [{ posicao: distancia + 20, lateral: 0, base: 100, velocidade: 100 }];
+  test("colisão na FRONTEIRA exata (medida pós-avanço do oponente): 80 limita, 80+ε não", () => {
+    // a checagem usa a posição NOVA do oponente vs a ATUAL do jogador;
+    // jogador atrás de todos ⇒ rubber-band: o oponente anda a base·0.95
+    const faz = (distanciaAposAvanco: number) => {
+      const base = 100;
+      const oponentes = [
+        { posicao: distanciaAposAvanco - base * 0.95 * DT, lateral: 0, base, velocidade: base },
+      ];
       let estado: EstadoCorrida = {
         ...correndo(oponentes),
         posicao: 0,
@@ -252,7 +257,44 @@ describe("helpers", () => {
       estado = tick(estado, 0);
       return estado.velocidade;
     };
-    expect(faz(COMPRIMENTO_CARRO - 40)).toBeLessThan(VMAX); // dentro do alcance
-    expect(faz(COMPRIMENTO_CARRO + 100)).toBe(VMAX); // longe: livre
+    expect(faz(COMPRIMENTO_CARRO)).toBeLessThan(VMAX); // exatamente 80: limita
+    expect(faz(COMPRIMENTO_CARRO + 0.01)).toBe(VMAX); // 80+ε: livre
+  });
+
+  test("dois oponentes encostados: vale o MAIS lento (min)", () => {
+    const oponentes = [
+      { posicao: 50, lateral: 0, base: 700, velocidade: 700 },
+      { posicao: 70, lateral: 0.1, base: 500, velocidade: 500 },
+    ];
+    let estado: EstadoCorrida = { ...correndo(oponentes), posicao: 0, velocidade: VMAX, lateral: 0 };
+    estado = tick(estado, 0);
+    expect(estado.velocidade).toBeLessThanOrEqual(estado.oponentes[1].velocidade);
+  });
+
+  test("anti-atravessamento (review B1): 600 ticks encostado e o vão NUNCA fecha", () => {
+    const base = 900;
+    const oponentes = [{ posicao: 80, lateral: 0, base, velocidade: base }];
+    let estado: EstadoCorrida = { ...correndo(oponentes), posicao: 0, velocidade: VMAX, lateral: 0 };
+    let vaoMinimo = Infinity;
+    for (let t = 0; t < 600; t++) {
+      estado = tick(estado, 0);
+      vaoMinimo = Math.min(vaoMinimo, estado.oponentes[0].posicao - estado.posicao);
+    }
+    expect(vaoMinimo, "o jogador atravessou o fantasma").toBeGreaterThan(0);
+    expect(estado.velocidade).toBeLessThanOrEqual(base);
+  });
+
+  test("chegada no MESMO tick: conta para a criança (regra registrada no review)", () => {
+    const comprimento = comprimentoDaPista(PISTA_CORRIDA);
+    const oponentes = [{ posicao: comprimento - 8, lateral: 0.6, base: 960, velocidade: 960 }];
+    let estado: EstadoCorrida = {
+      ...correndo(oponentes),
+      posicao: comprimento - 10,
+      velocidade: VMAX,
+      lateral: 0,
+    };
+    estado = tick(estado, 0); // os dois cruzam neste tick
+    expect(estado.situacao).toBe("fim");
+    expect(estado.estrelas).toBeGreaterThanOrEqual(2); // contou como 1º
   });
 });
