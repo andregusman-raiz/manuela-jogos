@@ -205,6 +205,15 @@ export function criarJogos(id: Identidade): Jogo[] {
     cor: "bg-manu-sol/50",
     disponivel: true,
   },
+  {
+    id: "corrida",
+    nome: `Corrida ${daMascote(id)}`,
+    descricao: "Acelere pela estrada",
+    rota: "/corrida",
+    emoji: "🛣️",
+    cor: "bg-manu-ceu/60",
+    disponivel: true,
+  },
   ];
 }
 
