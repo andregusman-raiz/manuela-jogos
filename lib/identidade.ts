@@ -44,9 +44,14 @@ export function criarIdentidade(dados: DadosIdentidade): Identidade {
   if (nome.length > TAMANHO_MAXIMO || apelido.length > TAMANHO_MAXIMO) {
     throw new Error(`nome/apelido passam de ${TAMANHO_MAXIMO} caracteres`);
   }
-  if (!slugDe(apelido)) {
-    // apelido só de emoji/símbolos geraria "desenho-da-.png"
+  // Unicode de verdade (review PR #52): "София" tem letras — a régua é
+  // \p{L}/\p{N}, não o slug ascii (que pode ficar vazio para não-latinos)
+  const temLetra = (t: string) => /[\p{L}\p{N}]/u.test(t);
+  if (!temLetra(apelido)) {
     throw new Error("apelido precisa de ao menos uma letra ou número");
+  }
+  if (!temLetra(nome)) {
+    throw new Error("nome precisa de ao menos uma letra ou número");
   }
   const artigo = dados.genero;
   return {
@@ -57,7 +62,7 @@ export function criarIdentidade(dados: DadosIdentidade): Identidade {
     tituloCurto: `${apelido} Jogos`,
     descricaoApp: `Jogos para brincar, desenhar e pintar. Feito para ${artigo} ${nome}.`,
     altMascote: nome,
-    slug: slugDe(apelido),
+    slug: slugDe(apelido) || "jogador",
   };
 }
 

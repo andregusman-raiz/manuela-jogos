@@ -59,6 +59,43 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
+test("schema v6 nasce completo nas DUAS ordens de abertura (SPEC perfis §1.1)", async ({
+  page,
+}) => {
+  const lojasDoBanco = () =>
+    page.evaluate(
+      () =>
+        new Promise<string[]>((resolve) => {
+          const req = indexedDB.open("manu-jogos");
+          req.onsuccess = () => {
+            const nomes = [...req.result.objectStoreNames].sort();
+            req.result.close();
+            resolve(nomes);
+          };
+        }),
+    );
+  const ESPERADAS = 20; // atelie + 18 jogos + perfis
+
+  // ordem 1: hub primeiro (o boot do catálogo abre a loja de perfis)
+  const lojas1 = await lojasDoBanco();
+  expect(lojas1, lojas1.join(",")).toHaveLength(ESPERADAS);
+  expect(lojas1).toContain("perfis");
+
+  // ordem 2: banco zerado e um JOGO abre primeiro (armazenamento)
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) => {
+        const del = indexedDB.deleteDatabase("manu-jogos");
+        del.onsuccess = del.onerror = del.onblocked = () => resolve();
+      }),
+  );
+  await page.goto("/contas");
+  await expect(page.locator("[data-conta]")).toBeVisible();
+  const lojas2 = await lojasDoBanco();
+  expect(lojas2, lojas2.join(",")).toHaveLength(ESPERADAS);
+  expect(lojas2).toContain("perfis");
+});
+
 test("progresso legado é da Manuela; Leo e Gustavo começam do zero e evoluem isolados", async ({
   page,
 }) => {

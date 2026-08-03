@@ -2,7 +2,29 @@
 
 import { useSyncExternalStore } from "react";
 import type { Identidade } from "./identidade";
-import { assinarJogador, perfilAtivo, perfilNoServidor, type Perfil } from "./perfis";
+import {
+  PERFIS,
+  assinarJogador,
+  carregarPerfis,
+  listarPerfis,
+  perfilAtivo,
+  perfilNoServidor,
+  registroPronto,
+  type Perfil,
+} from "./perfis";
+
+// boot do catálogo dinâmico: uma vez por sessão, no primeiro import client
+if (typeof window !== "undefined") void carregarPerfis();
+
+const FABRICA = [...PERFIS];
+
+export function usePerfis(): Perfil[] {
+  return useSyncExternalStore(assinarJogador, listarPerfis, () => FABRICA);
+}
+
+export function useRegistroPronto(): boolean {
+  return useSyncExternalStore(assinarJogador, registroPronto, () => true);
+}
 
 /**
  * Assinatura reativa do perfil escolhido (fase 2 da identidade): quem usa
