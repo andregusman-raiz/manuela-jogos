@@ -5,7 +5,7 @@ import { CardJogo } from "@/components/hub/CardJogo";
 import { EscolhaJogador } from "@/components/hub/EscolhaJogador";
 import { criarJogos } from "@/lib/jogos";
 import { assinarJogador, jogadorNoServidor, lerJogador, limparJogador } from "@/lib/perfis";
-import { useIdentidade } from "@/lib/usePerfil";
+import { useIdentidade, useRegistroPronto } from "@/lib/usePerfil";
 import { assinarOcultos, lerOcultos, ocultosNoServidor, salvarOcultos } from "@/lib/preferencias";
 import { feedback, tocar } from "@/lib/som";
 
@@ -26,10 +26,12 @@ export function GradeJogos() {
   const [configurando, setConfigurando] = useState(false);
   const [negada, setNegada] = useState(0);
 
-  // hidratou: o React assume o gate — o véu anti-FOUC do SSR sai de cena
+  // o véu anti-FOUC só sai quando o CATÁLOGO validou o id salvo (SPEC
+  // perfis-pela-interface §1.2: id dinâmico apagado → picker sem flash)
+  const pronto = useRegistroPronto();
   useEffect(() => {
-    document.documentElement.removeAttribute("data-sem-jogador");
-  }, []);
+    if (pronto) document.documentElement.removeAttribute("data-sem-jogador");
+  }, [pronto]);
 
   useEffect(() => {
     if (!negada) return;

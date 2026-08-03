@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { PERFIS, salvarJogador } from "@/lib/perfis";
+import { salvarJogador } from "@/lib/perfis";
+import { usePerfis } from "@/lib/usePerfil";
 import { feedback, tocar } from "@/lib/som";
 
 /**
@@ -10,6 +11,7 @@ import { feedback, tocar } from "@/lib/som";
  * aqui sozinhos quando entrarem em lib/perfis.ts.
  */
 export function EscolhaJogador() {
+  const perfis = usePerfis();
   return (
     <div
       role="dialog"
@@ -20,13 +22,13 @@ export function EscolhaJogador() {
     >
       <h1 className="shrink-0 text-center font-titulo text-3xl text-manu-cacau">Quem vai jogar?</h1>
       <div className="flex min-h-0 flex-1 flex-wrap content-center items-stretch justify-center gap-4 overflow-y-auto py-2">
-        {PERFIS.map((perfil) => {
+        {perfis.map((perfil) => {
           const escala = 150 / Math.max(perfil.corpo.largura, perfil.corpo.altura);
           return (
             <button
               key={perfil.id}
               type="button"
-              autoFocus={perfil.id === PERFIS[0].id}
+              autoFocus={perfil.id === perfis[0].id}
               aria-label={`jogar como ${perfil.identidade.nome}`}
               data-perfil={perfil.id}
               onClick={() => {

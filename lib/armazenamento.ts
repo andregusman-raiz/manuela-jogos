@@ -1,5 +1,6 @@
 import type { Desenho } from "./desenho/tipos";
-import { perfilAtivo } from "./perfis";
+import { LOJA_ATELIE, abrirBd, bdSuportado } from "./bd";
+import { idJogadorSalvo } from "./perfis";
 
 /**
  * Guarda tudo no aparelho (IndexedDB). Nenhum dado sai daqui: não há conta,
@@ -14,31 +15,8 @@ import { perfilAtivo } from "./perfis";
  * aqui só aumentaria o bundle que precisa abrir em 3s no 4G.
  */
 
-const NOME_BD = "manu-jogos";
-const VERSAO_BD = 5;
-/** Uma gaveta por jogo: um jogo do hub não colide com o outro. */
-const LOJA_ATELIE = "atelie";
-const LOJAS_JOGOS = [
-  "contas",
-  "memoria",
-  "labirinto",
-  "palavras",
-  "forca",
-  "relogio",
-  "lojinha",
-  "genius",
-  "fracoes",
-  "estados",
-  "tangram",
-  "damas",
-  "caca",
-  "ludo",
-  "cobras",
-  "lig4",
-  "mancala",
-  "rota",
-] as const;
-export type LojaJogo = (typeof LOJAS_JOGOS)[number];
+export type { LojaJogo } from "./bd";
+import type { LojaJogo } from "./bd";
 const ID_RASCUNHO = "rascunho";
 const PERFIL_LEGADO = "manuela"; // dono histórico do dado sem perfil (SPEC memoria-por-perfil §2)
 
@@ -55,56 +33,14 @@ export function ehRascunho(id: string): boolean {
   return id === ID_RASCUNHO || id.startsWith(`${ID_RASCUNHO}:`);
 }
 
-function suportado(): boolean {
-  return typeof indexedDB !== "undefined";
-}
-
-function abrir(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const pedido = indexedDB.open(NOME_BD, VERSAO_BD);
-    // Migração ADITIVA: só cria gavetas que faltam, nunca toca nas existentes —
-    // o upgrade de versão não pode custar um desenho da galeria.
-    pedido.onupgradeneeded = () => {
-      const bd = pedido.result;
-      for (const nome of [LOJA_ATELIE, ...LOJAS_JOGOS]) {
-        if (!bd.objectStoreNames.contains(nome)) {
-          const loja = bd.createObjectStore(nome, { keyPath: "id" });
-          loja.createIndex("atualizadoEm", "atualizadoEm");
-        }
-      }
-    };
-    // onblocked: apenas AGUARDAR. Um segundo open() de "fallback" seria inútil
-    // — pedidos de abertura do mesmo banco são serializados e entrariam na
-    // fila ATRÁS deste upgrade bloqueado (lição do juiz da onda 2).
-    // INVARIANTE que torna a espera segura: toda conexão deste app (em
-    // qualquer versão já publicada) é curta — abre, roda UMA transação e
-    // fecha — e abas novas fecham via onversionchange. Bloqueio é transitório
-    // por construção. NUNCA introduzir conexão de vida longa neste banco.
-    // Cinto de segurança para o cenário residual (aba com versão ANTIGA que
-    // vazou uma conexão por erro): rejeitar depois de 4s em vez de pendurar o
-    // jogo para sempre — os helpers degradam para "sem persistência".
-    const teto = setTimeout(() => reject(new Error("abertura do banco bloqueada")), 4000);
-    pedido.onsuccess = () => {
-      clearTimeout(teto);
-      // Esta aba é a antiga quando outra pede upgrade: fecha para ela seguir.
-      pedido.result.onversionchange = () => pedido.result.close();
-      resolve(pedido.result);
-    };
-    pedido.onerror = () => {
-      clearTimeout(teto);
-      reject(pedido.error);
-    };
-  });
-}
-
 async function comLoja<T>(
   nomeLoja: string,
   modo: IDBTransactionMode,
   acao: (loja: IDBObjectStore) => IDBRequest<T>,
 ): Promise<T | null> {
-  if (!suportado()) return null;
+  if (!bdSuportado()) return null;
   try {
-    const bd = await abrir();
+    const bd = await abrirBd();
     return await new Promise<T | null>((resolve, reject) => {
       const tx = bd.transaction(nomeLoja, modo);
       const pedido = acao(tx.objectStore(nomeLoja));
@@ -125,12 +61,12 @@ async function comLoja<T>(
 }
 
 export async function salvarRascunho(desenho: Desenho): Promise<void> {
-  const perfil = perfilAtivo().id;
+  const perfil = idJogadorSalvo();
   await comLoja(LOJA_ATELIE, "readwrite", (loja) => loja.put({ ...desenho, id: idRascunho(perfil) }));
 }
 
 export async function carregarRascunho(): Promise<Desenho | null> {
-  const perfil = perfilAtivo().id;
+  const perfil = idJogadorSalvo();
   const novo = await comLoja<Desenho>(LOJA_ATELIE, "readonly", (loja) => loja.get(idRascunho(perfil)));
   if (novo) return novo;
   // rascunho de antes dos perfis pertence à Manuela (decisão de produto)
@@ -140,7 +76,7 @@ export async function carregarRascunho(): Promise<Desenho | null> {
 }
 
 export async function apagarRascunho(): Promise<void> {
-  const perfil = perfilAtivo().id;
+  const perfil = idJogadorSalvo();
   await comLoja(LOJA_ATELIE, "readwrite", (loja) => {
     // comLoja resolve pelo onsuccess do request RETORNADO: o delete do legado
     // (Manuela) precisa ser o último da transação — sem ele o rascunho velho
@@ -159,7 +95,7 @@ export async function apagarRascunho(): Promise<void> {
 export async function guardarNaGaleria(desenho: Desenho, idExistente?: string): Promise<string> {
   // dono capturado NA ENTRADA (review PR #50): trocar de perfil com um guardar
   // em voo não pode transferir nem sobrescrever desenho de outra criança
-  const perfilDaAcao = perfilAtivo().id;
+  const perfilDaAcao = idJogadorSalvo();
   const id =
     idExistente && !ehRascunho(idExistente)
       ? idExistente
@@ -167,9 +103,9 @@ export async function guardarNaGaleria(desenho: Desenho, idExistente?: string): 
   // galeriaId é metadado do rascunho; num item da galeria seria auto-referência
   const { galeriaId: _descartado, ...limpo } = desenho;
   void _descartado;
-  if (!suportado()) return id;
+  if (!bdSuportado()) return id;
   try {
-    const bd = await abrir();
+    const bd = await abrirBd();
     await new Promise<void>((resolve, reject) => {
       const tx = bd.transaction(LOJA_ATELIE, "readwrite");
       const loja = tx.objectStore(LOJA_ATELIE);
@@ -200,7 +136,7 @@ export async function guardarNaGaleria(desenho: Desenho, idExistente?: string): 
 export async function listarGaleria(): Promise<Desenho[]> {
   const todos = await comLoja<Desenho[]>(LOJA_ATELIE, "readonly", (loja) => loja.getAll());
   if (!todos) return [];
-  const perfil = perfilAtivo().id;
+  const perfil = idJogadorSalvo();
   return todos
     .filter((d) => !ehRascunho(d.id))
     // desenho sem carimbo é de antes dos perfis: pertence à Manuela
@@ -231,7 +167,7 @@ export type Progresso = {
 };
 
 export async function lerProgresso(jogo: LojaJogo): Promise<Progresso | null> {
-  const perfil = perfilAtivo().id;
+  const perfil = idJogadorSalvo();
   const novo = await comLoja<Progresso>(jogo, "readonly", (loja) => loja.get(idProgresso(perfil)));
   if (novo) return novo;
   if (perfil !== PERFIL_LEGADO) return null;
@@ -260,9 +196,9 @@ export async function atualizarRegistro<T extends { id: string }>(
   id: string,
   atualizar: (atual: T | null) => T,
 ): Promise<void> {
-  if (!suportado()) return;
+  if (!bdSuportado()) return;
   try {
-    const bd = await abrir();
+    const bd = await abrirBd();
     await new Promise<void>((resolve, reject) => {
       const tx = bd.transaction(jogo, "readwrite");
       const loja = tx.objectStore(jogo);
@@ -295,11 +231,11 @@ export async function salvarProgresso(
   nivel: number,
   melhor: number | null = null,
 ): Promise<void> {
-  if (!suportado()) return;
+  if (!bdSuportado()) return;
   // capturado ANTES de qualquer await: troca de perfil no meio não mistura chaves
-  const perfil = perfilAtivo().id;
+  const perfil = idJogadorSalvo();
   try {
-    const bd = await abrir();
+    const bd = await abrirBd();
     await new Promise<void>((resolve, reject) => {
       const tx = bd.transaction(jogo, "readwrite");
       const loja = tx.objectStore(jogo);

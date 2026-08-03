@@ -48,6 +48,20 @@ export function Mascote({
   const { src, largura, altura } = perfil[asset];
   const escala = tamanho / Math.max(largura, altura);
 
+  if (src.startsWith("blob:")) {
+    return (
+      // perfis dinâmicos: next/image não otimiza blob e não deve tentar
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={src}
+        alt={perfil.identidade.altMascote}
+        width={Math.round(largura * escala)}
+        height={Math.round(altura * escala)}
+        draggable={false}
+        className={`select-none ${classe} ${className}`}
+      />
+    );
+  }
   return (
     <Image
       src={src}

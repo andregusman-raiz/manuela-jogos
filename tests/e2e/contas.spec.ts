@@ -129,7 +129,7 @@ test("três formatos: alvos de toque >= 72px em celular, tablet e desktop", asyn
   }
 });
 
-test("upgrade v3→v5 preserva galeria E progresso antigos e cria as gavetas novas", async ({
+test("upgrade v3→v6 preserva galeria E progresso antigos e cria as gavetas novas", async ({
   page,
 }) => {
   // recria um banco v3 com o esquema antigo + DUAS sentinelas: desenho na
@@ -218,7 +218,7 @@ test("upgrade v3→v5 preserva galeria E progresso antigos e cria as gavetas nov
   }
   expect(banco, "não conseguiu ler o banco após o reload do SW").not.toBeNull();
   banco = banco!;
-  expect(banco.versao).toBe(5);
+  expect(banco.versao).toBe(6);
   expect(banco.sentinela, "desenho da galeria sumiu no upgrade").toBe(true);
   expect(banco.nivelContas, "progresso antigo sumiu no upgrade").toBe(4);
   expect(banco.lojas).toEqual([
@@ -238,6 +238,7 @@ test("upgrade v3→v5 preserva galeria E progresso antigos e cria as gavetas nov
     "mancala",
     "memoria",
     "palavras",
+    "perfis",
     "relogio",
     "rota",
     "tangram",

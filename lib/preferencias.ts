@@ -9,7 +9,7 @@
  */
 
 import { JOGOS } from "./jogos";
-import { assinarJogador, perfilAtivo } from "./perfis";
+import { assinarJogador, idJogadorSalvo } from "./perfis";
 
 const CHAVE_LEGADA = "manu-jogos-ocultos";
 const PERFIL_LEGADO = "manuela";
@@ -38,7 +38,7 @@ function sanitizar(bruto: unknown): string[] {
 /** Ids ocultos VÁLIDOS do perfil ATIVO. */
 export function lerOcultos(): string[] {
   if (typeof localStorage === "undefined") return NO_SERVIDOR;
-  const perfil = perfilAtivo().id;
+  const perfil = idJogadorSalvo();
   const guardado = cache.get(perfil);
   if (guardado) return guardado;
   let resultado: string[] = [];
@@ -58,7 +58,7 @@ export function lerOcultos(): string[] {
 }
 
 export function salvarOcultos(ids: string[]): void {
-  const perfil = perfilAtivo().id;
+  const perfil = idJogadorSalvo();
   // memória e assinantes atualizam SEMPRE (padrão do lib/som.ts): uma falha
   // de persistência (quota, modo privado) não pode congelar o seletor
   cache.set(perfil, ids);

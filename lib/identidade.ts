@@ -48,6 +48,9 @@ export function criarIdentidade(dados: DadosIdentidade): Identidade {
     // apelido só de emoji/símbolos geraria "desenho-da-.png"
     throw new Error("apelido precisa de ao menos uma letra ou número");
   }
+  if (!slugDe(nome)) {
+    throw new Error("nome precisa de ao menos uma letra ou número");
+  }
   const artigo = dados.genero;
   return {
     nome,
