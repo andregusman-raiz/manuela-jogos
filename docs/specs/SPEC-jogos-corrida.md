@@ -114,16 +114,25 @@ Vencer a Manu no nível 1 libera o 2 (`salvarProgresso`).
 - Distância de frenagem: `dFreio(v, limite) = max(0, (v² - limite²) / (2*FREIO))`.
 - A IA solta o botão a `dFreio + MARGEM + err` unidades da próxima entrada de
   trecho limitado; segura em todo o resto.
-- `MARGEM`: nível 1 = 30 u; nível 2 = 45 u. `err` inteiro sorteado POR TRECHO
-  LIMITADO na largada (LCG da semente): nível 1 ∈ [−60, +20]; nível 2 ∈
+- `MARGEM`: nível 1 = 30 u; nível 2 = 46 u (adendo v1.2: era 45; +1 empurra a
+  borda de discretização — sementes com efetivo 0 entravam no limite exato e o
+  lado dependia do tick, estourando a faixa do oráculo para 11/50).
+- **Teto de velocidade da IA (adendo v1.2)**: nível 1 = 0.75·VMAX, nível 2 =
+  0.92·VMAX. Sem teto a IA era IMBATÍVEL — provado por simulação (telemetria:
+  com 6 spins em 3 voltas ela ainda fazia 26.6 s/volta contra 29+ do melhor
+  piloto realista): criança nunca desbloquearia o nível 2. A criança recupera
+  nas retas (segura reto a VMAX; a IA cruza a 90/110).
+- `err` inteiro sorteado POR TRECHO LIMITADO na largada (LCG da semente, com
+  burn-in de 3 sorteios — os primeiros outputs do Park-Miller com semente
+  pequena são ~0 e o err colaria no piso): nível 1 ∈ [−60, +20]; nível 2 ∈
   [−48, +12]. `err` efetivo < −MARGEM = solta tarde → roda naquela curva.
 - Oráculos por MATRIZ de sementes 1..50 (faixas, não pontos): nível 1 — IA
   roda em **30%–90%** das corridas; nível 2 — **0%–20%**. Com `err = 0`
   forçado a IA NUNCA roda (agora garantido pela cinemática); com
   `err = −(MARGEM+dFreio+1)` forçado SEMPRE roda.
 - Rubber-band (só a favor da criança): `distanciaTotal = voltas*C + progresso`;
-  se a IA lidera por `> C/2` → `MARGEM *= 1.3` E `VMAX_IA = 0.8*VMAX`
-  enquanto durar (espera de verdade). Criança liderando → IA normal.
+  se a IA lidera por `> C/2` → `MARGEM *= 1.3` E teto da IA ×0.8 enquanto
+  durar (espera de verdade). Criança liderando → IA normal.
 
 ### 1.3 UI e entrada
 
@@ -271,3 +280,14 @@ produção; PR B (Corrida) idem.
 | B8 | dispatchEvent(visibilitychange) não muda document.hidden | §0.3: botão ⏸ cross-engine; visibilidade Chromium-only; tempo só em correndo |
 | B9 | perfil-memoria fixa 20 lojas; v3 não prova dados v6 | §0: autorizações explícitas + teste v6→v7 com sentinelas |
 | B10 | Números abertos; colisão sem abs; empate; 4ª estrela | Constantes fechadas §§1-2; colisão só à frente 0<Δ≤80; empate=-1; clamp 3★ |
+
+### Adendos v1.2 (descobertos no BUILD do PR A, registrados antes do merge)
+
+1. **Teto de velocidade da IA por nível** (§1.2): sem ele a IA era imbatível
+   mesmo errando muito — derrotabilidade é requisito de produto num jogo
+   infantil; o E2E que perdeu nos 2 engines foi o detector.
+2. **MARGEM nível 2 = 46** (borda de discretização do oráculo da matriz).
+3. **Burn-in de 3 no LCG da IA** (viés do Park-Miller com sementes 1..50 — o
+   primeiro output é ~16807·s/2³¹ ≈ 0 e o err colava no piso: 100% de spin).
+4. Semente canônica dos testes: **81** (err −48 nas DUAS curvas — a mascote
+   roda nas duas mesmo com rubber-band ativo).

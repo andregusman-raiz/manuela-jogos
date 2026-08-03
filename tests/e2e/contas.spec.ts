@@ -129,7 +129,7 @@ test("três formatos: alvos de toque >= 72px em celular, tablet e desktop", asyn
   }
 });
 
-test("upgrade v3→v6 preserva galeria E progresso antigos e cria as gavetas novas", async ({
+test("upgrade v3→v7 preserva galeria E progresso antigos e cria as gavetas novas", async ({
   page,
 }) => {
   // recria um banco v3 com o esquema antigo + DUAS sentinelas: desenho na
@@ -218,14 +218,16 @@ test("upgrade v3→v6 preserva galeria E progresso antigos e cria as gavetas nov
   }
   expect(banco, "não conseguiu ler o banco após o reload do SW").not.toBeNull();
   banco = banco!;
-  expect(banco.versao).toBe(6);
+  expect(banco.versao).toBe(7);
   expect(banco.sentinela, "desenho da galeria sumiu no upgrade").toBe(true);
   expect(banco.nivelContas, "progresso antigo sumiu no upgrade").toBe(4);
   expect(banco.lojas).toEqual([
     "atelie",
+    "autorama",
     "caca",
     "cobras",
     "contas",
+    "corrida",
     "damas",
     "estados",
     "forca",
@@ -243,4 +245,102 @@ test("upgrade v3→v6 preserva galeria E progresso antigos e cria as gavetas nov
     "rota",
     "tangram",
   ]);
+});
+
+test("upgrade v6→v7 preserva perfil dinâmico E progresso por perfil (SPEC corrida §0)", async ({
+  page,
+}) => {
+  // um banco v3 não prova os dados que só existem desde o v6 (juiz B9 da
+  // onda carros): recriar o v6 REAL com sentinelas em perfis + progresso:<id>
+  await limparBanco(page);
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const req = indexedDB.open("manu-jogos", 6);
+        req.onupgradeneeded = () => {
+          for (const nome of [
+            "atelie",
+            "contas",
+            "memoria",
+            "labirinto",
+            "palavras",
+            "forca",
+            "relogio",
+            "lojinha",
+            "genius",
+            "fracoes",
+            "estados",
+            "tangram",
+            "damas",
+            "caca",
+            "ludo",
+            "cobras",
+            "lig4",
+            "mancala",
+            "rota",
+          ]) {
+            const loja = req.result.createObjectStore(nome, { keyPath: "id" });
+            loja.createIndex("atualizadoEm", "atualizadoEm");
+          }
+          const perfis = req.result.createObjectStore("perfis", { keyPath: "id" });
+          perfis.createIndex("criadoEm", "criadoEm");
+        };
+        req.onsuccess = () => {
+          const tx = req.result.transaction(["perfis", "contas"], "readwrite");
+          tx.objectStore("perfis").put({
+            id: "sofia",
+            nome: "Sofia",
+            apelido: "Sofia",
+            genero: "a",
+            criadoEm: 111,
+            atualizadoEm: 111,
+          });
+          tx.objectStore("contas").put({
+            id: "progresso:sofia",
+            nivel: 3,
+            melhor: null,
+            atualizadoEm: 222,
+          });
+          tx.oncomplete = () => {
+            req.result.close();
+            resolve();
+          };
+          tx.onerror = () => reject(tx.error);
+        };
+        req.onerror = () => reject(req.error);
+      }),
+  );
+
+  await page.reload();
+  await expect(page.locator("[data-conta]")).toBeVisible();
+
+  const banco = await page.evaluate(
+    () =>
+      new Promise<{ versao: number; lojas: number; perfil: boolean; nivel: number }>(
+        (resolve, reject) => {
+          const req = indexedDB.open("manu-jogos");
+          req.onsuccess = () => {
+            const bd = req.result;
+            const tx = bd.transaction(["perfis", "contas"], "readonly");
+            const g = tx.objectStore("perfis").get("sofia");
+            const p = tx.objectStore("contas").get("progresso:sofia");
+            tx.oncomplete = () => {
+              resolve({
+                versao: bd.version,
+                lojas: bd.objectStoreNames.length,
+                perfil: Boolean(g.result),
+                nivel: (p.result as { nivel?: number } | undefined)?.nivel ?? -1,
+              });
+              bd.close();
+            };
+            tx.onerror = () => reject(tx.error);
+          };
+          req.onerror = () => reject(req.error);
+        },
+      ),
+  );
+  expect(banco.versao).toBe(7);
+  expect(banco.lojas).toBe(22); // atelie + 20 jogos + perfis
+  expect(banco.perfil, "perfil dinâmico sumiu no v6→v7").toBe(true);
+  expect(banco.nivel, "progresso por perfil sumiu no v6→v7").toBe(3);
 });

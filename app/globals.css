@@ -225,6 +225,23 @@
   animation: manu-nao 420ms ease-in-out both;
 }
 
+/* Spin-out do autorama: o carrinho gira no LUGAR (grupo interno — o grupo
+   externo carrega o translate/rotate de posição via atributo). */
+@keyframes manu-rodada {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(720deg);
+  }
+}
+
+.autorama-rodando {
+  animation: manu-rodada 1s linear infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

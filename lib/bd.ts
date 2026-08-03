@@ -2,7 +2,7 @@
  * DONO ÚNICO do banco "manu-jogos" (SPEC-perfis-pela-interface §1.1).
  *
  * Todo módulo que precisa do IndexedDB abre por AQUI: o upgrade cria
- * idempotentemente TODAS as lojas (ateliê + 18 jogos + perfis), seja quem
+ * idempotentemente TODAS as lojas (ateliê + 20 jogos + perfis), seja quem
  * for que abra primeiro — schema dependente de ordem de abertura era o
  * blocker B3 do juiz (NotFoundError conforme a primeira chamada da sessão).
  *
@@ -11,7 +11,7 @@
  */
 
 export const NOME_BD = "manu-jogos";
-export const VERSAO_BD = 6;
+export const VERSAO_BD = 7;
 
 export const LOJA_ATELIE = "atelie";
 export const LOJA_PERFIS = "perfis";
@@ -34,6 +34,8 @@ export const LOJAS_JOGOS = [
   "lig4",
   "mancala",
   "rota",
+  "autorama",
+  "corrida",
 ] as const;
 export type LojaJogo = (typeof LOJAS_JOGOS)[number];
 
