@@ -46,9 +46,18 @@ export async function processarCorpo(file: File): Promise<ResultadoCorpo> {
   if (file.size > TAMANHO_MAXIMO_ARQUIVO) return { ok: false, motivo: "grande" };
   const origem = await decodificar(file);
   if (!origem) return { ok: false, motivo: "nao-abriu" };
+  const fechar = () => {
+    if ("close" in origem) origem.close();
+  };
   const { w, h } = dimensoes(origem);
-  if (w === 0 || h === 0) return { ok: false, motivo: "nao-abriu" };
-  if ((w * h) / 1_000_000 > MEGAPIXELS_MAXIMOS) return { ok: false, motivo: "grande" };
+  if (w === 0 || h === 0) {
+    fechar();
+    return { ok: false, motivo: "nao-abriu" };
+  }
+  if ((w * h) / 1_000_000 > MEGAPIXELS_MAXIMOS) {
+    fechar();
+    return { ok: false, motivo: "grande" };
+  }
 
   // downscale DIRETO no drawImage — nunca canvas no tamanho original (juiz B5)
   const escala = Math.min(1, LADO_MAXIMO / Math.max(w, h));
@@ -58,9 +67,12 @@ export async function processarCorpo(file: File): Promise<ResultadoCorpo> {
   tela.width = largura;
   tela.height = altura;
   const ctx = tela.getContext("2d", { willReadFrequently: true });
-  if (!ctx) return { ok: false, motivo: "nao-abriu" };
+  if (!ctx) {
+    fechar();
+    return { ok: false, motivo: "nao-abriu" };
+  }
   ctx.drawImage(origem, 0, 0, largura, altura);
-  if ("close" in origem) origem.close();
+  fechar();
 
   const dados = ctx.getImageData(0, 0, largura, altura);
   const pixels = { dados: dados.data, largura, altura };

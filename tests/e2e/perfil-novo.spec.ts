@@ -23,6 +23,9 @@ async function bancoLimpo(page: Page) {
       }),
   );
   await page.reload();
+  // hidratação assentada ANTES de tocar (o tap sintético pré-hidratação
+  // engolia o clique — mecânica apontada no review do PR #53)
+  await expect(page.locator("[data-criar-jogador]")).toBeVisible({ timeout: 10000 });
 }
 
 /** Resolve a tabuada do portão parental (padrão do atelie.spec). */
@@ -71,6 +74,39 @@ test("criar a Sofia: upload real → recorte → menina → app inteiro flexiona
   // persiste no reload (IDB + blob URLs recriadas)
   await page.reload();
   await expect(page.getByLabel("Ateliê da Sofia", { exact: true })).toBeVisible();
+
+  // o pipeline RODOU de verdade: o corpo gravado é o recorte da figura,
+  // não a imagem inteira de 240×360 (mata o mutante "não remove fundo")
+  const registro = await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const req = indexedDB.open("manu-jogos");
+        req.onsuccess = () => {
+          const tx = req.result.transaction(["perfis"], "readonly");
+          const g = tx.objectStore("perfis").get("sofia");
+          tx.oncomplete = () => {
+            req.result.close();
+            const r = g.result as
+              | { corpoLargura: number; corpoAltura: number; avatar: ArrayBuffer }
+              | undefined;
+            // ArrayBuffer não serializa pelo evaluate: devolver só números
+            resolve(
+              r
+                ? {
+                    corpoLargura: r.corpoLargura,
+                    corpoAltura: r.corpoAltura,
+                    avatarBytes: r.avatar.byteLength,
+                  }
+                : null,
+            );
+          };
+        };
+      }),
+  );
+  const r = registro as { corpoLargura: number; corpoAltura: number; avatarBytes: number };
+  expect(r.corpoLargura, "fundo/recorte não rodou (largura = imagem inteira)").toBeLessThan(200);
+  expect(r.corpoAltura).toBeGreaterThan(r.corpoLargura); // figura em pé
+  expect(r.avatarBytes).toBeGreaterThan(1000); // avatar real, não vazio
 
   // aparece no picker com anel rosa e botão de gerenciar
   await tocarNoElemento(page.locator("[data-config]"));
@@ -127,18 +163,25 @@ test("editar mantém o id e os dados; apagar varre e recriar não herda", async 
   await bancoLimpo(page);
   await criarSofia(page);
 
-  // progresso da Sofia (semeado direto na chave dela)
+  // memórias da Sofia em TODAS as camadas (progresso, rascunho, galeria, config)
   await page.evaluate(
     () =>
       new Promise<void>((resolve) => {
         const req = indexedDB.open("manu-jogos");
         req.onsuccess = () => {
-          const tx = req.result.transaction(["contas"], "readwrite");
+          const tx = req.result.transaction(["contas", "atelie"], "readwrite");
           tx.objectStore("contas").put({
             id: "progresso:sofia",
             nivel: 3,
             melhor: null,
             atualizadoEm: 1,
+          });
+          tx.objectStore("atelie").put({ id: "rascunho:sofia", operacoes: [], atualizadoEm: 1 });
+          tx.objectStore("atelie").put({
+            id: "d-sofia-1",
+            perfil: "sofia",
+            operacoes: [],
+            atualizadoEm: 2,
           });
           tx.oncomplete = () => {
             req.result.close();
@@ -147,6 +190,7 @@ test("editar mantém o id e os dados; apagar varre e recriar não herda", async 
         };
       }),
   );
+  await page.evaluate(() => localStorage.setItem("manu-jogos-ocultos:sofia", '["damas"]'));
 
   // editar apelido → id continua "sofia" e o progresso segue visível
   await tocarNoElemento(page.locator("[data-config]"));
@@ -187,6 +231,24 @@ test("editar mantém o id e os dados; apagar varre e recriar não herda", async 
       }),
   );
   expect(progresso, "apagar deveria varrer o progresso").toBeNull();
+
+  const sobras = await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const req = indexedDB.open("manu-jogos");
+        req.onsuccess = () => {
+          const tx = req.result.transaction(["atelie"], "readonly");
+          const g = tx.objectStore("atelie").getAllKeys();
+          tx.oncomplete = () => {
+            req.result.close();
+            resolve((g.result as string[]).filter((k) => k.includes("sofia")));
+          };
+        };
+      }),
+  );
+  expect(sobras, "rascunho/galeria da Sofia deveriam sumir").toEqual([]);
+  const ocultos = await page.evaluate(() => localStorage.getItem("manu-jogos-ocultos:sofia"));
+  expect(ocultos, "config de ocultos deveria sumir").toBeNull();
 
   await criarSofia(page);
   await page.goto("/contas");

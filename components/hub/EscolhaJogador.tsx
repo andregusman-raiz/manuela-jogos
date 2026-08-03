@@ -84,7 +84,7 @@ export function EscolhaJogador() {
               feedback("abrir");
               setAssistente({ aberto: true, editando: null });
             }}
-            className="flex min-h-56 min-w-44 shrink-0 flex-col items-center justify-center gap-3 rounded-[2rem] border-4 border-dashed border-manu-cacau/25 bg-manu-papel/40 font-titulo text-manu-cacau-suave sm:min-h-64 sm:min-w-52"
+            className="flex min-h-56 min-w-44 shrink-0 flex-col items-center justify-center gap-3 rounded-[2rem] border-4 border-dashed border-manu-cacau/40 bg-manu-papel/40 font-titulo text-manu-cacau-suave sm:min-h-64 sm:min-w-52"
           >
             <span aria-hidden className="text-5xl">＋</span>
             Novo jogador

@@ -39,6 +39,24 @@ interface Recorte {
   lado: number;
 }
 
+function prenderTab(e: React.KeyboardEvent<HTMLDivElement>) {
+  if (e.key !== "Tab") return;
+  const raiz = e.currentTarget;
+  const focaveis = raiz.querySelectorAll<HTMLElement>(
+    'button, input, [tabindex]:not([tabindex="-1"])',
+  );
+  if (focaveis.length === 0) return;
+  const primeiro = focaveis[0];
+  const ultimo = focaveis[focaveis.length - 1];
+  if (e.shiftKey && document.activeElement === primeiro) {
+    e.preventDefault();
+    ultimo.focus();
+  } else if (!e.shiftKey && document.activeElement === ultimo) {
+    e.preventDefault();
+    primeiro.focus();
+  }
+}
+
 export function NovoJogador({ aberto, editando, onFechar }: Props) {
   // o pai remonta este componente por `key` a cada abertura: o estado
   // inicial vem das props, sem reset via effect (lint da casa)
@@ -55,6 +73,9 @@ export function NovoJogador({ aberto, editando, onFechar }: Props) {
   const [apelido, setApelido] = useState(editando?.identidade.apelido ?? "");
   const [genero, setGenero] = useState<"a" | "o">(editando?.identidade.genero ?? "a");
   const [confirmandoApagar, setConfirmandoApagar] = useState(false);
+  const [processando, setProcessando] = useState(false);
+  const geracaoFoto = useRef(0);
+  const desmontado = useRef(false);
   const quadroRef = useRef<HTMLDivElement | null>(null);
   const arrasto = useRef<{ tipo: "mover" | "tamanho"; x: number; y: number; base: Recorte } | null>(
     null,
@@ -67,12 +88,36 @@ export function NovoJogador({ aberto, editando, onFechar }: Props) {
     };
   }, [corpo]);
 
+  useEffect(() => {
+    desmontado.current = false;
+    return () => {
+      desmontado.current = true;
+      geracaoFoto.current++; // cancela qualquer processamento em voo
+    };
+  }, []);
+
+  // foco entra no diálogo (review PR #53: abrir por teclado deixava o foco
+  // no picker encoberto); Tab fica preso via prenderTab no container
+  const dialogoRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    dialogoRef.current?.focus();
+  }, []);
+
   if (!aberto) return null;
 
   async function aoEscolherArquivo(file: File | undefined) {
     if (!file) return;
     setErro(null);
+    // review PR #53: nova escolha CANCELA a anterior (foto pesada que termina
+    // depois não pode sobrescrever a mais nova; fechar descarta em voo)
+    const minha = ++geracaoFoto.current;
+    setProcessando(true);
     const resultado = await processarCorpo(file);
+    if (minha !== geracaoFoto.current || desmontado.current) {
+      if (resultado.ok) URL.revokeObjectURL(resultado.previa);
+      return;
+    }
+    setProcessando(false);
     if (!resultado.ok) {
       setErro(
         resultado.motivo === "grande"
@@ -93,7 +138,8 @@ export function NovoJogador({ aberto, editando, onFechar }: Props) {
 
   function clampRecorte(r: Recorte): Recorte {
     if (!corpo) return r;
-    const lado = Math.max(48, Math.min(r.lado, Math.min(corpo.largura, corpo.altura)));
+    const menorDim = Math.min(corpo.largura, corpo.altura);
+    const lado = Math.min(Math.max(Math.min(48, menorDim), r.lado), menorDim);
     return {
       lado,
       x: Math.max(0, Math.min(r.x, corpo.largura - lado)),
@@ -133,6 +179,10 @@ export function NovoJogador({ aberto, editando, onFechar }: Props) {
 
   async function salvar() {
     setErro(null);
+    if (!nome.trim()) {
+      setErro("Confira o nome (precisa de pelo menos uma letra) e tente de novo.");
+      return;
+    }
     setPasso("salvando");
     try {
       if (editando) {
@@ -195,11 +245,14 @@ export function NovoJogador({ aberto, editando, onFechar }: Props) {
 
   return (
     <div
+      ref={dialogoRef}
       role="dialog"
       aria-modal="true"
       aria-label={editando ? `gerenciar ${editando.identidade.nome}` : "criar novo jogador"}
       data-novo-jogador="true"
-      className="fixed inset-0 z-40 flex flex-col bg-manu-nuvem px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))]"
+      tabIndex={-1}
+      onKeyDown={prenderTab}
+      className="fixed inset-0 z-40 flex flex-col bg-manu-nuvem px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(1rem,env(safe-area-inset-top))] outline-none"
     >
       <PortaoParental
         aberto={passo === "portao"}
@@ -240,6 +293,11 @@ export function NovoJogador({ aberto, editando, onFechar }: Props) {
               <p className="max-w-xs text-center text-xs text-manu-cacau-suave">
                 Fundo branquinho fica melhor: a foto vira figurinha. Nada sai deste aparelho.
               </p>
+              {processando ? (
+                <p data-processando="true" className="anima-brilho font-titulo text-manu-cacau-suave">
+                  Preparando a foto…
+                </p>
+              ) : null}
               <label className="bolha min-h-14 cursor-pointer bg-manu-sol px-6 font-titulo text-lg ring-2 ring-manu-sol-forte">
                 Tirar foto
                 <input
