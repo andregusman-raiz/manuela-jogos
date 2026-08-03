@@ -46,8 +46,11 @@ function simular(
   tetoTicks: number,
 ): { estado: EstadoAutorama; spins: [number, number]; ticks: number } {
   const spins: [number, number] = [0, 0];
+  const total = comprimentoTotal(estado.pista);
   let atual = estado;
   let valido = true;
+  let monotonico = true;
+  let distAnterior = [0, 0];
   for (let t = 0; t < tetoTicks && atual.situacao === "correndo"; t++) {
     const pressionados = [
       entradaJogador(t),
@@ -58,9 +61,14 @@ function simular(
       if (c.rodando === SPIN_TICKS && atual.carros[i].rodando === 0) spins[i] += 1;
     });
     valido = valido && c0Valido(novo);
+    // progresso monotônico MÓDULO wrap: a distância total nunca anda para trás
+    const dist = novo.carros.map((c) => distanciaTotal(c, total));
+    monotonico = monotonico && dist[0] >= distAnterior[0] && dist[1] >= distAnterior[1];
+    distAnterior = dist;
     atual = novo;
   }
   expect(valido, "invariante de velocidade/progresso violada").toBe(true);
+  expect(monotonico, "distância total andou para trás").toBe(true);
   return { estado: atual, spins, ticks: atual.ticks };
 }
 
@@ -81,6 +89,14 @@ describe("física básica", () => {
     expect(estado.carros[0].velocidade).toBe(VMAX); // clamp no teto
     for (let i = 0; i < 3; i++) estado = tick(estado, [false, false]);
     expect(estado.carros[0].velocidade).toBeCloseTo(VMAX - 3 * FREIO * DT, 6);
+  });
+
+  test("pressionados=[true,true] move os DOIS carros igualmente (§1.4)", () => {
+    let estado = correndo(1);
+    for (let i = 0; i < 30; i++) estado = tick(estado, [true, true]);
+    expect(estado.carros[0].progresso).toBeGreaterThan(0);
+    expect(estado.carros[1].progresso).toBe(estado.carros[0].progresso);
+    expect(estado.carros[1].velocidade).toBe(estado.carros[0].velocidade);
   });
 
   test("deslocamento por tick é v·dt", () => {

@@ -54,6 +54,14 @@ function BotaoAcelerar({
 }) {
   const [apertado, setApertado] = useState(false);
   const poe = (e: React.PointerEvent) => {
+    // touch faz CAPTURA IMPLÍCITA do pointer: sem soltá-la, arrastar o dedo
+    // para fora nunca entrega pointerleave e o carro acelerava preso no
+    // iOS real (review PR #56 B3)
+    try {
+      (e.target as Element).releasePointerCapture?.(e.pointerId);
+    } catch {
+      // navegador sem captura ativa para este pointer — nada a soltar
+    }
     dedos.current[indice].add(e.pointerId);
     setApertado(true);
   };
@@ -61,6 +69,20 @@ function BotaoAcelerar({
     dedos.current[indice].delete(e.pointerId);
     setApertado(dedos.current[indice].size > 0);
   };
+  // rede de segurança: o up/cancel pode acontecer FORA do botão (dedo
+  // escorregou) — o listener global garante que nenhum id fica preso
+  useEffect(() => {
+    const solta = (e: PointerEvent) => {
+      dedos.current[indice].delete(e.pointerId);
+      setApertado(dedos.current[indice].size > 0);
+    };
+    window.addEventListener("pointerup", solta);
+    window.addEventListener("pointercancel", solta);
+    return () => {
+      window.removeEventListener("pointerup", solta);
+      window.removeEventListener("pointercancel", solta);
+    };
+  }, [indice, dedos]);
   return (
     <button
       type="button"
@@ -218,7 +240,10 @@ export function Autorama() {
   }, [aoFim, publicarHud]);
 
   const pausar = useCallback(() => {
-    if (faseRef.current !== "correndo") return;
+    // cobre também a CONTAGEM: sem isso, blur durante o 3-2-1 deixava a
+    // corrida largar em segundo plano (review PR #56 B2); a troca de fase
+    // desarma o alarme do 3-2-1 via cleanup do effect
+    if (faseRef.current !== "correndo" && faseRef.current !== "contagem") return;
     lacoRef.current?.parar();
     dedos.current[0].clear();
     dedos.current[1].clear();
@@ -284,9 +309,16 @@ export function Autorama() {
     setContagem(3);
     setFase("contagem");
     faseRef.current = "contagem";
+    publicarHud(estadoRef.current); // §0.2: TODA transição publica (B4)
   };
 
   const retomar = () => {
+    const estado = estadoRef.current;
+    if (estado) {
+      // o motor acompanha a UI: HUD não pode dizer "pausa" com o 3-2-1 na tela
+      estadoRef.current = { ...estado, situacao: "contagem" };
+      publicarHud(estadoRef.current);
+    }
     setContagem(3);
     setFase("contagem");
     faseRef.current = "contagem";
@@ -444,6 +476,7 @@ export function Autorama() {
             {fase === "contagem" ? (
               <div
                 data-contagem={contagem}
+                aria-live="assertive"
                 className="absolute inset-0 flex items-center justify-center"
               >
                 <span className="anima-entrada rounded-full bg-manu-papel/90 px-10 py-6 font-titulo text-7xl text-manu-cacau shadow-lg">
@@ -455,6 +488,7 @@ export function Autorama() {
             {fase === "pausa" ? (
               <div
                 data-pausa
+                aria-live="polite"
                 className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-manu-nuvem/85"
               >
                 <p className="font-titulo text-3xl text-manu-cacau">Pausa</p>
@@ -469,6 +503,7 @@ export function Autorama() {
             {fase === "fim" ? (
               <div
                 data-fim
+                aria-live="polite"
                 className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-manu-nuvem/85 px-4"
               >
                 <p className="text-center font-titulo text-3xl text-manu-cacau">
@@ -497,7 +532,12 @@ export function Autorama() {
             ) : null}
           </div>
 
-          <div className="flex shrink-0 gap-3 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-1 deitado:w-40 deitado:flex-col deitado:pt-3">
+          {/* key por fase: remonta os botões ao pausar/retomar — o estado
+              visual "apertado" não sobrevive à limpeza dos sets (review B) */}
+          <div
+            key={fase}
+            className="flex shrink-0 gap-3 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-1 deitado:w-40 deitado:flex-col deitado:pt-3"
+          >
             {modo === "2p" ? (
               <>
                 <BotaoAcelerar indice={0} dedos={dedos} rotulo="acelerar jogador 1" className={CARROS[0].botao} />

@@ -142,6 +142,7 @@ test("vs mascote, semente 81: piloto vence, a mascote roda nas curvas, nível 2 
   expect(h.vencedor).toBe("0");
   await expect(page.locator("[data-fim]")).toContainText("Você ganhou!");
   await expect(page.locator("[data-fim]")).toContainText("Pista 2 aberta");
+  await expect(page.locator('canvas[data-ativo="true"]')).toHaveCount(1); // confete de verdade
 
   // persistência: o nível 2 aparece no menu depois de recarregar
   await page.reload();
@@ -199,20 +200,26 @@ test("2 jogadores: cada botão move o SEU carro; dois dedos lógicos ao mesmo te
   test.setTimeout(60_000);
   await iniciar(page, "2p", 1);
 
-  // alternado: só o jogador 1 acelera
+  // alternado: só o jogador 1 acelera — e o carro 2 NÃO SE MEXE (review B5:
+  // uma mutação que liga os dois botões ao mesmo carro morre aqui)
   await dedo(page, 0, "pointerdown");
   await page.waitForTimeout(700);
   await dedo(page, 0, "pointerup");
   let h = await lerHud(page);
   expect(h.p0).toBeGreaterThan(0);
-  const p1Antes = h.p1;
+  expect(h.p1, "carro 2 andou sem ninguém apertar o botão dele").toBe(0);
 
-  // alternado: só o jogador 2
+  // espera o carro 1 PARAR de vez (freio até v=0) para medir exclusividade
+  await expect.poll(async () => (await lerHud(page)).v0, { timeout: 5000 }).toBe(0);
+  const p0Parado = (await lerHud(page)).p0;
+
+  // alternado: só o jogador 2 — e o carro 1 fica onde parou
   await dedo(page, 1, "pointerdown");
   await page.waitForTimeout(700);
   await dedo(page, 1, "pointerup");
   h = await lerHud(page);
-  expect(h.p1).toBeGreaterThan(p1Antes);
+  expect(h.p1).toBeGreaterThan(0);
+  expect(h.p0, "carro 1 andou com o botão do jogador 2").toBe(p0Parado);
 
   // simultâneo LÓGICO (pointerIds distintos, contrato §1.3 nos 2 engines)
   const base = h;
@@ -224,6 +231,26 @@ test("2 jogadores: cada botão move o SEU carro; dois dedos lógicos ao mesmo te
   expect(h.p1, "carro 2 parado com o dedo no botão").toBeGreaterThan(base.p1);
   await dedo(page, 0, "pointerup");
   await dedo(page, 1, "pointerup");
+});
+
+test("auto-pausa por blur cobre a corrida E a contagem (nada larga em segundo plano)", async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await iniciar(page, "manu", 1); // já em "correndo"
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(page.locator("[data-pausa]")).toBeVisible();
+  await expect(page.locator("main")).toHaveAttribute("data-situacao", "pausa");
+
+  // retomar e trocar de app DURANTE o 3-2-1 (review B2: a contagem seguia
+  // em segundo plano e a corrida largava sozinha)
+  await tocarNoElemento(page.getByLabel("continuar a corrida"));
+  await expect(page.locator("[data-contagem]")).toBeVisible();
+  await expect(page.locator("main")).toHaveAttribute("data-situacao", "contagem"); // B4
+  await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+  await expect(page.locator("[data-pausa]")).toBeVisible();
+  await page.waitForTimeout(2500); // tempo de sobra para um 3-2-1 fantasma
+  await expect(page.locator("main")).toHaveAttribute("data-situacao", "pausa");
 });
 
 test("2 jogadores: multi-touch FÍSICO simultâneo (só android — CDP; iPhone real fica no aceite manual)", async ({

@@ -36,14 +36,19 @@ export function criarLaco(opcoes: {
   let anterior: number | null = null;
   let acumulado = 0;
   let idQuadro: number | null = null;
+  // flag própria: parar() DENTRO de um aoPasso (fim de corrida) precisa
+  // impedir o reagendamento no fim do quadro corrente — cancelar o id de um
+  // rAF que já disparou é no-op e o laço ressuscitava (review PR #56 B1)
+  let ativo = false;
 
   const quadro = (agora: number) => {
+    if (!ativo) return;
     // truncar o delta cobre aba dormindo/minimizada: ao voltar, no máximo
     // DELTA_MAXIMO entra no acumulador — nunca "2 s de ticks de uma vez"
     if (anterior !== null) acumulado += Math.min(agora - anterior, DELTA_MAXIMO_MS);
     anterior = agora;
     let passos = 0;
-    while (acumulado >= PASSO_MS && passos < PASSOS_MAXIMOS_POR_QUADRO) {
+    while (ativo && acumulado >= PASSO_MS && passos < PASSOS_MAXIMOS_POR_QUADRO) {
       opcoes.aoPasso();
       acumulado -= PASSO_MS;
       passos += 1;
@@ -51,24 +56,26 @@ export function criarLaco(opcoes: {
     // atraso além do teto de passos é DESCARTADO (preserva só a fração)
     if (acumulado >= PASSO_MS) acumulado = acumulado % PASSO_MS;
     opcoes.aoQuadro();
-    idQuadro = agendar(quadro);
+    if (ativo) idQuadro = agendar(quadro);
   };
 
   return {
     iniciar() {
-      if (idQuadro !== null) return;
+      if (ativo) return;
+      ativo = true;
       anterior = null;
       acumulado = 0;
       idQuadro = agendar(quadro);
     },
     parar() {
+      ativo = false;
       if (idQuadro !== null) cancelar(idQuadro);
       idQuadro = null;
       anterior = null;
       acumulado = 0;
     },
     rodando() {
-      return idQuadro !== null;
+      return ativo;
     },
   };
 }

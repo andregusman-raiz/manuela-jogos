@@ -92,6 +92,35 @@ describe("laço de tempo real", () => {
     expect(lab.passos()).toBeLessThanOrEqual(1);
   });
 
+  test("parar() DENTRO de um passo mata o laço — fim de corrida não deixa rAF vivo (review B1)", () => {
+    let pendente: ((agora: number) => void) | null = null;
+    let passos = 0;
+    const laco = criarLaco({
+      aoPasso: () => {
+        passos += 1;
+        laco.parar(); // é o que aoFim faz no componente
+      },
+      aoQuadro: () => {},
+      agendar: (cb) => {
+        pendente = cb;
+        return 1;
+      },
+      cancelar: () => {
+        pendente = null;
+      },
+    });
+    laco.iniciar();
+    const aquecimento = pendente!;
+    pendente = null;
+    aquecimento(0);
+    const segundo = pendente as ((agora: number) => void) | null;
+    pendente = null;
+    segundo?.(PASSO_MS);
+    expect(passos).toBe(1);
+    expect(pendente, "o quadro foi reagendado depois do parar()").toBeNull();
+    expect(laco.rodando()).toBe(false);
+  });
+
   test("parar cancela o quadro agendado e zera o relógio; iniciar 2× não duplica", () => {
     const lab = laboratorio();
     lab.laco.iniciar();
