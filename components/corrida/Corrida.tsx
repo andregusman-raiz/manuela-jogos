@@ -250,9 +250,13 @@ export function Corrida() {
   // perfis dinâmicos chegam por blob: — mesma origem, sem CORS)
   useEffect(() => {
     let vivo = true;
+    rostoRef.current = null; // falhou o load do novo? capacete, nunca o rosto do perfil ANTERIOR
     const imagem = new Image();
     imagem.onload = () => {
       if (vivo) rostoRef.current = imagem;
+    };
+    imagem.onerror = () => {
+      if (vivo) rostoRef.current = null;
     };
     imagem.src = perfil.avatar.src;
     return () => {
