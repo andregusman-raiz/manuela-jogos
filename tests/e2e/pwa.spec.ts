@@ -51,7 +51,8 @@ test("abre offline depois da primeira visita", async ({ page, context, browserNa
             (await cache.match("/lig4")) &&
             (await cache.match("/mancala")) &&
             (await cache.match("/rota")) &&
-            (await cache.match("/autorama"))
+            (await cache.match("/autorama")) &&
+            (await cache.match("/corrida"))
           ) {
             // figuras dos perfis vivem no cache de ASSETS (review PR #48)
             const nomesAssets = (await caches.keys()).filter((n) => n.startsWith("manu-assets-"));

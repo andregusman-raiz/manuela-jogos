@@ -96,7 +96,7 @@ export function GradeJogos() {
           </p>
           <div
             key={negada || "lista"}
-            className={`grid min-h-0 flex-1 auto-rows-min grid-cols-4 gap-2 overflow-y-auto sm:grid-cols-5 ${
+            className={`grid min-h-0 flex-1 auto-rows-min grid-cols-4 gap-2 overflow-y-auto sm:grid-cols-5 lg:grid-cols-6 ${
               negada ? "anima-nao" : ""
             }`}
           >
