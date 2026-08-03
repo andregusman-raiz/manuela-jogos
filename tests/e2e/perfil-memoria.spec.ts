@@ -59,7 +59,7 @@ test.beforeEach(async ({ page }) => {
   await page.reload();
 });
 
-test("schema v6 nasce completo nas DUAS ordens de abertura (SPEC perfis §1.1)", async ({
+test("schema v7 nasce completo nas DUAS ordens de abertura (SPEC perfis §1.1)", async ({
   page,
 }) => {
   const lojasDoBanco = () =>
@@ -74,7 +74,7 @@ test("schema v6 nasce completo nas DUAS ordens de abertura (SPEC perfis §1.1)",
           };
         }),
     );
-  const ESPERADAS = 20; // atelie + 18 jogos + perfis
+  const ESPERADAS = 22; // atelie + 20 jogos + perfis
 
   // ordem 1: hub primeiro (o boot do catálogo abre a loja de perfis)
   const lojas1 = await lojasDoBanco();

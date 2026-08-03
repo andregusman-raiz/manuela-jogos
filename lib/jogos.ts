@@ -196,6 +196,15 @@ export function criarJogos(id: Identidade): Jogo[] {
     cor: "bg-manu-rosa/30",
     disponivel: true,
   },
+  {
+    id: "autorama",
+    nome: "Autorama",
+    descricao: "Corrida de carrinhos no trilho",
+    rota: "/autorama",
+    emoji: "🏎️",
+    cor: "bg-manu-sol/50",
+    disponivel: true,
+  },
   ];
 }
 

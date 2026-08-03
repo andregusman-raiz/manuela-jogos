@@ -15,7 +15,7 @@
 
 // Subir esta versão APAGA os caches antigos no aparelho (ver "activate"). É o
 // que destrava um aparelho preso numa versão velha do app.
-const VERSAO = "v23";
+const VERSAO = "v24";
 const CACHE_APP = `manu-app-${VERSAO}`;
 const CACHE_ASSETS = `manu-assets-${VERSAO}`;
 
@@ -41,6 +41,7 @@ const CASCA = [
   "/lig4",
   "/mancala",
   "/rota",
+  "/autorama",
 ];
 
 // Figuras e ícones instalam DIRETO no cache de assets — é dele que a rota de

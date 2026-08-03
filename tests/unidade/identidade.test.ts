@@ -31,7 +31,7 @@ describe("default Manuela — byte a byte com os textos publicados", () => {
     expect(flexionar("Mestre", "Mestra")).toBe("Mestra");
   });
 
-  test("catálogo default COMPLETO: todos os 19 pares nome/descrição byte a byte", () => {
+  test("catálogo default COMPLETO: todos os 20 pares nome/descrição byte a byte", () => {
     // snapshot integral (review PR #46): QUALQUER texto do catálogo que mudar
     // quebra aqui — não só os que citam a mascote
     const pares = criarJogos(IDENTIDADE).map((j) => [j.id, j.nome, j.descricao]);
@@ -55,6 +55,7 @@ describe("default Manuela — byte a byte com os textos publicados", () => {
       ["lig4", "Lig-4", "4 em linha, com a Manu"],
       ["mancala", "Mancala", "Semeie e colha"],
       ["rota", "Roda Romana", "Tres em linha na roda"],
+      ["autorama", "Autorama", "Corrida de carrinhos no trilho"],
     ]);
   });
 
