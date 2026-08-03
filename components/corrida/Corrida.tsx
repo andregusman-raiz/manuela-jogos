@@ -20,6 +20,7 @@ import {
 import type { EstadoCorrida, NivelCorrida } from "@/lib/corrida/motor";
 import { PISTA_CORRIDA } from "@/lib/corrida/pista";
 import { criarLaco } from "@/lib/tempo-real";
+import { usePerfil } from "@/lib/usePerfil";
 import type { LacoTempoReal } from "@/lib/tempo-real";
 import { assinarMudo, definirMudo, estaMudo, feedback, mudoNoServidor, tocar } from "@/lib/som";
 
@@ -37,33 +38,90 @@ const CORES = {
   zebraA: "#f09bc0",
   zebraB: "#fff9f3",
   faixa: "#fff9f3",
-  carro: "#d9739f",
-  oponente: "#aedede",
+  carroDela: "#d9739f", // rosa-forte (mesma regra dos anéis de perfil)
+  carroDele: "#aedede",
+  oponente: "#f8de7b", // sol — nunca confunde com o kart do menino
   cacau: "#2e1408",
 } as const;
 
-/** Carro cartoon desenhado direto no canvas (arte própria). */
+/** Carro cartoon visto de trás, desenhado direto no canvas (arte própria).
+ *  Com `rosto`, a cabeça da criança (avatar do perfil) sai pela cabine —
+ *  estilo kart; sem rosto (oponentes), um capacete genérico. */
 function desenharCarro(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   largura: number,
   cor: string,
+  rosto: HTMLImageElement | null | undefined,
 ) {
-  const altura = largura * 0.62;
+  const altura = largura * 0.6;
+  const traco = Math.max(1, largura * 0.035);
+
+  // rodas traseiras salientes
   ctx.fillStyle = CORES.cacau;
-  ctx.fillRect(x - largura * 0.46, y - altura * 0.22, largura * 0.2, altura * 0.26);
-  ctx.fillRect(x + largura * 0.26, y - altura * 0.22, largura * 0.2, altura * 0.26);
-  ctx.fillStyle = cor;
   ctx.beginPath();
-  ctx.roundRect(x - largura / 2, y - altura, largura, altura, largura * 0.16);
+  ctx.roundRect(x - largura * 0.56, y - altura * 0.42, largura * 0.18, altura * 0.46, largura * 0.05);
+  ctx.roundRect(x + largura * 0.38, y - altura * 0.42, largura * 0.18, altura * 0.46, largura * 0.05);
+  ctx.fill();
+
+  // cabeça do piloto ATRÁS do corpo — alta o bastante para o ROSTO aparecer
+  // inteiro acima do encosto (a 1ª versão só mostrava a testa)
+  const raioCabeca = largura * 0.24;
+  const cabecaY = y - altura * 1.42;
+  if (rosto) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(x, cabecaY, raioCabeca, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.drawImage(rosto, x - raioCabeca, cabecaY - raioCabeca, raioCabeca * 2, raioCabeca * 2);
+    ctx.restore();
+    ctx.beginPath();
+    ctx.arc(x, cabecaY, raioCabeca, 0, Math.PI * 2);
+    ctx.strokeStyle = CORES.cacau;
+    ctx.lineWidth = traco;
+    ctx.stroke();
+  } else {
+    // capacete genérico dos oponentes
+    ctx.beginPath();
+    ctx.arc(x, cabecaY + raioCabeca * 0.35, raioCabeca * 0.8, Math.PI, 0);
+    ctx.fillStyle = "#fff9f3";
+    ctx.fill();
+    ctx.strokeStyle = CORES.cacau;
+    ctx.lineWidth = traco;
+    ctx.stroke();
+  }
+
+  // corpo com leve gradiente (teto mais claro)
+  const gradiente = ctx.createLinearGradient(0, y - altura, 0, y);
+  gradiente.addColorStop(0, "#ffffff");
+  gradiente.addColorStop(0.25, cor);
+  gradiente.addColorStop(1, cor);
+  ctx.fillStyle = gradiente;
+  ctx.beginPath();
+  ctx.roundRect(x - largura / 2, y - altura, largura, altura, largura * 0.14);
   ctx.fill();
   ctx.strokeStyle = CORES.cacau;
-  ctx.lineWidth = Math.max(1, largura * 0.04);
+  ctx.lineWidth = traco;
   ctx.stroke();
+
+  // encosto baixo atrás do pescoço (não cobre o rosto)
+  ctx.fillStyle = CORES.cacau;
+  ctx.beginPath();
+  ctx.roundRect(x - largura * 0.26, y - altura * 1.08, largura * 0.52, altura * 0.24, largura * 0.08);
+  ctx.fill();
+
+  // lanternas
+  ctx.fillStyle = "#edc23f";
+  ctx.beginPath();
+  ctx.roundRect(x - largura * 0.42, y - altura * 0.34, largura * 0.16, altura * 0.16, largura * 0.04);
+  ctx.roundRect(x + largura * 0.26, y - altura * 0.34, largura * 0.16, altura * 0.16, largura * 0.04);
+  ctx.fill();
+
+  // faixa esportiva central
   ctx.fillStyle = "#fff9f3";
   ctx.beginPath();
-  ctx.roundRect(x - largura * 0.28, y - altura * 0.92, largura * 0.56, altura * 0.4, largura * 0.1);
+  ctx.roundRect(x - largura * 0.07, y - altura * 0.72, largura * 0.14, altura * 0.6, largura * 0.03);
   ctx.fill();
 }
 
@@ -73,6 +131,8 @@ function desenharQuadro(
   cssL: number,
   cssA: number,
   paralaxe: boolean,
+  rosto: HTMLImageElement | null,
+  corCarro: string,
 ) {
   const horizonte = cssA * 0.32;
   ctx.fillStyle = CORES.ceu;
@@ -148,11 +208,11 @@ function desenharQuadro(
     const centro = perto.centro + (longe.centro - perto.centro) * t;
     const meia = perto.meia + (longe.meia - perto.meia) * t;
     const y = perto.y + (longe.y - perto.y) * t;
-    desenharCarro(ctx, centro + o.lateral * meia, y, Math.max(10, meia * 0.24), CORES.oponente);
+    desenharCarro(ctx, centro + o.lateral * meia, y, Math.max(10, meia * 0.24), CORES.oponente, null);
   }
 
   // carro da criança: fixo no centro-baixo; a PISTA é quem desliza
-  desenharCarro(ctx, cssL / 2, cssA - 8, Math.min(cssL * 0.24, 110), CORES.carro);
+  desenharCarro(ctx, cssL / 2, cssA - 10, Math.min(cssL * 0.26, 120), corCarro, rosto);
 }
 
 export function Corrida() {
@@ -167,6 +227,11 @@ export function Corrida() {
   const [confete, setConfete] = useState(false);
   const [semente, setSemente] = useState(0);
   const mudo = useSyncExternalStore(assinarMudo, estaMudo, mudoNoServidor);
+  const perfil = usePerfil();
+  const perfilRef = useRef(perfil);
+  useEffect(() => {
+    perfilRef.current = perfil;
+  }, [perfil]);
 
   const estadoRef = useRef<EstadoCorrida | null>(null);
   const faseRef = useRef<Fase>("menu");
@@ -179,6 +244,25 @@ export function Corrida() {
   const desdeHud = useRef(0);
   const lacoRef = useRef<LacoTempoReal | null>(null);
   const reduzirMotion = useRef(false);
+  const rostoRef = useRef<HTMLImageElement | null>(null);
+
+  // avatar do perfil vira o piloto do kart (trocar de jogador troca o rosto;
+  // perfis dinâmicos chegam por blob: — mesma origem, sem CORS)
+  useEffect(() => {
+    let vivo = true;
+    rostoRef.current = null; // falhou o load do novo? capacete, nunca o rosto do perfil ANTERIOR
+    const imagem = new Image();
+    imagem.onload = () => {
+      if (vivo) rostoRef.current = imagem;
+    };
+    imagem.onerror = () => {
+      if (vivo) rostoRef.current = null;
+    };
+    imagem.src = perfil.avatar.src;
+    return () => {
+      vivo = false;
+    };
+  }, [perfil]);
 
   useEffect(() => {
     const s = sementeInicial(window.location.search);
@@ -263,7 +347,15 @@ export function Corrida() {
           canvas.height = cssA * dpr;
         }
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        desenharQuadro(ctx, estado, cssL, cssA, !reduzirMotion.current);
+        desenharQuadro(
+          ctx,
+          estado,
+          cssL,
+          cssA,
+          !reduzirMotion.current,
+          rostoRef.current,
+          perfilRef.current.identidade.genero === "o" ? CORES.carroDele : CORES.carroDela,
+        );
         if (desdeHud.current >= HUD_A_CADA) publicarHud(estado);
       },
     });
